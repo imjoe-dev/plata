@@ -1,0 +1,76 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400..700;1,400..700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* ── Colors: neutral scale (cool near-black → bone-white, hue 240°) ── */
+  --color-base: oklch(0.14 0.005 240);
+  --color-raised: oklch(0.18 0.005 240);
+  --color-sunken: oklch(0.12 0.005 240);
+  --color-overlay: oklch(0.22 0.005 240);
+
+  --color-hairline: oklch(0.26 0.005 240);
+  --color-hairline-strong: oklch(0.34 0.005 240);
+
+  --color-fg: oklch(0.92 0.005 240);
+  --color-fg-strong: oklch(0.985 0.002 240);
+  --color-fg-muted: oklch(0.62 0.005 240);
+  --color-fg-faint: oklch(0.45 0.005 240);
+
+  /* ── Colors: accents (used sparingly) ── */
+  --color-accent: oklch(0.9 0.2 118);
+  --color-accent-press: oklch(0.82 0.2 118);
+  --color-accent-fg: oklch(0.16 0.04 118);
+
+  --color-positive: oklch(0.9 0.2 118);
+  --color-negative: oklch(0.68 0.2 25);
+  --color-caution: oklch(0.82 0.15 78);
+  --color-info: oklch(0.74 0.13 235);
+
+  --color-accent-bg: oklch(0.9 0.2 118 / 0.08);
+  --color-negative-bg: oklch(0.68 0.2 25 / 0.1);
+  --color-caution-bg: oklch(0.82 0.15 78 / 0.1);
+  --color-info-bg: oklch(0.74 0.13 235 / 0.1);
+
+  /* ── Typography ── */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Border radius: zero everywhere, full reserved for avatars ── */
+  --radius-*: initial;
+  --radius-none: 0;
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-full: 9999px;
+
+  /* ── Shadows: two tokens only, nearly invisible ── */
+  --shadow-sm: 0 0 0 1px oklch(0 0 0 / 0.4), 0 4px 12px oklch(0 0 0 / 0.35);
+  --shadow-lg: 0 0 0 1px oklch(0 0 0 / 0.5), 0 24px 48px oklch(0 0 0 / 0.55);
+
+  /* ── Motion ── */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-slow: 200ms;
+  --duration-num: 400ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
