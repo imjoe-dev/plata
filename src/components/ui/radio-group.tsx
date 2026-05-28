@@ -12,7 +12,7 @@ export function Radio({ className, ...props }: BaseRadio.Root.Props) {
       className={cn(
         "text-fg border-hairline bg-sunken flex size-3.5 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border text-xs transition-colors duration-100 select-none",
         "hover:border-hairline-strong",
-        "focus-visible:ring-fg-muted focus-visible:ring-1",
+        "focus-visible:ring-fg-muted focus-visible:ring-1 focus-visible:outline-none",
         "data-checked:border-accent",
         "data-disabled:cursor-not-allowed data-disabled:opacity-40",
         className,
