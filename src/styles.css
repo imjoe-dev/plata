@@ -76,3 +76,12 @@ body {
   background-color: var(--color-base);
   color: var(--color-fg);
 }
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
