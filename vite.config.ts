@@ -23,6 +23,11 @@ const config = defineConfig({
     options: { typeAware: true, typeCheck: true },
   },
   resolve: { tsconfigPaths: true },
+  ssr: {
+    optimizeDeps: {
+      exclude: ["@base-ui/react"],
+    },
+  },
   plugins: [
     devtools(),
     cloudflare({ viteEnvironment: { name: "ssr" } }),
