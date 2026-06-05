@@ -3,6 +3,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
 import { ToastProvider, Toast } from "@/components/ui/toast";
+import { ClientOnly } from "@/components/client-only";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -47,7 +48,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <ToastProvider>
           {children}
-          <Toast />
+          <ClientOnly>
+            <Toast />
+          </ClientOnly>
         </ToastProvider>
         <TanStackDevtools
           config={{
