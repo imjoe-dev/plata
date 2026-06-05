@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { LoginPage } from "./login";
+import { LoginPage } from "@/components/login-page";
 
 const mockSignInSocial = vi.fn();
 const mockToastAdd = vi.fn();
