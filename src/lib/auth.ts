@@ -7,7 +7,7 @@ import { db } from "@/db";
 
 export function auth() {
   return betterAuth({
-    database: drizzleAdapter(db(), { provider: "sqlite" }),
+    database: drizzleAdapter(db(), { provider: "sqlite", usePlural: true }),
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID,

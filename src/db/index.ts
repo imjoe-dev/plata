@@ -3,8 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { env } from "cloudflare:workers";
 
 import * as schema from "./schema.ts";
-import { relations } from "./relations.ts";
 
 export function db() {
-  return drizzle(env.DB, { schema, relations });
+  return drizzle(env.DB, { schema });
 }

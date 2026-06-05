@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { Toast as Base } from "@base-ui/react/toast";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
+import { toastManager } from "./toast-manager";
 
 const variants = cva("", {
   variants: {
@@ -19,14 +20,12 @@ const variants = cva("", {
 
 export type Variant = VariantProps<typeof variants>;
 
-export const useToast = Base.useToastManager<Variant>;
-
 export function ToastProvider({ ...props }: Base.Provider.Props) {
-  return <Base.Provider {...props} />;
+  return <Base.Provider toastManager={toastManager} {...props} />;
 }
 
 export function Toast() {
-  const { toasts } = useToast();
+  const { toasts } = Base.useToastManager();
 
   return (
     <Base.Portal>

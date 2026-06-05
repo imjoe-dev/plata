@@ -1,25 +1,24 @@
 import { Button } from "@/components/ui/button";
 import { Google } from "@/components/icons/google";
 import { authClient } from "@/lib/auth-client";
-import { useToast } from "@/components/ui/toast";
+import { toastManager } from "./ui/toast-manager";
 
 export function LoginPage() {
-  const toast = useToast();
+  async function handleSignIn() {
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
 
-  const handleSignIn = async () => {
-    try {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
-    } catch (error) {
-      console.error(error);
-      toast.add({
-        title: "Login failed",
-        data: { variant: "error" },
-      });
+    if (!error) {
+      return;
     }
-  };
+
+    toastManager.add({
+      title: `Login failed with error: ${error.message ?? "unknown error"}`,
+      data: { variant: "error" },
+    });
+  }
 
   return (
     <div className="bg-base flex min-h-screen items-center justify-center">
