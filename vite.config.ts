@@ -23,13 +23,9 @@ const config = defineConfig({
     options: { typeAware: true, typeCheck: true },
   },
   resolve: { tsconfigPaths: true },
-  test: {
-    environment: "jsdom",
-    globals: true,
-  },
   plugins: [
     devtools(),
-    ...(process.env.VITEST ? [] : [cloudflare({ viteEnvironment: { name: "ssr" } })]),
+    cloudflare({ viteEnvironment: { name: "ssr" } }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),
