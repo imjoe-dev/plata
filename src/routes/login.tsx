@@ -17,8 +17,7 @@ export function LoginPage() {
         provider: "google",
         callbackURL: "/",
       });
-    } catch (error) {
-      console.error("Google sign-in failed:", error);
+    } catch {
       toast.add({
         title: "Login failed",
         data: { variant: "error" },

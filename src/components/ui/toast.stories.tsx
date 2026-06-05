@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
 
 import { Button } from "./button";
-import { Toast, ToasProvider, useToast, type Variant } from "./toast";
+import { Toast, ToastProvider, useToast, type Variant } from "./toast";
 
 function ToastDemo({ variant }: Variant) {
   const toastManager = useToast();
@@ -41,10 +41,10 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <ToasProvider>
+      <ToastProvider>
         <Story />
         <Toast />
-      </ToasProvider>
+      </ToastProvider>
     ),
   ],
 } satisfies Meta<typeof Toast>;

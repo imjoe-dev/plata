@@ -21,7 +21,7 @@ export type Variant = VariantProps<typeof variants>;
 
 export const useToast = Base.useToastManager<Variant>;
 
-export function ToasProvider({ ...props }: Base.Provider.Props) {
+export function ToastProvider({ ...props }: Base.Provider.Props) {
   return <Base.Provider {...props} />;
 }
 
