@@ -2,6 +2,8 @@ import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/reac
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 
+import { ToastProvider, Toast } from "@/components/ui/toast";
+
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
 import appCss from "../styles.css?url";
@@ -43,7 +45,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ToastProvider>
+          {children}
+          <Toast />
+        </ToastProvider>
         <TanStackDevtools
           config={{
             position: "bottom-right",
