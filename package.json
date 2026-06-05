@@ -11,10 +11,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio",
+    "db:migrate:local": "wrangler d1 migrations apply plata --local",
+    "db:migrate:remote": "wrangler d1 migrations apply plata --remote",
     "prepare": "vp config"
   },
   "dependencies": {

@@ -1,5 +1,10 @@
 import { drizzle } from "drizzle-orm/d1";
 
-import * as schema from "./schema.ts";
+import { env } from "cloudflare:workers";
 
-export const db = drizzle(process.env.DATABASE_URL!, { schema });
+import * as schema from "./schema.ts";
+import { relations } from "./relations.ts";
+
+export function db() {
+  return drizzle(env.DB, { schema, relations });
+}
