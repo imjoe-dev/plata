@@ -14,7 +14,7 @@ import {
   Quote,
   Strikethrough,
 } from "lucide-react";
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface PromptInputContextValue {
   editor: Editor | null;
@@ -47,6 +47,8 @@ function Root({
   className,
   children,
 }: RootProps) {
+  const [isControlled] = useState(() => value !== undefined);
+
   const extensions = [
     StarterKit.configure({
       codeBlock: false,
@@ -57,7 +59,7 @@ function Root({
 
   const editor = useEditor({
     extensions,
-    content: defaultValue,
+    content: isControlled ? value : defaultValue,
     editable: !disabled,
     editorProps: {
       attributes: {
@@ -83,13 +85,13 @@ function Root({
   });
 
   useEffect(() => {
-    if (editor && value !== undefined) {
+    if (isControlled && editor && value !== undefined) {
       const currentContent = editor.getHTML();
       if (value !== currentContent) {
         editor.commands.setContent(value, { emitUpdate: false });
       }
     }
-  }, [editor, value]);
+  }, [editor, value, isControlled]);
 
   useEffect(() => {
     if (editor) {
@@ -106,7 +108,7 @@ function Root({
   );
 }
 
-function Toolbar() {
+function Toolbar({ className }: { className?: string }) {
   const { editor } = usePromptInputContext();
   if (!editor) return null;
 
@@ -119,11 +121,17 @@ function Toolbar() {
   const icon = "size-3.5";
 
   return (
-    <div className="border-hairline bg-raised flex flex-wrap items-center gap-0.5 border-b p-1">
+    <div
+      className={cn(
+        "border-hairline bg-raised flex flex-wrap items-center gap-0.5 border-b p-1",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={btn(editor.isActive("bold"))}
+        aria-label="Bold"
       >
         <Bold className={icon} />
       </button>
@@ -131,6 +139,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={btn(editor.isActive("italic"))}
+        aria-label="Italic"
       >
         <Italic className={icon} />
       </button>
@@ -138,6 +147,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleStrike().run()}
         className={btn(editor.isActive("strike"))}
+        aria-label="Strikethrough"
       >
         <Strikethrough className={icon} />
       </button>
@@ -148,6 +158,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         className={btn(editor.isActive("heading", { level: 1 }))}
+        aria-label="Heading 1"
       >
         <Heading1 className={icon} />
       </button>
@@ -155,6 +166,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         className={btn(editor.isActive("heading", { level: 2 }))}
+        aria-label="Heading 2"
       >
         <Heading2 className={icon} />
       </button>
@@ -162,6 +174,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         className={btn(editor.isActive("heading", { level: 3 }))}
+        aria-label="Heading 3"
       >
         <Heading3 className={icon} />
       </button>
@@ -172,6 +185,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         className={btn(editor.isActive("bulletList"))}
+        aria-label="Bullet list"
       >
         <List className={icon} />
       </button>
@@ -179,6 +193,7 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         className={btn(editor.isActive("orderedList"))}
+        aria-label="Ordered list"
       >
         <ListOrdered className={icon} />
       </button>
@@ -189,15 +204,15 @@ function Toolbar() {
         type="button"
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         className={btn(editor.isActive("blockquote"))}
+        aria-label="Blockquote"
       >
         <Quote className={icon} />
       </button>
       <button
         type="button"
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        className={cn(
-          "duration-fast text-fg-muted hover:text-fg hover:bg-sunken inline-flex size-7 items-center justify-center text-xs transition-colors ease-out",
-        )}
+        className={btn(false)}
+        aria-label="Horizontal rule"
       >
         <Minus className={icon} />
       </button>
