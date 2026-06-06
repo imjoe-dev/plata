@@ -21,6 +21,8 @@
     "@cloudflare/vite-plugin": "^1.26.0",
     "@storybook/react-vite": "^10.2.15",
     "@tailwindcss/vite": "^4.1.18",
+    "@tanstack/ai": "^0.28.0",
+    "@tanstack/ai-openai": "^0.14.1",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "latest",
     "@tanstack/react-query-devtools": "latest",
@@ -38,7 +40,8 @@
     "react-dom": "^19.2.0",
     "storybook": "^10.2.15",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.3",
