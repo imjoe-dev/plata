@@ -15,7 +15,7 @@ Both are pure UI — no backend integration. Each ships with Storybook stories.
 ## Dependencies to Add
 
 ```bash
-pnpm add @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder react-markdown remark-gfm
+vp install @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder react-markdown remark-gfm
 ```
 
 - `@tiptap/react` — React bindings for TipTap
@@ -189,20 +189,21 @@ ChatMessages.Attachment      → chip for file/image attachments
 
 #### `ChatMessages.UserMessage`
 
-| Prop        | Type        | Default | Description                      |
-| ----------- | ----------- | ------- | -------------------------------- |
-| `children`  | `ReactNode` | —       | Message content (plain text)     |
-| `className` | `string`    | —       | Additional classes on the bubble |
+| Prop        | Type     | Default | Description                             |
+| ----------- | -------- | ------- | --------------------------------------- |
+| `children`  | `string` | —       | Markdown string content                 |
+| `className` | `string` | —       | Additional classes on the outer wrapper |
 
 **Behavior**:
 
-- Renders children in a right-aligned bubble
-- Wrapped in a flex row that justifies-end
+- Renders children as markdown via `react-markdown` with `remarkGfm` plugin
+- Applies the same custom `components` map as `AssistantMessage` (shared markdown styling)
+- Right-aligned bubble, wrapped in a flex row that justifies-end
 
 **Styling**:
 
 - Row wrapper: `flex justify-end`
-- Bubble: `bg-raised border-hairline text-fg max-w-[80%] border px-3 py-2 text-sm`
+- Bubble: `max-w-[80%]` (markdown content inherits text styling from the shared mappings below)
 
 #### `ChatMessages.AssistantMessage`
 
@@ -214,10 +215,12 @@ ChatMessages.Attachment      → chip for file/image attachments
 **Behavior**:
 
 - Renders children as markdown via `react-markdown` with `remarkGfm` plugin
-- Applies custom `components` map for all supported markdown elements
+- Applies the shared custom `components` map (see below)
 - Left-aligned bubble
 
-**Markdown Component Mappings**:
+### Shared Markdown Component Mappings
+
+Both `UserMessage` and `AssistantMessage` use the same `components` map for `react-markdown`:
 
 | Markdown Element | Styled Component              | Classes                                                                           |
 | ---------------- | ----------------------------- | --------------------------------------------------------------------------------- |
@@ -336,7 +339,7 @@ No props beyond `children: ReactNode` and `className`.
 
 ### Markdown Rendering Implementation
 
-`AssistantMessage` renders markdown with a system that maps every element to a design-system class. Each component in the `components` prop is either:
+`UserMessage` and `AssistantMessage` both render markdown with a shared system that maps every element to a design-system class. Each component in the `components` prop is either:
 
 1. **A styled HTML element** with `className` applied
 2. **An explicit empty fragment** for disallowed elements (img, code, pre)
