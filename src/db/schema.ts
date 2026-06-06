@@ -185,12 +185,54 @@ export const recurring_templates = sqliteTable(
   ],
 );
 
+export const chat_sessions = sqliteTable(
+  "chat_sessions",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    created_at: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updated_at: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("chat_sessions_user_id_idx").on(table.user_id)],
+);
+
+export const chat_messages = sqliteTable(
+  "chat_messages",
+  {
+    id: text("id").primaryKey(),
+    session_id: text("session_id")
+      .notNull()
+      .references(() => chat_sessions.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["user", "assistant"] }).notNull(),
+    content: text("content").notNull(),
+    created_at: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updated_at: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [index("chat_messages_session_id_idx").on(table.session_id)],
+);
+
 export const users_relations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   categories: many(categories),
   transactions: many(transactions),
   recurring_templates: many(recurring_templates),
+  chat_sessions: many(chat_sessions),
 }));
 
 export const sessions_relations = relations(sessions, ({ one }) => ({
@@ -241,4 +283,19 @@ export const recurring_templates_relations = relations(recurring_templates, ({ o
     references: [categories.id],
   }),
   transactions: many(transactions),
+}));
+
+export const chat_sessions_relations = relations(chat_sessions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [chat_sessions.user_id],
+    references: [users.id],
+  }),
+  messages: many(chat_messages),
+}));
+
+export const chat_messages_relations = relations(chat_messages, ({ one }) => ({
+  session: one(chat_sessions, {
+    fields: [chat_messages.session_id],
+    references: [chat_sessions.id],
+  }),
 }));
