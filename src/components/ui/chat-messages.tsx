@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import { Table } from "@/components/ui/table";
 import { Wrench, ChevronDown } from "lucide-react";
 
 const markdownComponents: Components = {
@@ -21,17 +22,17 @@ const markdownComponents: Components = {
     </p>
   ),
   h1: ({ children, ...props }) => (
-    <h1 className="text-fg-strong mt-3 mb-1 font-serif text-lg font-medium" {...props}>
+    <h1 className="text-fg-strong mt-3 mb-1 text-lg font-medium" {...props}>
       {children}
     </h1>
   ),
   h2: ({ children, ...props }) => (
-    <h2 className="text-fg-strong mt-2 mb-1 font-serif text-base font-medium" {...props}>
+    <h2 className="text-fg-strong mt-2 mb-1 font-medium" {...props}>
       {children}
     </h2>
   ),
   h3: ({ children, ...props }) => (
-    <h3 className="text-fg-strong mt-2 mb-0.5 font-serif text-sm font-medium" {...props}>
+    <h3 className="text-fg-strong mt-2 mb-0.5 text-sm font-medium" {...props}>
       {children}
     </h3>
   ),
@@ -79,32 +80,16 @@ const markdownComponents: Components = {
     </a>
   ),
   hr: (props) => <hr className="border-hairline my-3" {...props} />,
-  table: ({ children, ...props }) => (
+  table: ({ children }) => (
     <div className="my-2 overflow-x-auto">
-      <table className="w-full border-collapse text-sm" {...props}>
-        {children}
-      </table>
+      <Table.Root>{children}</Table.Root>
     </div>
   ),
-  thead: ({ children, ...props }) => (
-    <thead className="border-hairline border-b" {...props}>
-      {children}
-    </thead>
-  ),
-  th: ({ children, ...props }) => (
-    <th
-      className="text-fg-strong border-hairline border-b px-2 py-1 text-left text-xs font-medium"
-      {...props}
-    >
-      {children}
-    </th>
-  ),
-  td: ({ children, ...props }) => (
-    <td className="text-fg border-hairline border-b px-2 py-1 text-sm" {...props}>
-      {children}
-    </td>
-  ),
-  tr: ({ children, ...props }) => <tr {...props}>{children}</tr>,
+  thead: ({ children }) => <Table.Header>{children}</Table.Header>,
+  tbody: ({ children }) => <Table.Body>{children}</Table.Body>,
+  th: ({ children }) => <Table.Head>{children}</Table.Head>,
+  td: ({ children }) => <Table.Cell>{children}</Table.Cell>,
+  tr: ({ children }) => <Table.Row>{children}</Table.Row>,
   img: () => null,
   code: () => null,
   pre: () => null,
@@ -179,7 +164,7 @@ function Attachment({ name, children, className }: ChatMessagesAttachmentProps) 
       )}
     >
       {children}
-      <span className="text-fg-muted max-w-[200px] truncate">{name}</span>
+      <span className="text-fg-muted max-w-50 truncate">{name}</span>
     </div>
   );
 }

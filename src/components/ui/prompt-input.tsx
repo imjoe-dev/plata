@@ -65,9 +65,9 @@ function Root({
       attributes: {
         class: cn(
           "text-fg min-h-[120px] w-full px-3 py-2 font-sans text-sm leading-relaxed outline-none",
-          "[&_h1]:text-fg-strong [&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:font-serif [&_h1]:text-lg [&_h1]:font-medium",
-          "[&_h2]:text-fg-strong [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:font-serif [&_h2]:text-base [&_h2]:font-medium",
-          "[&_h3]:text-fg-strong [&_h3]:mt-2 [&_h3]:mb-0.5 [&_h3]:font-serif [&_h3]:text-sm [&_h3]:font-medium",
+          "[&_h1]:text-fg-strong [&_h1]:mt-3 [&_h1]:mb-1 [&_h1]:text-lg [&_h1]:font-medium",
+          "[&_h2]:text-fg-strong [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-medium",
+          "[&_h3]:text-fg-strong [&_h3]:mt-2 [&_h3]:mb-0.5 [&_h3]:text-sm [&_h3]:font-medium",
           "[&_ul]:list-disc [&_ul]:space-y-0.5 [&_ul]:pl-5",
           "[&_ol]:list-decimal [&_ol]:space-y-0.5 [&_ol]:pl-5",
           "[&_blockquote]:border-hairline-strong [&_blockquote]:text-fg-muted [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_blockquote]:italic",
