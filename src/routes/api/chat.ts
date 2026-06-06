@@ -12,7 +12,7 @@ const adapters: Record<SupportedModel, ReturnType<typeof openaiText>> = {
 };
 
 const modelIdSchema = z.object({
-  modelId: z.enum(SUPPORTED_MODELS),
+  model_id: z.enum(SUPPORTED_MODELS),
 });
 
 export const Route = createFileRoute("/api/chat")({
@@ -20,11 +20,11 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request }) => {
         const body = await request.json();
-        const { modelId } = modelIdSchema.parse(body);
+        const { model_id } = modelIdSchema.parse(body);
         const { messages } = await chatParamsFromRequestBody(body);
 
         const stream = chat({
-          adapter: adapters[modelId],
+          adapter: adapters[model_id],
           messages,
         });
 
