@@ -157,7 +157,7 @@ function ToolCallName({ children, className, ...props }: Collapsible.Trigger.Pro
       {...props}
     >
       <Wrench className="text-fg-muted size-3.5" />
-      {children}
+      <span className="text-fg-strong font-mono text-xs font-medium">{children}</span>
       <ChevronDown className="text-fg-muted ml-auto size-3.5 transition-transform data-panel-open:rotate-180" />
     </Collapsible.Trigger>
   );
