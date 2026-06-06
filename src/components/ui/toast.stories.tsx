@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
 
 import { Button } from "./button";
-import { Toast, ToastProvider, useToast, type Variant } from "./toast";
+import { Toast, ToastProvider, type Variant } from "./toast";
+import { toastManager } from "./toast-manager";
 
 function ToastDemo({ variant }: Variant) {
-  const toastManager = useToast();
   const count = useRef(0);
 
   const addToast = () => {

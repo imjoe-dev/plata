@@ -92,7 +92,7 @@ Replace the contents of `src/routes/login.tsx` with:
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Google } from "@/components/icons/google";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth/client";
 import { useToast } from "@/components/ui/toast";
 
 export const Route = createFileRoute("/login")({
@@ -159,7 +159,7 @@ import { LoginPage } from "./login";
 const mockSignInSocial = vi.fn();
 const mockToastAdd = vi.fn();
 
-vi.mock("@/lib/auth-client", () => ({
+vi.mock("@/lib/auth/client", () => ({
   authClient: {
     signIn: {
       social: (...args: unknown[]) => mockSignInSocial(...args),

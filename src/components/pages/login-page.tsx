@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Google } from "@/components/icons/google";
-import { authClient } from "@/lib/auth-client";
-import { toastManager } from "./ui/toast-manager";
+import { authClient } from "@/lib/auth/client";
+import { toastManager } from "@/components/ui/toast-manager";
 
 export function LoginPage() {
   async function handleSignIn() {

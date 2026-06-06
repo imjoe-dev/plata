@@ -26,7 +26,7 @@ Integrate the existing `/login` route with the `better-auth` client to enable Go
 ### `src/routes/login.tsx`
 
 - Add `onClick` handler to the Google login button.
-- Import `authClient` from `@/lib/auth-client`.
+- Import `authClient` from `@/lib/auth/client`.
 - Import `useToast` from `@/components/ui/toast`.
 - Wrap `authClient.signIn.social` in `try/catch`.
 - On error, show a toast with variant `error`.
