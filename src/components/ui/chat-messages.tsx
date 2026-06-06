@@ -1,8 +1,18 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  Children,
+  createContext,
+  isValidElement,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import { Wrench, ChevronDown } from "lucide-react";
 
 const markdownComponents: Components = {
   p: ({ children, ...props }) => (
@@ -174,4 +184,123 @@ function Attachment({ name, children, className }: ChatMessagesAttachmentProps) 
   );
 }
 
-export { List, UserMessage, AssistantMessage, Attachment };
+interface ToolCallContextValue {
+  expanded: boolean;
+  toggle: () => void;
+}
+
+const ToolCallContext = createContext<ToolCallContextValue>({
+  expanded: false,
+  toggle: () => {},
+});
+
+function useToolCall() {
+  return useContext(ToolCallContext);
+}
+
+interface ChatMessagesToolCallNameProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function ToolCallName({ children, className }: ChatMessagesToolCallNameProps) {
+  return (
+    <span className={cn("text-fg-strong font-mono text-xs font-medium", className)}>
+      {children}
+    </span>
+  );
+}
+ToolCallName.displayName = "ChatMessages.ToolCallName";
+
+interface ChatMessagesToolCallProps {
+  children: ReactNode;
+  className?: string;
+  defaultExpanded?: boolean;
+}
+
+function ToolCall({ children, className, defaultExpanded = false }: ChatMessagesToolCallProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const toggle = () => setExpanded((prev) => !prev);
+
+  const childrenArray = Children.toArray(children);
+  const toolCallNameChild = childrenArray.find(
+    (child) => isValidElement(child) && child.type === ToolCallName,
+  );
+  const restChildren = childrenArray.filter(
+    (child) => !(isValidElement(child) && child.type === ToolCallName),
+  );
+
+  return (
+    <ToolCallContext.Provider value={{ expanded, toggle }}>
+      <div className={cn("border-hairline bg-raised border", className)}>
+        <button
+          type="button"
+          className="hover:bg-sunken duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none"
+          onClick={toggle}
+        >
+          <Wrench className="text-fg-muted size-3.5" />
+          <span className="text-fg-muted font-mono text-xs">Tool call</span>
+          {toolCallNameChild}
+          <ChevronDown
+            className={cn(
+              "text-fg-muted ml-auto size-3.5 transition-transform",
+              expanded && "rotate-180",
+            )}
+          />
+        </button>
+        {expanded && (
+          <div className="border-hairline space-y-2 border-t px-3 py-2">{restChildren}</div>
+        )}
+      </div>
+    </ToolCallContext.Provider>
+  );
+}
+
+interface ChatMessagesToolCallArgsProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function ToolCallArgs({ children, className }: ChatMessagesToolCallArgsProps) {
+  const { expanded } = useToolCall();
+  if (!expanded) return null;
+
+  return (
+    <div className={className}>
+      <span className="text-fg-muted mb-1 block font-mono text-[10px]">Arguments</span>
+      <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
+        {children}
+      </pre>
+    </div>
+  );
+}
+
+interface ChatMessagesToolCallResponseProps {
+  children: ReactNode;
+  className?: string;
+}
+
+function ToolCallResponse({ children, className }: ChatMessagesToolCallResponseProps) {
+  const { expanded } = useToolCall();
+  if (!expanded) return null;
+
+  return (
+    <div className={className}>
+      <span className="text-fg-muted mb-1 block font-mono text-[10px]">Response</span>
+      <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
+        {children}
+      </pre>
+    </div>
+  );
+}
+
+export const ChatMessages = {
+  List,
+  UserMessage,
+  AssistantMessage,
+  ToolCall,
+  ToolCallName,
+  ToolCallArgs,
+  ToolCallResponse,
+  Attachment,
+};
