@@ -1,15 +1,14 @@
 import { chat, chatParamsFromRequestBody, toServerSentEventsResponse } from "@tanstack/ai";
-import { openaiText } from "@tanstack/ai-openai";
+import { createOpenaiChat, openaiText } from "@tanstack/ai-openai";
 import { createFileRoute } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
 import { z } from "zod";
 
-const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o3-mini"] as const;
+const SUPPORTED_MODELS = ["gpt-5.4-mini"] as const;
 type SupportedModel = (typeof SUPPORTED_MODELS)[number];
 
 const adapters: Record<SupportedModel, ReturnType<typeof openaiText>> = {
-  "gpt-4o": openaiText("gpt-4o"),
-  "gpt-4o-mini": openaiText("gpt-4o-mini"),
-  "o3-mini": openaiText("o3-mini"),
+  "gpt-5.4-mini": createOpenaiChat("gpt-5.4-mini", env.OPENAI_API_KEY),
 };
 
 const modelIdSchema = z.object({
