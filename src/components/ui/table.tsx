@@ -38,8 +38,13 @@ function Row({ className, ...props }: React.ComponentProps<"tr">) {
   );
 }
 
-function Cell({ className }: React.ComponentProps<"td">) {
-  return <td className={cn("border-hairline text-fg border-b px-3.5 py-1.5 text-xs", className)} />;
+function Cell({ className, ...props }: React.ComponentProps<"td">) {
+  return (
+    <td
+      className={cn("border-hairline text-fg border-b px-3.5 py-1.5 text-xs", className)}
+      {...props}
+    />
+  );
 }
 
 export const Table = {

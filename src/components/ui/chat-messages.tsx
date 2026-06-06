@@ -8,80 +8,36 @@ import { Wrench, ChevronDown } from "lucide-react";
 import { Collapsible } from "@base-ui/react/collapsible";
 
 const markdownComponents: Components = {
-  p: ({ children, ...props }) => (
-    <p className="text-fg text-sm leading-relaxed" {...props}>
-      {children}
-    </p>
-  ),
-  h1: ({ children, ...props }) => (
-    <h1 className="text-fg-strong mt-3 mb-1 text-lg font-medium" {...props}>
-      {children}
-    </h1>
-  ),
-  h2: ({ children, ...props }) => (
-    <h2 className="text-fg-strong mt-2 mb-1 font-medium" {...props}>
-      {children}
-    </h2>
-  ),
-  h3: ({ children, ...props }) => (
-    <h3 className="text-fg-strong mt-2 mb-0.5 text-sm font-medium" {...props}>
-      {children}
-    </h3>
-  ),
-  strong: ({ children, ...props }) => (
-    <strong className="text-fg-strong font-semibold" {...props}>
-      {children}
-    </strong>
-  ),
-  em: ({ children, ...props }) => (
-    <em className="italic" {...props}>
-      {children}
-    </em>
-  ),
-  del: ({ children, ...props }) => (
-    <del className="text-fg-muted line-through" {...props}>
-      {children}
-    </del>
-  ),
-  ul: ({ children, ...props }) => (
-    <ul className="text-fg list-disc space-y-1 pl-5 text-sm" {...props}>
-      {children}
-    </ul>
-  ),
-  ol: ({ children, ...props }) => (
-    <ol className="text-fg list-decimal space-y-1 pl-5 text-sm" {...props}>
-      {children}
-    </ol>
-  ),
-  li: ({ children, ...props }) => (
-    <li className="text-fg text-sm" {...props}>
-      {children}
-    </li>
-  ),
-  blockquote: ({ children, ...props }) => (
+  p: (props) => <p className="text-fg text-sm leading-relaxed" {...props} />,
+  h1: (props) => <h1 className="text-fg-strong mt-3 mb-1 text-lg font-medium" {...props} />,
+  h2: (props) => <h2 className="text-fg-strong mt-2 mb-1 font-medium" {...props} />,
+  h3: (props) => <h3 className="text-fg-strong mt-2 mb-0.5 text-sm font-medium" {...props} />,
+  strong: (props) => <strong className="text-fg-strong font-semibold" {...props} />,
+  em: (props) => <em className="italic" {...props} />,
+  del: (props) => <del className="text-fg-muted line-through" {...props} />,
+  ul: (props) => <ul className="text-fg list-disc space-y-1 pl-5 text-sm" {...props} />,
+  ol: (props) => <ol className="text-fg list-decimal space-y-1 pl-5 text-sm" {...props} />,
+  li: (props) => <li className="text-fg text-sm" {...props} />,
+  blockquote: (props) => (
     <blockquote
       className="border-hairline-strong text-fg-muted my-2 border-l-2 pl-3 text-sm italic"
       {...props}
-    >
-      {children}
-    </blockquote>
+    />
   ),
-  a: ({ children, ...props }) => (
-    <a className="text-accent underline" target="_blank" rel="noopener noreferrer" {...props}>
-      {children}
-    </a>
+  a: (props) => (
+    <a className="text-accent underline" target="_blank" rel="noopener noreferrer" {...props} />
   ),
   hr: (props) => <hr className="border-hairline my-3" {...props} />,
-  table: ({ children }) => (
+  table: (props) => (
     <div className="my-2 overflow-x-auto">
-      <Table.Root>{children}</Table.Root>
+      <Table.Root {...props} />
     </div>
   ),
-  thead: ({ children }) => <Table.Header>{children}</Table.Header>,
-  tbody: ({ children }) => <Table.Body>{children}</Table.Body>,
-  th: ({ children }) => <Table.Head>{children}</Table.Head>,
-  td: ({ children }) => <Table.Cell>{children}</Table.Cell>,
-  tr: ({ children }) => <Table.Row>{children}</Table.Row>,
+  thead: (props) => <Table.Header {...props} />,
+  tbody: (props) => <Table.Body {...props} />,
+  th: (props) => <Table.Head {...props} />,
+  td: (props) => <Table.Cell {...props} />,
+  tr: (props) => <Table.Row {...props} />,
   img: () => null,
   code: () => null,
   pre: () => null,
