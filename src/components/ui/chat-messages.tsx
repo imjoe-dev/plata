@@ -64,7 +64,7 @@ const markdownComponents: Components = {
     </blockquote>
   ),
   a: ({ children, ...props }) => (
-    <a className="text-accent underline" {...props}>
+    <a className="text-accent underline" target="_blank" rel="noopener noreferrer" {...props}>
       {children}
     </a>
   ),
@@ -95,9 +95,9 @@ const markdownComponents: Components = {
     </td>
   ),
   tr: ({ children, ...props }) => <tr {...props}>{children}</tr>,
-  img: () => <></>,
-  code: () => <></>,
-  pre: () => <></>,
+  img: () => null,
+  code: () => null,
+  pre: () => null,
 };
 
 interface ChatMessagesListProps {
