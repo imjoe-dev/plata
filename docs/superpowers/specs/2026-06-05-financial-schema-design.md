@@ -31,22 +31,22 @@ Indexes: `categories_userId_idx` on `user_id`.
 
 Every expense or income entry, regardless of source.
 
-| Column                  | Type                     | Notes                                                                                                       |
-| ----------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `id`                    | `text`                   | PK                                                                                                          |
-| `amount`                | `integer` NOT NULL       | Signed integer in cents (positive = income, negative = expense). Sign tracks direction; `type` is semantic. |
-| `currency`              | `text` NOT NULL          | ISO 4217, default `"USD"`                                                                                   |
-| `type`                  | `text` NOT NULL          | `expense`, `income` (semantic, mirrors sign)                                                                |
-| `description`           | `text` NOT NULL          | e.g. "Netflix subscription"                                                                                 |
-| `date`                  | `integer` NOT NULL       | When the transaction occurred (timestamp_ms)                                                                |
-| `category_id`           | `text`                   | FK → `categories.id` ON DELETE SET NULL                                                                     |
-| `user_id`               | `text` NOT NULL          | FK → `users.id` ON DELETE CASCADE                                                                           |
-| `recurring_template_id` | `text`                   | FK → `recurring_templates.id` ON DELETE SET NULL; tracks origin for template-generated txns                 |
-| `source`                | `text` NOT NULL          | `manual`, `chat`, `csv_import`                                                                              |
-| `notes`                 | `text`                   | Optional additional detail                                                                                  |
-| `created_at`            | `integer` (timestamp_ms) | NOT NULL, auto-set                                                                                          |
-| `updated_at`            | `integer` (timestamp_ms) | NOT NULL, auto-on-update                                                                                    |
-| `deleted_at`            | `integer` (timestamp_ms) | NULLABLE, soft delete                                                                                       |
+| Column                  | Type                     | Notes                                                                                       |
+| ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------- |
+| `id`                    | `text`                   | PK                                                                                          |
+| `amount`                | `integer` NOT NULL       | Positive integer in cents (unsigned). `type` determines direction.                          |
+| `currency`              | `text` NOT NULL          | ISO 4217, default `"USD"`                                                                   |
+| `type`                  | `text` NOT NULL          | `expense`, `income` — authoritative direction, not just semantic                            |
+| `description`           | `text` NOT NULL          | e.g. "Netflix subscription"                                                                 |
+| `date`                  | `integer` NOT NULL       | When the transaction occurred (timestamp_ms)                                                |
+| `category_id`           | `text`                   | FK → `categories.id` ON DELETE SET NULL                                                     |
+| `user_id`               | `text` NOT NULL          | FK → `users.id` ON DELETE CASCADE                                                           |
+| `recurring_template_id` | `text`                   | FK → `recurring_templates.id` ON DELETE SET NULL; tracks origin for template-generated txns |
+| `source`                | `text` NOT NULL          | `manual`, `chat`, `csv_import`                                                              |
+| `notes`                 | `text`                   | Optional additional detail                                                                  |
+| `created_at`            | `integer` (timestamp_ms) | NOT NULL, auto-set                                                                          |
+| `updated_at`            | `integer` (timestamp_ms) | NOT NULL, auto-on-update                                                                    |
+| `deleted_at`            | `integer` (timestamp_ms) | NULLABLE, soft delete                                                                       |
 
 Indexes: `transactions_userId_idx` on `user_id`, `transactions_userId_date_idx` on `(user_id, date)`, `transactions_userId_categoryId_idx` on `(user_id, category_id)`.
 
@@ -54,24 +54,24 @@ Indexes: `transactions_userId_idx` on `user_id`, `transactions_userId_date_idx` 
 
 Defines recurrence patterns that generate transactions.
 
-| Column                | Type                     | Notes                                                           |
-| --------------------- | ------------------------ | --------------------------------------------------------------- |
-| `id`                  | `text`                   | PK                                                              |
-| `amount`              | `integer` NOT NULL       | Cents (positive for income, negative for expense)               |
-| `currency`            | `text` NOT NULL          | ISO 4217, default `"USD"`                                       |
-| `type`                | `text` NOT NULL          | `expense`, `income`                                             |
-| `description`         | `text` NOT NULL          | e.g. "Netflix monthly"                                          |
-| `category_id`         | `text`                   | FK → `categories.id` ON DELETE SET NULL                         |
-| `cadence`             | `text` NOT NULL          | `daily`, `weekly`, `biweekly`, `monthly`, `quarterly`, `yearly` |
-| `next_due_date`       | `integer` (timestamp_ms) | Next generation date                                            |
-| `last_insertion_date` | `integer` (timestamp_ms) | When the last transaction was generated                         |
-| `status`              | `text` NOT NULL          | `active`, `paused`, `completed`, `failed`                       |
-| `start_date`          | `integer` (timestamp_ms) | When recurrence begins                                          |
-| `end_date`            | `integer` (timestamp_ms) | NULLABLE; when recurrence ends (sets status → `completed`)      |
-| `user_id`             | `text` NOT NULL          | FK → `users.id` ON DELETE CASCADE                               |
-| `created_at`          | `integer` (timestamp_ms) | NOT NULL, auto-set                                              |
-| `updated_at`          | `integer` (timestamp_ms) | NOT NULL, auto-on-update                                        |
-| `deleted_at`          | `integer` (timestamp_ms) | NULLABLE, soft delete                                           |
+| Column                | Type                     | Notes                                                              |
+| --------------------- | ------------------------ | ------------------------------------------------------------------ |
+| `id`                  | `text`                   | PK                                                                 |
+| `amount`              | `integer` NOT NULL       | Positive integer in cents (unsigned). `type` determines direction. |
+| `currency`            | `text` NOT NULL          | ISO 4217, default `"USD"`                                          |
+| `type`                | `text` NOT NULL          | `expense`, `income`                                                |
+| `description`         | `text` NOT NULL          | e.g. "Netflix monthly"                                             |
+| `category_id`         | `text`                   | FK → `categories.id` ON DELETE SET NULL                            |
+| `cadence`             | `text` NOT NULL          | `daily`, `weekly`, `biweekly`, `monthly`, `quarterly`, `yearly`    |
+| `next_due_date`       | `integer` (timestamp_ms) | Next generation date                                               |
+| `last_insertion_date` | `integer` (timestamp_ms) | When the last transaction was generated                            |
+| `status`              | `text` NOT NULL          | `active`, `paused`, `completed`, `failed`                          |
+| `start_date`          | `integer` (timestamp_ms) | When recurrence begins                                             |
+| `end_date`            | `integer` (timestamp_ms) | NULLABLE; when recurrence ends (sets status → `completed`)         |
+| `user_id`             | `text` NOT NULL          | FK → `users.id` ON DELETE CASCADE                                  |
+| `created_at`          | `integer` (timestamp_ms) | NOT NULL, auto-set                                                 |
+| `updated_at`          | `integer` (timestamp_ms) | NOT NULL, auto-on-update                                           |
+| `deleted_at`          | `integer` (timestamp_ms) | NULLABLE, soft delete                                              |
 
 Indexes: `recurring_templates_userId_idx` on `user_id`, `recurring_templates_userId_status_idx` on `(user_id, status)`.
 
@@ -125,9 +125,10 @@ chat_messages.sessionId → chat_sessions.id  CASCADE
 - **Timestamps:** `integer` with `{ mode: "timestamp_ms" }`, default `(cast(unixepoch('subsecond') * 1000 as integer))`
 - **Booleans:** `integer` with `{ mode: "boolean" }`, matching existing auth convention
 - **Soft deletes:** `deleted_at` nullable timestamp
-- **Amounts:** Signed integer cents (negative = expense, positive = income)
-- **TS variable names:** camelCase; **DB column names:** snake_case
+- **Amounts:** Unsigned positive integer cents; `type` field determines direction
+- **TS variable names and DB column names:** both snake_case (e.g., `created_at` in both TS and DB)
 - **Table names:** snake_case plural
+- Existing auth tables updated to snake_case to match
 
 ## What's Not Included
 
