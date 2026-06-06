@@ -1,5 +1,4 @@
-import { chat, toServerSentEventsResponse } from "@tanstack/ai";
-import type { ModelMessage } from "@tanstack/ai";
+import { chat, chatParamsFromRequestBody, toServerSentEventsResponse } from "@tanstack/ai";
 import { openaiText } from "@tanstack/ai-openai";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
@@ -13,25 +12,8 @@ const adapters: Record<SupportedModel, ReturnType<typeof openaiText>> = {
   "o3-mini": openaiText("o3-mini"),
 };
 
-const contentPartSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("text"), content: z.string() }),
-  z.object({
-    type: z.literal("image"),
-    source: z.object({
-      type: z.enum(["url", "data"]),
-      value: z.string(),
-    }),
-  }),
-]);
-
-const messageSchema = z.object({
-  role: z.enum(["user", "assistant", "tool"]),
-  content: z.union([z.string(), z.array(contentPartSchema)]),
-});
-
-const bodySchema = z.object({
+const modelIdSchema = z.object({
   modelId: z.enum(SUPPORTED_MODELS),
-  messages: z.array(messageSchema),
 });
 
 export const Route = createFileRoute("/api/chat")({
@@ -39,11 +21,12 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request }) => {
         const body = await request.json();
-        const { modelId, messages } = bodySchema.parse(body);
+        const { modelId } = modelIdSchema.parse(body);
+        const { messages } = await chatParamsFromRequestBody(body);
 
         const stream = chat({
           adapter: adapters[modelId],
-          messages: messages as ModelMessage[],
+          messages,
         });
 
         return toServerSentEventsResponse(stream);
