@@ -106,6 +106,45 @@ export const categories = sqliteTable(
   (table) => [index("categories_user_id_idx").on(table.user_id)],
 );
 
+export const transactions = sqliteTable(
+  "transactions",
+  {
+    id: text("id").primaryKey(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    type: text("type", { enum: ["expense", "income"] }).notNull(),
+    description: text("description").notNull(),
+    date: integer("date", { mode: "timestamp_ms" }).notNull(),
+    category_id: text("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // @ts-expect-error recurring_templates table added in Task 4
+    recurring_template_id: text("recurring_template_id").references(() => recurring_templates.id, {
+      onDelete: "set null",
+    }),
+    source: text("source", {
+      enum: ["manual", "chat", "csv_import"],
+    }).notNull(),
+    notes: text("notes"),
+    created_at: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updated_at: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("transactions_user_id_idx").on(table.user_id),
+    index("transactions_user_id_date_idx").on(table.user_id, table.date),
+    index("transactions_user_id_category_id_idx").on(table.user_id, table.category_id),
+  ],
+);
+
 export const users_relations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
@@ -129,5 +168,16 @@ export const categories_relations = relations(categories, ({ one }) => ({
   user: one(users, {
     fields: [categories.user_id],
     references: [users.id],
+  }),
+}));
+
+export const transactions_relations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.user_id],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [transactions.category_id],
+    references: [categories.id],
   }),
 }));
