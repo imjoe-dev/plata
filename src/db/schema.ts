@@ -121,7 +121,6 @@ export const transactions = sqliteTable(
     user_id: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    // @ts-expect-error recurring_templates table added in Task 4
     recurring_template_id: text("recurring_template_id").references(() => recurring_templates.id, {
       onDelete: "set null",
     }),
@@ -145,9 +144,53 @@ export const transactions = sqliteTable(
   ],
 );
 
+export const recurring_templates = sqliteTable(
+  "recurring_templates",
+  {
+    id: text("id").primaryKey(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    type: text("type", { enum: ["expense", "income"] }).notNull(),
+    description: text("description").notNull(),
+    category_id: text("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    cadence: text("cadence", {
+      enum: ["daily", "weekly", "biweekly", "monthly", "quarterly", "yearly"],
+    }).notNull(),
+    next_due_date: integer("next_due_date", { mode: "timestamp_ms" }),
+    last_insertion_date: integer("last_insertion_date", {
+      mode: "timestamp_ms",
+    }),
+    status: text("status", {
+      enum: ["active", "paused", "completed", "failed"],
+    }).notNull(),
+    start_date: integer("start_date", { mode: "timestamp_ms" }),
+    end_date: integer("end_date", { mode: "timestamp_ms" }),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    created_at: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updated_at: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("recurring_templates_user_id_idx").on(table.user_id),
+    index("recurring_templates_user_id_status_idx").on(table.user_id, table.status),
+  ],
+);
+
 export const users_relations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
+  categories: many(categories),
+  transactions: many(transactions),
+  recurring_templates: many(recurring_templates),
 }));
 
 export const sessions_relations = relations(sessions, ({ one }) => ({
@@ -164,11 +207,13 @@ export const accounts_relations = relations(accounts, ({ one }) => ({
   }),
 }));
 
-export const categories_relations = relations(categories, ({ one }) => ({
+export const categories_relations = relations(categories, ({ one, many }) => ({
   user: one(users, {
     fields: [categories.user_id],
     references: [users.id],
   }),
+  transactions: many(transactions),
+  recurring_templates: many(recurring_templates),
 }));
 
 export const transactions_relations = relations(transactions, ({ one }) => ({
@@ -180,4 +225,20 @@ export const transactions_relations = relations(transactions, ({ one }) => ({
     fields: [transactions.category_id],
     references: [categories.id],
   }),
+  recurring_template: one(recurring_templates, {
+    fields: [transactions.recurring_template_id],
+    references: [recurring_templates.id],
+  }),
+}));
+
+export const recurring_templates_relations = relations(recurring_templates, ({ one, many }) => ({
+  user: one(users, {
+    fields: [recurring_templates.user_id],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [recurring_templates.category_id],
+    references: [categories.id],
+  }),
+  transactions: many(transactions),
 }));
