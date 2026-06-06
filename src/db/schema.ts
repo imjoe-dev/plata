@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, unique } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -103,7 +103,10 @@ export const categories = sqliteTable(
       .notNull(),
     deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
-  (table) => [index("categories_user_id_idx").on(table.user_id)],
+  (table) => [
+    index("categories_user_id_idx").on(table.user_id),
+    unique("categories_name_user_id_unique").on(table.name, table.user_id),
+  ],
 );
 
 export const transactions = sqliteTable(
@@ -223,7 +226,10 @@ export const chat_messages = sqliteTable(
       .notNull(),
     deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
-  (table) => [index("chat_messages_session_id_idx").on(table.session_id)],
+  (table) => [
+    index("chat_messages_session_id_idx").on(table.session_id),
+    index("chat_messages_session_id_created_at_idx").on(table.session_id, table.created_at),
+  ],
 );
 
 export const users_relations = relations(users, ({ many }) => ({
