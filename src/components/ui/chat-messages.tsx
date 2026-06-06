@@ -1,19 +1,11 @@
-import {
-  useEffect,
-  useRef,
-  Children,
-  createContext,
-  isValidElement,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import { Table } from "@/components/ui/table";
 import { Wrench, ChevronDown } from "lucide-react";
+import { Collapsible } from "@base-ui/react/collapsible";
 
 const markdownComponents: Components = {
   p: ({ children, ...props }) => (
@@ -95,12 +87,7 @@ const markdownComponents: Components = {
   pre: () => null,
 };
 
-interface ChatMessagesListProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function List({ children, className }: ChatMessagesListProps) {
+function List({ children, className, ...props }: React.ComponentProps<"div">) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,21 +95,20 @@ function List({ children, className }: ChatMessagesListProps) {
   }, [children]);
 
   return (
-    <div className={cn("flex flex-col gap-3 overflow-y-auto p-4", className)}>
+    <div className={cn("flex flex-col gap-3 overflow-y-auto p-4", className)} {...props}>
       {children}
       <div ref={sentinelRef} />
     </div>
   );
 }
 
-interface ChatMessagesUserMessageProps {
-  children: string;
-  className?: string;
-}
-
-function UserMessage({ children, className }: ChatMessagesUserMessageProps) {
+function UserMessage({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { children: string }) {
   return (
-    <div className={cn("flex justify-end", className)}>
+    <div className={cn("flex justify-end", className)} {...props}>
       <div className="max-w-[80%]">
         <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {children}
@@ -132,12 +118,10 @@ function UserMessage({ children, className }: ChatMessagesUserMessageProps) {
   );
 }
 
-interface ChatMessagesAssistantMessageProps {
-  children: string;
-  className?: string;
-}
-
-function AssistantMessage({ children, className }: ChatMessagesAssistantMessageProps) {
+function AssistantMessage({
+  children,
+  className,
+}: React.ComponentProps<"div"> & { children: string }) {
   return (
     <div className={cn("flex justify-start", className)}>
       <div className="max-w-[80%]">
@@ -149,13 +133,7 @@ function AssistantMessage({ children, className }: ChatMessagesAssistantMessageP
   );
 }
 
-interface ChatMessagesAttachmentProps {
-  name: string;
-  children?: ReactNode;
-  className?: string;
-}
-
-function Attachment({ name, children, className }: ChatMessagesAttachmentProps) {
+function Attachment({ name, children, className }: React.ComponentProps<"div"> & { name: string }) {
   return (
     <div
       className={cn(
@@ -169,89 +147,41 @@ function Attachment({ name, children, className }: ChatMessagesAttachmentProps) 
   );
 }
 
-interface ToolCallContextValue {
-  expanded: boolean;
-  toggle: () => void;
-}
-
-const ToolCallContext = createContext<ToolCallContextValue>({
-  expanded: false,
-  toggle: () => {},
-});
-
-function useToolCall() {
-  return useContext(ToolCallContext);
-}
-
-interface ChatMessagesToolCallNameProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function ToolCallName({ children, className }: ChatMessagesToolCallNameProps) {
+function ToolCallName({ children, className, ...props }: Collapsible.Trigger.Props) {
   return (
-    <span className={cn("text-fg-strong font-mono text-xs font-medium", className)}>
+    <Collapsible.Trigger
+      className={cn(
+        "hover:bg-sunken duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none",
+        className,
+      )}
+      {...props}
+    >
+      <Wrench className="text-fg-muted size-3.5" />
       {children}
-    </span>
+      <ChevronDown className="text-fg-muted ml-auto size-3.5 transition-transform data-panel-open:rotate-180" />
+    </Collapsible.Trigger>
   );
 }
 ToolCallName.displayName = "ChatMessages.ToolCallName";
 
-interface ChatMessagesToolCallProps {
-  children: ReactNode;
-  className?: string;
-  defaultExpanded?: boolean;
-}
-
-function ToolCall({ children, className, defaultExpanded = false }: ChatMessagesToolCallProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const toggle = () => setExpanded((prev) => !prev);
-
-  const childrenArray = Children.toArray(children);
-  const toolCallNameChild = childrenArray.find(
-    (child) => isValidElement(child) && child.type === ToolCallName,
-  );
-  const restChildren = childrenArray.filter(
-    (child) => !(isValidElement(child) && child.type === ToolCallName),
-  );
-
+function ToolCall({ className, ...props }: Collapsible.Root.Props) {
   return (
-    <ToolCallContext.Provider value={{ expanded, toggle }}>
-      <div className={cn("border-hairline bg-raised border", className)}>
-        <button
-          type="button"
-          className="hover:bg-sunken duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none"
-          onClick={toggle}
-        >
-          <Wrench className="text-fg-muted size-3.5" />
-          <span className="text-fg-muted font-mono text-xs">Tool call</span>
-          {toolCallNameChild}
-          <ChevronDown
-            className={cn(
-              "text-fg-muted ml-auto size-3.5 transition-transform",
-              expanded && "rotate-180",
-            )}
-          />
-        </button>
-        {expanded && (
-          <div className="border-hairline space-y-2 border-t px-3 py-2">{restChildren}</div>
-        )}
-      </div>
-    </ToolCallContext.Provider>
+    <Collapsible.Root className={cn("border-hairline bg-raised border", className)} {...props} />
   );
 }
 
-interface ChatMessagesToolCallArgsProps {
-  children: ReactNode;
-  className?: string;
+function ToolCallContent({ className, ...props }: Collapsible.Panel.Props) {
+  return (
+    <Collapsible.Panel
+      className={cn("border-hairline space-y-2 border-t px-3 py-2", className)}
+      {...props}
+    />
+  );
 }
 
-function ToolCallArgs({ children, className }: ChatMessagesToolCallArgsProps) {
-  const { expanded } = useToolCall();
-  if (!expanded) return null;
-
+function ToolCallArgs({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Arguments</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}
@@ -260,17 +190,9 @@ function ToolCallArgs({ children, className }: ChatMessagesToolCallArgsProps) {
   );
 }
 
-interface ChatMessagesToolCallResponseProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function ToolCallResponse({ children, className }: ChatMessagesToolCallResponseProps) {
-  const { expanded } = useToolCall();
-  if (!expanded) return null;
-
+function ToolCallResponse({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Response</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}
@@ -285,6 +207,7 @@ export const ChatMessages = {
   AssistantMessage,
   ToolCall,
   ToolCallName,
+  ToolCallContent,
   ToolCallArgs,
   ToolCallResponse,
   Attachment,

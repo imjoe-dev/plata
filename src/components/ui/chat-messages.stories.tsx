@@ -33,14 +33,20 @@ export const Conversation: StoryObj<typeof ChatMessages.List> = {
           Create a recurring transaction for my rent
         </ChatMessages.UserMessage>
         <ChatMessages.AssistantMessage>{markdownExample}</ChatMessages.AssistantMessage>
-        <ChatMessages.ToolCall defaultExpanded>
+        <ChatMessages.ToolCall defaultOpen>
           <ChatMessages.ToolCallName>create_recurring_transaction</ChatMessages.ToolCallName>
-          <ChatMessages.ToolCallArgs>
-            {JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2)}
-          </ChatMessages.ToolCallArgs>
-          <ChatMessages.ToolCallResponse>
-            {JSON.stringify({ id: "t_abc123", status: "created", nextDate: "2026-07-01" }, null, 2)}
-          </ChatMessages.ToolCallResponse>
+          <ChatMessages.ToolCallContent>
+            <ChatMessages.ToolCallArgs>
+              {JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2)}
+            </ChatMessages.ToolCallArgs>
+            <ChatMessages.ToolCallResponse>
+              {JSON.stringify(
+                { id: "t_abc123", status: "created", nextDate: "2026-07-01" },
+                null,
+                2,
+              )}
+            </ChatMessages.ToolCallResponse>
+          </ChatMessages.ToolCallContent>
         </ChatMessages.ToolCall>
         <ChatMessages.Attachment name="receipt.pdf">
           <Paperclip className="text-fg-muted size-3" />
@@ -78,19 +84,21 @@ export const ToolCallCollapsed: StoryObj<typeof ChatMessages.List> = {
       <ChatMessages.List>
         <ChatMessages.ToolCall>
           <ChatMessages.ToolCallName>fetch_transactions</ChatMessages.ToolCallName>
-          <ChatMessages.ToolCallArgs>
-            {JSON.stringify({ category: "housing", period: "last_month" }, null, 2)}
-          </ChatMessages.ToolCallArgs>
-          <ChatMessages.ToolCallResponse>
-            {JSON.stringify(
-              {
-                count: 3,
-                transactions: [{ id: "t1" }, { id: "t2" }, { id: "t3" }],
-              },
-              null,
-              2,
-            )}
-          </ChatMessages.ToolCallResponse>
+          <ChatMessages.ToolCallContent>
+            <ChatMessages.ToolCallArgs>
+              {JSON.stringify({ category: "housing", period: "last_month" }, null, 2)}
+            </ChatMessages.ToolCallArgs>
+            <ChatMessages.ToolCallResponse>
+              {JSON.stringify(
+                {
+                  count: 3,
+                  transactions: [{ id: "t1" }, { id: "t2" }, { id: "t3" }],
+                },
+                null,
+                2,
+              )}
+            </ChatMessages.ToolCallResponse>
+          </ChatMessages.ToolCallContent>
         </ChatMessages.ToolCall>
       </ChatMessages.List>
     );
@@ -101,14 +109,16 @@ export const ToolCallExpanded: StoryObj<typeof ChatMessages.List> = {
   render() {
     return (
       <ChatMessages.List>
-        <ChatMessages.ToolCall defaultExpanded>
+        <ChatMessages.ToolCall defaultOpen>
           <ChatMessages.ToolCallName>create_recurring_transaction</ChatMessages.ToolCallName>
-          <ChatMessages.ToolCallArgs>
-            {JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2)}
-          </ChatMessages.ToolCallArgs>
-          <ChatMessages.ToolCallResponse>
-            {JSON.stringify({ id: "t_abc123", status: "created" }, null, 2)}
-          </ChatMessages.ToolCallResponse>
+          <ChatMessages.ToolCallContent>
+            <ChatMessages.ToolCallArgs>
+              {JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2)}
+            </ChatMessages.ToolCallArgs>
+            <ChatMessages.ToolCallResponse>
+              {JSON.stringify({ id: "t_abc123", status: "created" }, null, 2)}
+            </ChatMessages.ToolCallResponse>
+          </ChatMessages.ToolCallContent>
         </ChatMessages.ToolCall>
       </ChatMessages.List>
     );
