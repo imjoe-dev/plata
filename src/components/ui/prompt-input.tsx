@@ -81,7 +81,7 @@ function Root({
       },
     },
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getText());
+      onChange?.(editor.getHTML());
     },
   });
 
