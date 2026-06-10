@@ -61,6 +61,7 @@ function Root({
     extensions,
     content: isControlled ? value : defaultValue,
     editable: !disabled,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: cn(
@@ -80,7 +81,7 @@ function Root({
       },
     },
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML());
+      onChange?.(editor.getText());
     },
   });
 
@@ -98,6 +99,10 @@ function Root({
       editor.setEditable(!disabled);
     }
   }, [editor, disabled]);
+
+  if (!editor) {
+    return <Skeleton className={className} />;
+  }
 
   return (
     <PromptInputContext.Provider value={{ editor }}>
@@ -240,8 +245,21 @@ function EditorSlot({ className }: EditorSlotProps) {
   );
 }
 
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("border-hairline bg-sunken w-full animate-pulse border px-3 py-2", className)}
+      {...props}
+    >
+      <div className="bg-raised mb-2 h-3 w-3/4 rounded" />
+      <div className="bg-raised h-3 w-1/2 rounded" />
+    </div>
+  );
+}
+
 export const PromptInput = {
   Root,
   Toolbar,
   Editor: EditorSlot,
+  Skeleton,
 };
