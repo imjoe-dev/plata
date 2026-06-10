@@ -248,7 +248,10 @@ function EditorSlot({ className }: EditorSlotProps) {
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("border-hairline bg-sunken w-full animate-pulse border px-3 py-2", className)}
+      className={cn(
+        "border-hairline bg-sunken min-h-[120px] w-full animate-pulse border px-3 py-2",
+        className,
+      )}
       {...props}
     >
       <div className="bg-raised mb-2 h-3 w-3/4 rounded" />
