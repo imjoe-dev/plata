@@ -12,7 +12,7 @@ function HomePage() {
   const { messages, sendMessage, isLoading, error } = usePlataChat();
 
   function handleSubmit(text: string) {
-    sendMessage(text);
+    void sendMessage(text);
   }
 
   const prompt = (
