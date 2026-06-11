@@ -7,14 +7,14 @@ export const Route = createFileRoute("/_protected/")({
 });
 
 function HomePage() {
-  const hasMessages = false;
+  const hasMessages = true;
 
   if (!hasMessages) {
     return (
       <div className="bg-base flex h-screen flex-col items-center justify-center gap-6">
         <h1 className="text-fg-strong font-serif text-6xl leading-none tracking-tight">plata</h1>
         <p className="text-fg-muted text-sm">What would you like to know?</p>
-        <div className="w-full max-w-xl px-4">
+        <div className="w-full max-w-4xl px-4">
           <PromptInput.Root placeholder="Ask anything...">
             <PromptInput.Editor />
           </PromptInput.Root>
@@ -31,14 +31,14 @@ function HomePage() {
         </span>
       </div>
 
-      <ChatMessages.List className="mx-auto w-full max-w-xl flex-1">
+      <ChatMessages.List className="mx-auto w-full max-w-4xl flex-1">
         <ChatMessages.UserMessage>What's our Q2 revenue?</ChatMessages.UserMessage>
         <ChatMessages.AssistantMessage>
           Q2 revenue was $2.4M, up 12% from Q1.
         </ChatMessages.AssistantMessage>
       </ChatMessages.List>
 
-      <div className="mx-auto w-full max-w-xl shrink-0 px-4 pb-6">
+      <div className="mx-auto w-full max-w-4xl shrink-0 px-4 pb-6">
         <PromptInput.Root placeholder="Ask anything...">
           <PromptInput.Editor />
         </PromptInput.Root>

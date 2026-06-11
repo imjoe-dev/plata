@@ -43,6 +43,43 @@ const markdownComponents: Components = {
   pre: () => null,
 };
 
+const userMarkdownComponents: Components = {
+  p: (props) => <p className="text-sm leading-relaxed" {...props} />,
+  h1: (props) => <h1 className="mt-3 mb-1 text-lg font-medium" {...props} />,
+  h2: (props) => <h2 className="mt-2 mb-1 font-medium" {...props} />,
+  h3: (props) => <h3 className="mt-2 mb-0.5 text-sm font-medium" {...props} />,
+  strong: (props) => <strong className="font-semibold" {...props} />,
+  em: (props) => <em className="italic" {...props} />,
+  del: (props) => <del className="line-through opacity-60" {...props} />,
+  ul: (props) => <ul className="list-disc space-y-1 pl-5 text-sm" {...props} />,
+  ol: (props) => <ol className="list-decimal space-y-1 pl-5 text-sm" {...props} />,
+  li: (props) => <li className="text-sm" {...props} />,
+  blockquote: (props) => (
+    <blockquote
+      className="my-2 border-l-2 border-current/30 pl-3 text-sm italic opacity-75"
+      {...props}
+    />
+  ),
+  a: (props) => (
+    <a
+      className="underline decoration-current/50"
+      target="_blank"
+      rel="noopener noreferrer"
+      {...props}
+    />
+  ),
+  hr: (props) => <hr className="my-3 border-current/30" {...props} />,
+  table: () => null,
+  thead: () => null,
+  tbody: () => null,
+  th: () => null,
+  td: () => null,
+  tr: () => null,
+  img: () => null,
+  code: () => null,
+  pre: () => null,
+};
+
 function List({ children, className, ...props }: React.ComponentProps<"div">) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -65,8 +102,8 @@ function UserMessage({
 }: React.ComponentProps<"div"> & { children: string }) {
   return (
     <div className={cn("flex justify-end", className)} {...props}>
-      <div className="max-w-[80%]">
-        <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      <div className="bg-accent text-accent-fg max-w-[80%] p-3.5">
+        <Markdown remarkPlugins={[remarkGfm]} components={userMarkdownComponents}>
           {children}
         </Markdown>
       </div>
@@ -80,7 +117,7 @@ function AssistantMessage({
 }: React.ComponentProps<"div"> & { children: string }) {
   return (
     <div className={cn("flex justify-start", className)}>
-      <div className="max-w-[80%]">
+      <div className="bg-raised border-hairline max-w-[80%] border p-3.5">
         <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
           {children}
         </Markdown>
