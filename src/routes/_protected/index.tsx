@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
 import { ChatMessages } from "@/components/ui/chat-messages";
 import { PromptInput } from "@/components/ui/prompt-input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlataChat } from "@/hooks/use-plata-chat";
 
 export const Route = createFileRoute("/_protected/")({
@@ -39,25 +40,34 @@ function HomePage() {
         </span>
       </div>
 
-      <ChatMessages.List className="mx-auto w-full max-w-4xl flex-1">
-        {messages.map((message: UIMessage) =>
-          message.role === "user" ? (
-            <ChatMessages.UserMessage key={message.id}>
-              {message.parts
-                .filter((p) => p.type === "text")
-                .map((p) => p.content)
-                .join("")}
-            </ChatMessages.UserMessage>
-          ) : (
-            <ChatMessages.AssistantMessage key={message.id}>
-              {message.parts
-                .filter((p) => p.type === "text")
-                .map((p) => p.content)
-                .join("")}
-            </ChatMessages.AssistantMessage>
-          ),
-        )}
-      </ChatMessages.List>
+      <ScrollArea.Root className="flex-1">
+        <ScrollArea.Viewport>
+          <ScrollArea.Content className="mx-auto max-w-4xl px-4">
+            <ChatMessages.List className="overflow-y-visible p-0">
+              {messages.map((message: UIMessage) =>
+                message.role === "user" ? (
+                  <ChatMessages.UserMessage key={message.id}>
+                    {message.parts
+                      .filter((p) => p.type === "text")
+                      .map((p) => p.content)
+                      .join("")}
+                  </ChatMessages.UserMessage>
+                ) : (
+                  <ChatMessages.AssistantMessage key={message.id}>
+                    {message.parts
+                      .filter((p) => p.type === "text")
+                      .map((p) => p.content)
+                      .join("")}
+                  </ChatMessages.AssistantMessage>
+                ),
+              )}
+            </ChatMessages.List>
+          </ScrollArea.Content>
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar>
+          <ScrollArea.Thumb />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
 
       <div className="mx-auto w-full max-w-4xl shrink-0 px-4 pb-6">{prompt}</div>
 
