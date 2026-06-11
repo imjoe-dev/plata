@@ -102,6 +102,20 @@ function Root({
     }
   }, [editor, disabled]);
 
+  function handleOnKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey && onSubmit && editor) {
+      e.preventDefault();
+      const text = editor.getText().trim();
+      if (!text) {
+        return;
+      }
+
+      onSubmit(text);
+      editor.commands.clearContent();
+      editor.commands.focus();
+    }
+  }
+
   if (!editor) {
     return <Skeleton className={className} />;
   }
@@ -110,16 +124,7 @@ function Root({
     <PromptInputContext.Provider value={{ editor }}>
       <div
         className={cn("flex flex-col", disabled && "pointer-events-none opacity-40", className)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && onSubmit && editor) {
-            e.preventDefault();
-            const text = editor.getText().trim();
-            if (text) {
-              onSubmit(text);
-              editor.commands.clearContent();
-            }
-          }
-        }}
+        onKeyDown={handleOnKeyDown}
       >
         {children}
       </div>
