@@ -42,7 +42,7 @@ function HomePage() {
 
       <ScrollArea.Root className="flex-1">
         <ScrollArea.Viewport>
-          <ScrollArea.Content className="mx-auto max-w-4xl px-4">
+          <ScrollArea.Content className="mx-auto max-w-4xl px-4 py-4">
             <ChatMessages.List className="overflow-y-visible p-0">
               {messages.map((message: UIMessage) =>
                 message.role === "user" ? (
