@@ -36,6 +36,7 @@ interface RootProps {
   disabled?: boolean;
   className?: string;
   children: ReactNode;
+  onSubmit?: (text: string) => void;
 }
 
 function Root({
@@ -46,6 +47,7 @@ function Root({
   disabled = false,
   className,
   children,
+  onSubmit,
 }: RootProps) {
   const [isControlled] = useState(() => value !== undefined);
 
@@ -106,7 +108,19 @@ function Root({
 
   return (
     <PromptInputContext.Provider value={{ editor }}>
-      <div className={cn("flex flex-col", disabled && "pointer-events-none opacity-40", className)}>
+      <div
+        className={cn("flex flex-col", disabled && "pointer-events-none opacity-40", className)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey && onSubmit && editor) {
+            e.preventDefault();
+            const text = editor.getText().trim();
+            if (text) {
+              onSubmit(text);
+              editor.commands.clearContent();
+            }
+          }
+        }}
+      >
         {children}
       </div>
     </PromptInputContext.Provider>
