@@ -23,6 +23,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/ai": "^0.28.0",
     "@tanstack/ai-openai": "^0.14.1",
+    "@tanstack/ai-react": "^0.15.4",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "latest",
     "@tanstack/react-query-devtools": "latest",
