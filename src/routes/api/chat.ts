@@ -20,8 +20,8 @@ export const Route = createFileRoute("/api/chat")({
     handlers: {
       POST: async ({ request }) => {
         const body = await request.json();
-        const { model_id } = modelIdSchema.parse(body);
-        const { messages } = await chatParamsFromRequestBody(body);
+        const { messages, forwardedProps } = await chatParamsFromRequestBody(body);
+        const { model_id } = modelIdSchema.parse(forwardedProps ?? {});
 
         const stream = chat({
           adapter: adapters[model_id],
