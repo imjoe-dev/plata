@@ -84,7 +84,7 @@ function List({ children, className, ...props }: React.ComponentProps<"div">) {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    sentinelRef.current?.scrollIntoView({ behavior: "smooth" });
+    sentinelRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [children]);
 
   return (
