@@ -13,11 +13,12 @@ function HomePage() {
   const { messages, sendMessage, isLoading, error } = usePlataChat();
 
   function handleSubmit(text: string) {
+    if (isLoading) return;
     void sendMessage(text);
   }
 
   const prompt = (
-    <PromptInput.Root placeholder="Ask anything..." disabled={isLoading} onSubmit={handleSubmit}>
+    <PromptInput.Root placeholder="Ask anything..." onSubmit={handleSubmit}>
       <PromptInput.Editor />
     </PromptInput.Root>
   );
