@@ -36,7 +36,7 @@ interface RootProps {
   disabled?: boolean;
   className?: string;
   children: ReactNode;
-  onSubmit?: (text: string) => void;
+  onSubmit?: (text: string) => boolean;
 }
 
 function Root({
@@ -110,9 +110,10 @@ function Root({
         return;
       }
 
-      onSubmit(text);
-      editor.commands.clearContent();
-      editor.commands.focus();
+      if (onSubmit(text)) {
+        editor.commands.clearContent();
+        editor.commands.focus();
+      }
     }
   }
 

@@ -12,9 +12,10 @@ export const Route = createFileRoute("/_protected/")({
 function HomePage() {
   const { messages, sendMessage, isLoading, error } = usePlataChat();
 
-  function handleSubmit(text: string) {
-    if (isLoading) return;
+  function handleSubmit(text: string): boolean {
+    if (isLoading) return false;
     void sendMessage(text);
+    return true;
   }
 
   const prompt = (
