@@ -2,7 +2,7 @@ import { ScrollArea as Base } from "@base-ui/react/scroll-area";
 import { cn } from "@/lib/utils";
 
 function Root({ className, ...props }: Base.Root.Props) {
-  return <Base.Root className={cn(className)} {...props} />;
+  return <Base.Root className={cn("overflow-hidden", className)} {...props} />;
 }
 
 function Viewport({ className, ...props }: Base.Viewport.Props) {
