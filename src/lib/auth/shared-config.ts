@@ -1,11 +1,11 @@
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { env } from "cloudflare:workers";
 import * as schema from "@/db/schema";
-import { db } from "@/db";
+import { getDB } from "@/db";
 
 export function getAuthConfig() {
   return {
-    database: drizzleAdapter(db(), { provider: "sqlite", usePlural: true, schema }),
+    database: drizzleAdapter(getDB(), { provider: "sqlite", usePlural: true, schema }),
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID,

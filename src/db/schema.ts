@@ -305,3 +305,14 @@ export const chat_messages_relations = relations(chat_messages, ({ one }) => ({
     references: [chat_sessions.id],
   }),
 }));
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransation = typeof transactions.$inferInsert;
+export type RecurringTemplate = typeof recurring_templates.$inferSelect;
+export type InsertRecurringTemplate = typeof recurring_templates.$inferInsert;
+export type ChatSessions = typeof chat_sessions.$inferSelect;
+export type InsertChatSessions = typeof chat_sessions.$inferInsert;
+export type ChatMessages = typeof chat_messages.$inferSelect;
+export type InsertChatMessages = typeof chat_messages.$inferInsert;
