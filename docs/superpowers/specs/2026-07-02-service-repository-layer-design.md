@@ -41,6 +41,7 @@ Route loader / server fn / chat tool
 ### Files
 
 New:
+
 - `src/lib/repositories/transactions.ts` (currently empty → filled)
 - `src/lib/repositories/recurring-templates.ts`
 - `src/lib/services/transactions.ts`
@@ -53,6 +54,7 @@ New:
 - `src/lib/db/transaction.ts` (D1 `batch()` helper for multi-step ops)
 
 Modified:
+
 - `src/lib/repositories/category.ts` — rewritten to the pure-DB contract; all reads take `userId` and filter by it. The current `getCategories()` returns every category globally (a tenancy bug) and is removed.
 
 ## Errors & Validation
@@ -61,18 +63,20 @@ Modified:
 
 All in `src/lib/errors.ts`, extending a common `AppError` base with `status` and a `toJSON()` so the server-fn error handler serializes them uniformly.
 
-| Error            | Status | Origin   | Thrown when                                                                                          | Carries                          |
-| ---------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `ValidationError`| 400    | Consumer | zod `parse` fails on input                                                                            | `fieldErrors` (zod `flatten()`)  |
-| `NotFoundError`  | 404    | Service  | repo returns null on a lookup that must exist; FK target not found for this user; row not matched on update/delete | `resource`, `id`                 |
-| `ConflictError`  | 409    | Service  | unique-constraint violation (e.g. duplicate category name per user)                                  | `constraint`, `field`            |
-| `InternalError`  | 500    | Service  | unexpected: insert `.returning()` came back empty, D1 batch fails partway, invariant violated (e.g. a due template whose `status` is not `active`), illegal recurring status transition | `message`, optional `cause`      |
+| Error             | Status | Origin   | Thrown when                                                                                                                                                                             | Carries                         |
+| ----------------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `ValidationError` | 400    | Consumer | zod `parse` fails on input                                                                                                                                                              | `fieldErrors` (zod `flatten()`) |
+| `NotFoundError`   | 404    | Service  | repo returns null on a lookup that must exist; FK target not found for this user; row not matched on update/delete                                                                      | `resource`, `id`                |
+| `ConflictError`   | 409    | Service  | unique-constraint violation (e.g. duplicate category name per user)                                                                                                                     | `constraint`, `field`           |
+| `InternalError`   | 500    | Service  | unexpected: insert `.returning()` came back empty, D1 batch fails partway, invariant violated (e.g. a due template whose `status` is not `active`), illegal recurring status transition | `message`, optional `cause`     |
 
 ### Validation contract
 
 - Shared zod schemas live in `src/lib/schemas/<entity>.ts` — one source of truth per entity. Each exports the schema as a const and an inferred type that share the **same name** (declaration merging), e.g.:
   ```ts
-  export const Transaction = z.object({ /* ... */ });
+  export const Transaction = z.object({
+    /* ... */
+  });
   export type Transaction = z.infer<typeof Transaction>;
   ```
   Same name for const and type lets a consumer flip `import { type Transaction }` to `import { Transaction }` (the value, to call `.parse()`) with no other change.
@@ -117,6 +121,7 @@ Signatures only; implementation detail lands in the plan.
 ### Transactions
 
 **Repository** (`src/lib/repositories/transactions.ts`)
+
 - `createTransaction(userId, input)` → inserts `input` (which already carries the service-generated `id`); returns the inserted row.
 - `getTransactionById(userId, id)` → row | null (scoped by `user_id`).
 - `listTransactions(userId, filters)` → row[] (filters: date range, `type`, `category_id`; excludes `deleted_at`).
@@ -124,6 +129,7 @@ Signatures only; implementation detail lands in the plan.
 - `softDeleteTransaction(userId, id)` → row | null.
 
 **Service** (`src/lib/services/transactions.ts`)
+
 - `createTransaction(userId, input)` → verifies `category_id` and `recurring_template_id` (if present) belong to the same user (else `NotFoundError`); generates id; calls repo; empty `.returning()` → `InternalError`.
 - `createTransactionWithCategory(userId, input)` → if the caller passes a new-category spec inline, creates the category then the transaction in a D1 `batch()` (atomic).
 - `getTransaction`, `listTransactions`, `updateTransaction`, `deleteTransaction` → thin wrappers that turn repo `null` into `NotFoundError` on single-row ops.
@@ -131,18 +137,22 @@ Signatures only; implementation detail lands in the plan.
 ### Categories
 
 **Repository** (`src/lib/repositories/category.ts`) — rewritten
+
 - `createCategory`, `getCategoryById(userId, id)`, `listCategories(userId)`, `updateCategory(userId, id, patch)`, `softDeleteCategory(userId, id)` — all scoped by `userId`.
 
 **Service** (`src/lib/services/categories.ts`)
+
 - CRUD mirroring the repo; `NotFoundError` on missing; `InternalError` on failed write. Unique-constraint violations (the `categories_name_user_id_unique` index) are caught and re-thrown as `ConflictError(409)` carrying the constraint/field.
 
 ### Recurring Templates
 
 **Repository** (`src/lib/repositories/recurring-templates.ts`)
+
 - `createRecurringTemplate`, `getRecurringTemplateById(userId, id)`, `listRecurringTemplates(userId, {status?})`, `updateRecurringTemplate(userId, id, patch)`, `softDeleteRecurringTemplate(userId, id)`.
 - `listDueTemplates(userId, now)` → active templates with `next_due_date <= now` (feeds `processDueRecurring`).
 
 **Service** (`src/lib/services/recurring-templates.ts`)
+
 - CRUD + explicit status-transition methods: `activateTemplate(userId, id)`, `pauseTemplate(userId, id)`. Legal transitions only; an illegal transition (e.g. `completed` → `active`) is an invariant violation → `InternalError(500)`.
 - `processDueRecurring(userId, now)` → for each due template:
   1. Insert a linked transaction (`recurring_template_id` set, `source` left to the caller's context — see Open Questions).

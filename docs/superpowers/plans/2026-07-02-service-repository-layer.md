@@ -26,6 +26,7 @@
 ## File Structure
 
 Create:
+
 - `src/lib/errors.ts` — `AppError` base + `ValidationError`, `NotFoundError`, `ConflictError`, `InternalError`.
 - `src/lib/db/transaction.ts` — `runBatch()` wrapper around D1 `batch()`.
 - `src/lib/schemas/categories.ts` — `Category` zod schema (const + type, same name).
@@ -47,6 +48,7 @@ Create:
 - `src/lib/db/__tests__/transaction.test.ts`
 
 Modify:
+
 - `src/db/schema.ts` — remove the drizzle-inferred type exports (`Transaction`, `Category`, `RecurringTemplate`, and `Insert*` variants) at the end of the file.
 - `src/lib/repositories/transactions.ts` — currently empty; fill with the transactions repo (Task 6) and add `buildInsertTransaction` (Task 10).
 - `src/lib/repositories/category.ts` — rewrite to the pure-DB, user-scoped contract.
@@ -56,10 +58,12 @@ Modify:
 ### Task 1: Errors module
 
 **Files:**
+
 - Create: `src/lib/errors.ts`
 - Test: `src/lib/__tests__/errors.test.ts`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `AppError` (base class with `status: number` and `toJSON(): { name, status, ...fields }`), `ValidationError` (status 400, carries `fieldErrors`), `NotFoundError` (status 404, carries `resource`, `id`), `ConflictError` (status 409, carries `constraint`, `field`), `InternalError` (status 500, carries `message`, optional `cause`).
 
@@ -226,10 +230,12 @@ git commit -m "feat: add typed AppError hierarchy for the service layer"
 ### Task 2: DB batch helper
 
 **Files:**
+
 - Create: `src/lib/db/transaction.ts`
 - Test: `src/lib/db/__tests__/transaction.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getDB()` from `@/db`.
 - Produces: `runBatch(statements: unknown[]): Promise<{ success: true }>`. Wraps Drizzle D1 `batch()`. Throws `InternalError` if the batch rejects, with the underlying error as `cause`.
 
@@ -319,12 +325,14 @@ git commit -m "feat: add runBatch helper wrapping D1 batch with InternalError"
 ### Task 3: Zod schemas
 
 **Files:**
+
 - Create: `src/lib/schemas/categories.ts`
 - Create: `src/lib/schemas/transactions.ts`
 - Create: `src/lib/schemas/recurring-templates.ts`
 - Test: `src/lib/__tests__/schemas.test.ts`
 
 **Interfaces:**
+
 - Consumes: `zod`.
 - Produces:
   - `Category` (const schema + `type Category = z.infer<typeof Category>`): `{ name: string, type: "expense"|"income"|"both", color?: string, icon?: string }`. Does **not** include `id`, `user_id`, timestamps, `deleted_at`.
@@ -436,7 +444,10 @@ Create `src/lib/schemas/transactions.ts`:
 import { z } from "zod";
 
 export const Transaction = z.object({
-  amount: z.number().positive().transform((v) => Math.round(v * 100)),
+  amount: z
+    .number()
+    .positive()
+    .transform((v) => Math.round(v * 100)),
   currency: z.string().length(3).default("USD"),
   type: z.enum(["expense", "income"]),
   description: z.string().min(1),
@@ -456,7 +467,10 @@ Create `src/lib/schemas/recurring-templates.ts`:
 import { z } from "zod";
 
 export const RecurringTemplate = z.object({
-  amount: z.number().positive().transform((v) => Math.round(v * 100)),
+  amount: z
+    .number()
+    .positive()
+    .transform((v) => Math.round(v * 100)),
   currency: z.string().length(3).default("USD"),
   type: z.enum(["expense", "income"]),
   description: z.string().min(1),
@@ -491,12 +505,14 @@ git commit -m "feat: add zod schemas for categories, transactions, recurring tem
 ### Task 4: Rewrite category repository + remove drizzle-inferred type exports
 
 **Files:**
+
 - Modify: `src/db/schema.ts` (remove the `export type ...` block at the end)
 - Modify (full rewrite): `src/lib/repositories/category.ts`
 - Create: `src/lib/repositories/__tests__/db-helper.ts`
 - Test: `src/lib/repositories/__tests__/category.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getDB()` from `@/db`; `categories` table from `@/db/schema`; `eq`, `isNull` from `drizzle-orm`.
 - Produces (all take `userId` first; all reads exclude `deleted_at`):
   - `createCategory(userId, input): Promise<row>` — inserts `input` (a DB-shaped payload; `id`+`user_id` set by the service) with `.returning()`.
@@ -732,10 +748,12 @@ git commit -m "feat: rewrite category repository with user-scoped CRUD; remove d
 ### Task 5: Category service
 
 **Files:**
+
 - Create: `src/lib/services/categories.ts`
 - Test: `src/lib/services/__tests__/categories.test.ts`
 
 **Interfaces:**
+
 - Consumes: the category repository (`createCategory`, `getCategoryById`, `listCategories`, `updateCategory`, `softDeleteCategory`) and `ConflictError`/`NotFoundError`/`InternalError` from `@/lib/errors`. Input type `Category` from `@/lib/schemas/categories`.
 - Produces:
   - `createCategory(userId, input: Category): Promise<CategoryRow>` — generates `id` via `crypto.randomUUID()`, builds the DB payload `{ id, name, type, color, icon, user_id: userId }`, calls repo; unique-constraint violation → `ConflictError("categories_name_user_id_unique", "name")`; empty returning → `InternalError`.
@@ -776,7 +794,11 @@ beforeEach(() => {
 
 describe("category service", () => {
   it("createCategory generates an id and delegates to the repo", async () => {
-    vi.mocked(repo.createCategory).mockResolvedValueOnce({ id: "x", name: "A", type: "expense" } as any);
+    vi.mocked(repo.createCategory).mockResolvedValueOnce({
+      id: "x",
+      name: "A",
+      type: "expense",
+    } as any);
     await createCategory("user_1", { name: "A", type: "expense" });
     const [, payload] = vi.mocked(repo.createCategory).mock.calls[0];
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
@@ -786,7 +808,9 @@ describe("category service", () => {
 
   it("createCategory throws InternalError when repo returns null", async () => {
     vi.mocked(repo.createCategory).mockResolvedValueOnce(null);
-    await expect(createCategory("user_1", { name: "A", type: "expense" })).rejects.toBeInstanceOf(InternalError);
+    await expect(createCategory("user_1", { name: "A", type: "expense" })).rejects.toBeInstanceOf(
+      InternalError,
+    );
   });
 
   it("createCategory rethrows a unique-constraint error as ConflictError(409)", async () => {
@@ -815,7 +839,9 @@ describe("category service", () => {
 
   it("updateCategory throws NotFound when repo returns null", async () => {
     vi.mocked(repo.updateCategory).mockResolvedValueOnce(null);
-    await expect(updateCategory("user_1", "c1", { name: "B" })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(updateCategory("user_1", "c1", { name: "B" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 
   it("deleteCategory throws NotFound when repo returns null", async () => {
@@ -919,10 +945,12 @@ git commit -m "feat: add category service with validation-free, tenant-scoped CR
 ### Task 6: Transactions repository
 
 **Files:**
+
 - Modify (fill): `src/lib/repositories/transactions.ts` (currently empty)
 - Test: `src/lib/repositories/__tests__/transactions.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getDB()`; `transactions` table from `@/db/schema`; `eq`, `isNull`, `and`, `gte`, `lte` from `drizzle-orm`.
 - Produces (all take `userId` first; reads exclude `deleted_at`):
   - `createTransaction(userId, input): Promise<row>` — `.returning()`.
@@ -1039,7 +1067,10 @@ export async function createTransaction(userId: string, input: TransactionInsert
   return row;
 }
 
-export async function getTransactionById(userId: string, id: string): Promise<TransactionRow | null> {
+export async function getTransactionById(
+  userId: string,
+  id: string,
+): Promise<TransactionRow | null> {
   const [row] = await getDB()
     .select()
     .from(transactions)
@@ -1053,13 +1084,19 @@ export async function getTransactionById(userId: string, id: string): Promise<Tr
   return row ?? null;
 }
 
-export async function listTransactions(userId: string, filters: ListFilters = {}): Promise<TransactionRow[]> {
+export async function listTransactions(
+  userId: string,
+  filters: ListFilters = {},
+): Promise<TransactionRow[]> {
   const conds = [eq(transactions.user_id, userId), isNull(transactions.deleted_at)];
   if (filters.from) conds.push(gte(transactions.date, filters.from));
   if (filters.to) conds.push(lte(transactions.date, filters.to));
   if (filters.type) conds.push(eq(transactions.type, filters.type));
   if (filters.categoryId) conds.push(eq(transactions.category_id, filters.categoryId));
-  return getDB().select().from(transactions).where(and(...conds));
+  return getDB()
+    .select()
+    .from(transactions)
+    .where(and(...conds));
 }
 
 export async function updateTransaction(
@@ -1081,7 +1118,10 @@ export async function updateTransaction(
   return row ?? null;
 }
 
-export async function softDeleteTransaction(userId: string, id: string): Promise<TransactionRow | null> {
+export async function softDeleteTransaction(
+  userId: string,
+  id: string,
+): Promise<TransactionRow | null> {
   const [row] = await getDB()
     .update(transactions)
     .set({ deleted_at: new Date() })
@@ -1117,10 +1157,12 @@ git commit -m "feat: add transactions repository with user-scoped CRUD and filte
 ### Task 7: Transactions service
 
 **Files:**
+
 - Create: `src/lib/services/transactions.ts`
 - Test: `src/lib/services/__tests__/transactions.test.ts`
 
 **Interfaces:**
+
 - Consumes: the transactions repo, the category repo (`getCategoryById`), the recurring-templates repo (`getRecurringTemplateById` — created in Task 8; for this task, mock it), errors from `@/lib/errors`, input type `Transaction` from `@/lib/schemas/transactions`.
 - Produces:
   - `createTransaction(userId, input: Transaction): Promise<TransactionRow>` — verifies `categoryId` (if set) and `recurringTemplateId` (if set) belong to `userId` (else `NotFoundError`); generates `id`; builds payload (camelCase→snake_case, `amount` already cents); calls repo; null → `InternalError`.
@@ -1222,7 +1264,9 @@ describe("transactions service", () => {
   it("updateTransaction and deleteTransaction throw NotFound on null", async () => {
     vi.mocked(txnRepo.updateTransaction).mockResolvedValueOnce(null);
     vi.mocked(txnRepo.softDeleteTransaction).mockResolvedValueOnce(null);
-    await expect(updateTransaction("user_1", "t1", { description: "Y" })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(updateTransaction("user_1", "t1", { description: "Y" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
     await expect(deleteTransaction("user_1", "t1")).rejects.toBeInstanceOf(NotFoundError);
   });
 });
@@ -1323,10 +1367,12 @@ git commit -m "feat: add transactions service with FK ownership checks and tenan
 ### Task 8: Recurring templates repository
 
 **Files:**
+
 - Create: `src/lib/repositories/recurring-templates.ts`
 - Test: `src/lib/repositories/__tests__/recurring-templates.test.ts`
 
 **Interfaces:**
+
 - Consumes: `getDB()`; `recurring_templates` table; `eq`, `isNull`, `and`, `lte` from `drizzle-orm`.
 - Produces (all take `userId` first; reads exclude `deleted_at`):
   - `createRecurringTemplate(userId, input): Promise<row>`.
@@ -1388,7 +1434,9 @@ describe("recurring-templates repository", () => {
   it("lists by status", async () => {
     await seedTpl("user_1", "r1", { status: "active" });
     await seedTpl("user_1", "r2", { status: "paused" });
-    expect((await listRecurringTemplates("user_1", { status: "active" })).map((t) => t.id)).toEqual(["r1"]);
+    expect((await listRecurringTemplates("user_1", { status: "active" })).map((t) => t.id)).toEqual(
+      ["r1"],
+    );
   });
 
   it("listDueTemplates returns active templates whose next_due_date <= now", async () => {
@@ -1438,7 +1486,10 @@ export async function createRecurringTemplate(userId: string, input: TemplateIns
   return row;
 }
 
-export async function getRecurringTemplateById(userId: string, id: string): Promise<TemplateRow | null> {
+export async function getRecurringTemplateById(
+  userId: string,
+  id: string,
+): Promise<TemplateRow | null> {
   const [row] = await getDB()
     .select()
     .from(recurring_templates)
@@ -1452,10 +1503,16 @@ export async function getRecurringTemplateById(userId: string, id: string): Prom
   return row ?? null;
 }
 
-export async function listRecurringTemplates(userId: string, opts: { status?: Status } = {}): Promise<TemplateRow[]> {
+export async function listRecurringTemplates(
+  userId: string,
+  opts: { status?: Status } = {},
+): Promise<TemplateRow[]> {
   const conds = [eq(recurring_templates.user_id, userId), isNull(recurring_templates.deleted_at)];
   if (opts.status) conds.push(eq(recurring_templates.status, opts.status));
-  return getDB().select().from(recurring_templates).where(and(...conds));
+  return getDB()
+    .select()
+    .from(recurring_templates)
+    .where(and(...conds));
 }
 
 export async function listDueTemplates(userId: string, now: Date): Promise<TemplateRow[]> {
@@ -1491,7 +1548,10 @@ export async function updateRecurringTemplate(
   return row ?? null;
 }
 
-export async function softDeleteRecurringTemplate(userId: string, id: string): Promise<TemplateRow | null> {
+export async function softDeleteRecurringTemplate(
+  userId: string,
+  id: string,
+): Promise<TemplateRow | null> {
   const [row] = await getDB()
     .update(recurring_templates)
     .set({ deleted_at: new Date() })
@@ -1527,10 +1587,12 @@ git commit -m "feat: add recurring-templates repository with due-template query"
 ### Task 9: Recurring templates service — CRUD + status transitions
 
 **Files:**
+
 - Create: `src/lib/services/recurring-templates.ts`
 - Test: `src/lib/services/__tests__/recurring-templates.test.ts`
 
 **Interfaces:**
+
 - Consumes: the recurring-templates repo, `getCategoryById` (for FK check on `categoryId`), errors, input type `RecurringTemplate`.
 - Produces:
   - `createRecurringTemplate(userId, input: RecurringTemplate): Promise<TemplateRow>` — verifies `categoryId` belongs to user; generates `id`; builds payload (camelCase→snake_case); null → `InternalError`.
@@ -1596,7 +1658,9 @@ describe("recurring-templates service", () => {
 
   it("throws NotFound when categoryId is not owned by the user", async () => {
     vi.mocked(catRepo.getCategoryById).mockResolvedValueOnce(null);
-    await expect(createRecurringTemplate("user_1", { ...validInput, categoryId: "c1" })).rejects.toMatchObject({
+    await expect(
+      createRecurringTemplate("user_1", { ...validInput, categoryId: "c1" }),
+    ).rejects.toMatchObject({
       status: 404,
       resource: "category",
     });
@@ -1604,7 +1668,9 @@ describe("recurring-templates service", () => {
 
   it("throws InternalError when repo returns null on create", async () => {
     vi.mocked(recRepo.createRecurringTemplate).mockResolvedValueOnce(null);
-    await expect(createRecurringTemplate("user_1", validInput)).rejects.toBeInstanceOf(InternalError);
+    await expect(createRecurringTemplate("user_1", validInput)).rejects.toBeInstanceOf(
+      InternalError,
+    );
   });
 
   it("get/list/update/delete throw NotFound on null", async () => {
@@ -1612,30 +1678,50 @@ describe("recurring-templates service", () => {
     vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValueOnce(null);
     vi.mocked(recRepo.softDeleteRecurringTemplate).mockResolvedValueOnce(null);
     await expect(getRecurringTemplate("user_1", "r1")).rejects.toBeInstanceOf(NotFoundError);
-    await expect(updateRecurringTemplate("user_1", "r1", { description: "x" })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      updateRecurringTemplate("user_1", "r1", { description: "x" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
     await expect(deleteRecurringTemplate("user_1", "r1")).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("pauseTemplate is legal from active", async () => {
-    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({ id: "r1", status: "active" } as any);
-    vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValueOnce({ id: "r1", status: "paused" } as any);
+    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({
+      id: "r1",
+      status: "active",
+    } as any);
+    vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValueOnce({
+      id: "r1",
+      status: "paused",
+    } as any);
     const out = await pauseTemplate("user_1", "r1");
     expect(out.status).toBe("paused");
   });
 
   it("pauseTemplate throws InternalError from completed", async () => {
-    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({ id: "r1", status: "completed" } as any);
+    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({
+      id: "r1",
+      status: "completed",
+    } as any);
     await expect(pauseTemplate("user_1", "r1")).rejects.toBeInstanceOf(InternalError);
   });
 
   it("activateTemplate is legal from paused", async () => {
-    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({ id: "r1", status: "paused" } as any);
-    vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValueOnce({ id: "r1", status: "active" } as any);
+    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({
+      id: "r1",
+      status: "paused",
+    } as any);
+    vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValueOnce({
+      id: "r1",
+      status: "active",
+    } as any);
     expect((await activateTemplate("user_1", "r1")).status).toBe("active");
   });
 
   it("activateTemplate throws InternalError from completed", async () => {
-    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({ id: "r1", status: "completed" } as any);
+    vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce({
+      id: "r1",
+      status: "completed",
+    } as any);
     await expect(activateTemplate("user_1", "r1")).rejects.toBeInstanceOf(InternalError);
   });
 });
@@ -1701,7 +1787,11 @@ export async function listRecurringTemplates(
   return repoList(userId, opts ?? {});
 }
 
-export async function updateRecurringTemplate(userId: string, id: string, patch: Partial<RecurringTemplate>) {
+export async function updateRecurringTemplate(
+  userId: string,
+  id: string,
+  patch: Partial<RecurringTemplate>,
+) {
   const row = await repoUpdate(userId, id, patch as Record<string, unknown>);
   if (!row) throw new NotFoundError("recurring_template", id);
   return row;
@@ -1756,13 +1846,15 @@ git commit -m "feat: add recurring-templates service with CRUD and status transi
 ### Task 10: processDueRecurring
 
 **Files:**
+
 - Modify: `src/lib/repositories/transactions.ts` (add `buildInsertTransaction`)
 - Modify: `src/lib/repositories/recurring-templates.ts` (add `buildUpdateTemplate`)
 - Modify: `src/lib/services/recurring-templates.ts` (add `computeNextDue` + `processDueRecurring`)
 - Test: `src/lib/services/__tests__/recurring-templates.test.ts` (append)
 
 **Interfaces:**
-- Consumes: `listDueTemplates` from the recurring repo; **new repo helpers** `buildInsertTransaction(input)` (transactions repo) and `buildUpdateTemplate(userId, id, patch)` (recurring repo) that return *unexecuted* Drizzle query builders; `runBatch` from `@/lib/db/transaction`.
+
+- Consumes: `listDueTemplates` from the recurring repo; **new repo helpers** `buildInsertTransaction(input)` (transactions repo) and `buildUpdateTemplate(userId, id, patch)` (recurring repo) that return _unexecuted_ Drizzle query builders; `runBatch` from `@/lib/db/transaction`.
 - Produces:
   - `computeNextDue(current: Date, cadence: Cadence, endDate: Date | null): { nextDue: Date; completed: boolean }` — pure helper, exported for direct testing.
   - `processDueRecurring(userId, now: Date): Promise<{ processed: number }>` — for each due template:
@@ -1773,7 +1865,7 @@ git commit -m "feat: add recurring-templates service with CRUD and status transi
     5. `await runBatch([buildInsertTransaction(txnPayload), buildUpdateTemplate(userId, tpl.id, tplPatch)])` — atomic per template.
     6. `processed++`.
 
-**Why build-statement helpers:** to run two writes atomically via D1 `batch()`, the service needs *unexecuted* query builders to hand to `runBatch`. Exposing `buildInsertTransaction` / `buildUpdateTemplate` from the repos keeps Drizzle behind the repository boundary (the service never calls `getDB()` directly). The executing repo functions (`createTransaction`, `updateRecurringTemplate`) are not used here because they execute immediately and cannot be batched.
+**Why build-statement helpers:** to run two writes atomically via D1 `batch()`, the service needs _unexecuted_ query builders to hand to `runBatch`. Exposing `buildInsertTransaction` / `buildUpdateTemplate` from the repos keeps Drizzle behind the repository boundary (the service never calls `getDB()` directly). The executing repo functions (`createTransaction`, `updateRecurringTemplate`) are not used here because they execute immediately and cannot be batched.
 
 **Cadence advancement** (`advanceDueDate`, private): `daily`→+1d, `weekly`→+7d, `biweekly`→+14d, `monthly`→+1 month, `quarterly`→+3 months, `yearly`→+1 year (UTC arithmetic).
 
@@ -1818,13 +1910,19 @@ describe("computeNextDue", () => {
   });
 
   it("is completed when nextDue passes end_date", () => {
-    const { nextDue, completed } = computeNextDue(new Date("2026-11-01"), "monthly", new Date("2026-11-15"));
+    const { nextDue, completed } = computeNextDue(
+      new Date("2026-11-01"),
+      "monthly",
+      new Date("2026-11-15"),
+    );
     expect(nextDue).toEqual(new Date("2026-12-01"));
     expect(completed).toBe(true);
   });
 
   it("advances quarterly by 3 months", () => {
-    expect(computeNextDue(new Date("2026-01-01"), "quarterly", null).nextDue).toEqual(new Date("2026-04-01"));
+    expect(computeNextDue(new Date("2026-01-01"), "quarterly", null).nextDue).toEqual(
+      new Date("2026-04-01"),
+    );
   });
 });
 
@@ -2010,7 +2108,11 @@ export async function processDueRecurring(userId: string, now: Date) {
   let processed = 0;
 
   for (const tpl of templates) {
-    if (tpl.last_insertion_date && tpl.next_due_date && tpl.last_insertion_date >= tpl.next_due_date) {
+    if (
+      tpl.last_insertion_date &&
+      tpl.next_due_date &&
+      tpl.last_insertion_date >= tpl.next_due_date
+    ) {
       continue;
     }
 
@@ -2072,6 +2174,7 @@ git commit -m "feat: add processDueRecurring with atomic per-template batch and 
 ## Self-Review
 
 **1. Spec coverage:**
+
 - Errors (`ValidationError`/`NotFoundError`/`ConflictError`/`InternalError`) → Task 1. ✓
 - `runBatch` D1 batch helper → Task 2. ✓
 - Zod schemas (same-name const+type, cents transform) → Task 3. ✓
@@ -2094,6 +2197,7 @@ git commit -m "feat: add processDueRecurring with atomic per-template batch and 
 **2. Placeholder scan:** No TBD/TODO/"implement later" without a concrete follow-up. The two deferred items (`createTransactionWithCategory`, edge error mapping) are explicitly called out with rationale. The only "verify" note (D1 batch same-instance) is a concrete implementation checkpoint, not a placeholder.
 
 **3. Type consistency:**
+
 - Repo function names match across tasks: `createCategory`/`getCategoryById`/`listCategories`/`updateCategory`/`softDeleteCategory` (Task 4) consumed by Task 5 — ✓.
 - `createTransaction`/`getTransactionById`/`listTransactions`/`updateTransaction`/`softDeleteTransaction` (Task 6) + `buildInsertTransaction` (Task 10) consumed by Tasks 7, 10 — ✓.
 - `createRecurringTemplate`/`getRecurringTemplateById`/`listRecurringTemplates`/`updateRecurringTemplate`/`softDeleteRecurringTemplate`/`listDueTemplates` (Task 8) + `buildUpdateTemplate` (Task 10) consumed by Tasks 7, 9, 10 — ✓.
