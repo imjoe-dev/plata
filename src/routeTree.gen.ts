@@ -13,7 +13,9 @@ import { Route as LoginRouteImport } from "./routes/login";
 import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route";
 import { Route as ProtectedIndexRouteImport } from "./routes/_protected/index";
 import { Route as ApiChatRouteImport } from "./routes/api/chat";
+import { Route as ApiTransactionsIndexRouteImport } from "./routes/api/transactions/index";
 import { Route as ApiCategoriesIndexRouteImport } from "./routes/api/categories/index";
+import { Route as ApiTransactionsIdRouteImport } from "./routes/api/transactions/$id";
 import { Route as ApiCategoriesIdRouteImport } from "./routes/api/categories/$id";
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
 
@@ -36,9 +38,19 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: "/api/chat",
   getParentRoute: () => rootRouteImport,
 } as any);
+const ApiTransactionsIndexRoute = ApiTransactionsIndexRouteImport.update({
+  id: "/api/transactions/",
+  path: "/api/transactions/",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ApiCategoriesIndexRoute = ApiCategoriesIndexRouteImport.update({
   id: "/api/categories/",
   path: "/api/categories/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ApiTransactionsIdRoute = ApiTransactionsIdRouteImport.update({
+  id: "/api/transactions/$id",
+  path: "/api/transactions/$id",
   getParentRoute: () => rootRouteImport,
 } as any);
 const ApiCategoriesIdRoute = ApiCategoriesIdRouteImport.update({
@@ -58,7 +70,9 @@ export interface FileRoutesByFullPath {
   "/api/chat": typeof ApiChatRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
   "/api/categories/": typeof ApiCategoriesIndexRoute;
+  "/api/transactions/": typeof ApiTransactionsIndexRoute;
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
@@ -66,7 +80,9 @@ export interface FileRoutesByTo {
   "/": typeof ProtectedIndexRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
   "/api/categories": typeof ApiCategoriesIndexRoute;
+  "/api/transactions": typeof ApiTransactionsIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -76,7 +92,9 @@ export interface FileRoutesById {
   "/_protected/": typeof ProtectedIndexRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
   "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
   "/api/categories/": typeof ApiCategoriesIndexRoute;
+  "/api/transactions/": typeof ApiTransactionsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -86,9 +104,19 @@ export interface FileRouteTypes {
     | "/api/chat"
     | "/api/auth/$"
     | "/api/categories/$id"
-    | "/api/categories/";
+    | "/api/transactions/$id"
+    | "/api/categories/"
+    | "/api/transactions/";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/login" | "/api/chat" | "/" | "/api/auth/$" | "/api/categories/$id" | "/api/categories";
+  to:
+    | "/login"
+    | "/api/chat"
+    | "/"
+    | "/api/auth/$"
+    | "/api/categories/$id"
+    | "/api/transactions/$id"
+    | "/api/categories"
+    | "/api/transactions";
   id:
     | "__root__"
     | "/_protected"
@@ -97,7 +125,9 @@ export interface FileRouteTypes {
     | "/_protected/"
     | "/api/auth/$"
     | "/api/categories/$id"
-    | "/api/categories/";
+    | "/api/transactions/$id"
+    | "/api/categories/"
+    | "/api/transactions/";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -106,7 +136,9 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute;
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
   ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute;
+  ApiTransactionsIdRoute: typeof ApiTransactionsIdRoute;
   ApiCategoriesIndexRoute: typeof ApiCategoriesIndexRoute;
+  ApiTransactionsIndexRoute: typeof ApiTransactionsIndexRoute;
 }
 
 declare module "@tanstack/react-router" {
@@ -139,11 +171,25 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiChatRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/api/transactions/": {
+      id: "/api/transactions/";
+      path: "/api/transactions";
+      fullPath: "/api/transactions/";
+      preLoaderRoute: typeof ApiTransactionsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/api/categories/": {
       id: "/api/categories/";
       path: "/api/categories";
       fullPath: "/api/categories/";
       preLoaderRoute: typeof ApiCategoriesIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/transactions/$id": {
+      id: "/api/transactions/$id";
+      path: "/api/transactions/$id";
+      fullPath: "/api/transactions/$id";
+      preLoaderRoute: typeof ApiTransactionsIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/api/categories/$id": {
@@ -181,7 +227,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCategoriesIdRoute: ApiCategoriesIdRoute,
+  ApiTransactionsIdRoute: ApiTransactionsIdRoute,
   ApiCategoriesIndexRoute: ApiCategoriesIndexRoute,
+  ApiTransactionsIndexRoute: ApiTransactionsIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
