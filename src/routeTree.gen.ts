@@ -13,6 +13,8 @@ import { Route as LoginRouteImport } from "./routes/login";
 import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route";
 import { Route as ProtectedIndexRouteImport } from "./routes/_protected/index";
 import { Route as ApiChatRouteImport } from "./routes/api/chat";
+import { Route as ApiCategoriesIndexRouteImport } from "./routes/api/categories/index";
+import { Route as ApiCategoriesIdRouteImport } from "./routes/api/categories/$id";
 import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
 
 const LoginRoute = LoginRouteImport.update({
@@ -34,6 +36,16 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: "/api/chat",
   getParentRoute: () => rootRouteImport,
 } as any);
+const ApiCategoriesIndexRoute = ApiCategoriesIndexRouteImport.update({
+  id: "/api/categories/",
+  path: "/api/categories/",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ApiCategoriesIdRoute = ApiCategoriesIdRouteImport.update({
+  id: "/api/categories/$id",
+  path: "/api/categories/$id",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: "/api/auth/$",
   path: "/api/auth/$",
@@ -45,12 +57,16 @@ export interface FileRoutesByFullPath {
   "/login": typeof LoginRoute;
   "/api/chat": typeof ApiChatRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/categories/": typeof ApiCategoriesIndexRoute;
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
   "/api/chat": typeof ApiChatRoute;
   "/": typeof ProtectedIndexRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/categories": typeof ApiCategoriesIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -59,13 +75,29 @@ export interface FileRoutesById {
   "/api/chat": typeof ApiChatRoute;
   "/_protected/": typeof ProtectedIndexRoute;
   "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/categories/$id": typeof ApiCategoriesIdRoute;
+  "/api/categories/": typeof ApiCategoriesIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/login" | "/api/chat" | "/api/auth/$";
+  fullPaths:
+    | "/"
+    | "/login"
+    | "/api/chat"
+    | "/api/auth/$"
+    | "/api/categories/$id"
+    | "/api/categories/";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/login" | "/api/chat" | "/" | "/api/auth/$";
-  id: "__root__" | "/_protected" | "/login" | "/api/chat" | "/_protected/" | "/api/auth/$";
+  to: "/login" | "/api/chat" | "/" | "/api/auth/$" | "/api/categories/$id" | "/api/categories";
+  id:
+    | "__root__"
+    | "/_protected"
+    | "/login"
+    | "/api/chat"
+    | "/_protected/"
+    | "/api/auth/$"
+    | "/api/categories/$id"
+    | "/api/categories/";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -73,6 +105,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute;
   ApiChatRoute: typeof ApiChatRoute;
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+  ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute;
+  ApiCategoriesIndexRoute: typeof ApiCategoriesIndexRoute;
 }
 
 declare module "@tanstack/react-router" {
@@ -105,6 +139,20 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ApiChatRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    "/api/categories/": {
+      id: "/api/categories/";
+      path: "/api/categories";
+      fullPath: "/api/categories/";
+      preLoaderRoute: typeof ApiCategoriesIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/categories/$id": {
+      id: "/api/categories/$id";
+      path: "/api/categories/$id";
+      fullPath: "/api/categories/$id";
+      preLoaderRoute: typeof ApiCategoriesIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     "/api/auth/$": {
       id: "/api/auth/$";
       path: "/api/auth/$";
@@ -132,6 +180,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiChatRoute: ApiChatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCategoriesIdRoute: ApiCategoriesIdRoute,
+  ApiCategoriesIndexRoute: ApiCategoriesIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
