@@ -36,7 +36,9 @@ export async function updateCategory(
   const [row] = await getDB()
     .update(categories)
     .set(patch)
-    .where(and(eq(categories.id, id), eq(categories.user_id, userId)))
+    .where(
+      and(eq(categories.id, id), eq(categories.user_id, userId), isNull(categories.deleted_at)),
+    )
     .returning();
   return row ?? null;
 }
@@ -45,7 +47,9 @@ export async function softDeleteCategory(userId: string, id: string): Promise<Ca
   const [row] = await getDB()
     .update(categories)
     .set({ deleted_at: new Date() })
-    .where(and(eq(categories.id, id), eq(categories.user_id, userId)))
+    .where(
+      and(eq(categories.id, id), eq(categories.user_id, userId), isNull(categories.deleted_at)),
+    )
     .returning();
   return row ?? null;
 }
