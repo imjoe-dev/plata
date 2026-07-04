@@ -17,7 +17,9 @@ export const Transaction = z.object({
 
 export type Transaction = z.infer<typeof Transaction>;
 
-export const TransactionPatch = Transaction.partial();
+export const TransactionPatch = Transaction.omit({ currency: true })
+  .partial()
+  .extend({ currency: z.string().length(3).optional() });
 
 export type TransactionPatch = z.infer<typeof TransactionPatch>;
 

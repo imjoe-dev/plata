@@ -84,8 +84,7 @@ describe("Transaction schema — wire readiness", () => {
   });
 
   it("TransactionPatch accepts a partial body", () => {
-    const out = TransactionPatch.parse({ description: "Y" });
-    expect(out).toMatchObject({ description: "Y" });
+    expect(TransactionPatch.parse({ description: "Y" })).toEqual({ description: "Y" });
   });
 
   it("TransactionListQuery coerces from/to and validates type", () => {
@@ -119,7 +118,7 @@ describe("RecurringTemplate schema — wire readiness", () => {
   });
 
   it("RecurringTemplatePatch accepts a partial body", () => {
-    expect(RecurringTemplatePatch.parse({ status: "paused" })).toMatchObject({ status: "paused" });
+    expect(RecurringTemplatePatch.parse({ status: "paused" })).toEqual({ status: "paused" });
   });
 
   it("RecurringTemplateListQuery validates status", () => {

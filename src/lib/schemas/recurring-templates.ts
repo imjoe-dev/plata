@@ -18,7 +18,9 @@ export const RecurringTemplate = z.object({
 
 export type RecurringTemplate = z.infer<typeof RecurringTemplate>;
 
-export const RecurringTemplatePatch = RecurringTemplate.partial();
+export const RecurringTemplatePatch = RecurringTemplate.omit({ currency: true })
+  .partial()
+  .extend({ currency: z.string().length(3).optional() });
 
 export type RecurringTemplatePatch = z.infer<typeof RecurringTemplatePatch>;
 
