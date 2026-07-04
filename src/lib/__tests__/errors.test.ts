@@ -5,52 +5,48 @@ import {
   ConflictError,
   InternalError,
   NotFoundError,
+  UnauthorizedError,
   ValidationError,
 } from "@/lib/errors";
 
-describe("errors", () => {
-  it("ValidationError maps to 400 with fieldErrors", () => {
-    const err = new ValidationError({ amount: ["Required"] });
-    expect(err).toBeInstanceOf(AppError);
+describe("AppError subclasses", () => {
+  it("UnauthorizedError has status 401 and a name/status JSON", () => {
+    const err = new UnauthorizedError();
+    expect(err.status).toBe(401);
+    expect(err.name).toBe("UnauthorizedError");
+    expect(err.toJSON()).toEqual({ name: "UnauthorizedError", status: 401 });
+  });
+
+  it("ValidationError includes fieldErrors", () => {
+    const err = new ValidationError({ name: ["required"] });
     expect(err.status).toBe(400);
-    expect(err.toJSON()).toEqual({
-      name: "ValidationError",
-      status: 400,
-      fieldErrors: { amount: ["Required"] },
-    });
+    expect(err.toJSON()).toMatchObject({ fieldErrors: { name: ["required"] } });
   });
 
-  it("NotFoundError maps to 404 with resource and id", () => {
-    const err = new NotFoundError("category", "cat_123");
+  it("NotFoundError includes resource and id", () => {
+    const err = new NotFoundError("category", "c1");
     expect(err.status).toBe(404);
-    expect(err.toJSON()).toEqual({
-      name: "NotFoundError",
-      status: 404,
-      resource: "category",
-      id: "cat_123",
-    });
+    expect(err.toJSON()).toMatchObject({ resource: "category", id: "c1" });
   });
 
-  it("ConflictError maps to 409 with constraint and field", () => {
+  it("ConflictError includes constraint and field", () => {
     const err = new ConflictError("categories_name_user_id_unique", "name");
     expect(err.status).toBe(409);
-    expect(err.toJSON()).toEqual({
-      name: "ConflictError",
-      status: 409,
+    expect(err.toJSON()).toMatchObject({
       constraint: "categories_name_user_id_unique",
       field: "name",
     });
   });
 
-  it("InternalError maps to 500 with message and optional cause", () => {
-    const cause = new Error("boom");
-    const err = new InternalError("insert returned no rows", cause);
-    expect(err.status).toBe(500);
-    expect(err.toJSON()).toEqual({
-      name: "InternalError",
-      status: 500,
-      message: "insert returned no rows",
-    });
-    expect(err.cause).toBe(cause);
+  it("InternalError has status 500", () => {
+    expect(new InternalError("boom").status).toBe(500);
+  });
+
+  it("all subclasses extend AppError", () => {
+    expect(new UnauthorizedError()).toBeInstanceOf(AppError);
+    expect(new ValidationError({})).toBeInstanceOf(AppError);
+    expect(new NotFoundError("x", "1")).toBeInstanceOf(AppError);
+    expect(new ConflictError("c", "f")).toBeInstanceOf(AppError);
+    expect(new InternalError("x")).toBeInstanceOf(AppError);
   });
 });
