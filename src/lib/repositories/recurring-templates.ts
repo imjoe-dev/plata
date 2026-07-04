@@ -92,3 +92,16 @@ export async function softDeleteRecurringTemplate(
     .returning();
   return row ?? null;
 }
+
+export function buildUpdateTemplate(userId: string, id: string, patch: Partial<TemplateInsert>) {
+  return getDB()
+    .update(recurring_templates)
+    .set(patch)
+    .where(
+      and(
+        eq(recurring_templates.id, id),
+        eq(recurring_templates.user_id, userId),
+        isNull(recurring_templates.deleted_at),
+      ),
+    );
+}

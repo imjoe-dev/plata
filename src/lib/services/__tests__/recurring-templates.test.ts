@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { InternalError, NotFoundError } from "@/lib/errors";
+import { runBatch } from "@/lib/db/transaction";
 
 vi.mock("@/lib/repositories/recurring-templates", () => ({
   createRecurringTemplate: vi.fn(),
@@ -9,6 +10,13 @@ vi.mock("@/lib/repositories/recurring-templates", () => ({
   updateRecurringTemplate: vi.fn(),
   softDeleteRecurringTemplate: vi.fn(),
   listDueTemplates: vi.fn(),
+  buildUpdateTemplate: vi.fn(() => ({ __update: true })),
+}));
+vi.mock("@/lib/repositories/transactions", () => ({
+  buildInsertTransaction: vi.fn(() => ({ __insert: true })),
+}));
+vi.mock("@/lib/db/transaction", () => ({
+  runBatch: vi.fn(async () => ({ success: true as const })),
 }));
 vi.mock("@/lib/repositories/category", () => ({
   getCategoryById: vi.fn(),
@@ -16,12 +24,15 @@ vi.mock("@/lib/repositories/category", () => ({
 
 import * as recRepo from "@/lib/repositories/recurring-templates";
 import * as catRepo from "@/lib/repositories/category";
+import * as txnRepo from "@/lib/repositories/transactions";
 import {
   activateTemplate,
+  computeNextDue,
   createRecurringTemplate,
   deleteRecurringTemplate,
   getRecurringTemplate,
   pauseTemplate,
+  processDueRecurring,
   updateRecurringTemplate,
 } from "@/lib/services/recurring-templates";
 
@@ -115,5 +126,118 @@ describe("recurring-templates service", () => {
       status: "completed",
     } as any);
     await expect(activateTemplate("user_1", "r1")).rejects.toBeInstanceOf(InternalError);
+  });
+});
+
+describe("computeNextDue", () => {
+  it("advances monthly and is not completed without end_date", () => {
+    const { nextDue, completed } = computeNextDue(new Date("2026-07-01"), "monthly", null);
+    expect(nextDue).toEqual(new Date("2026-08-01"));
+    expect(completed).toBe(false);
+  });
+
+  it("is completed when nextDue passes end_date", () => {
+    const { nextDue, completed } = computeNextDue(
+      new Date("2026-11-01"),
+      "monthly",
+      new Date("2026-11-15"),
+    );
+    expect(nextDue).toEqual(new Date("2026-12-01"));
+    expect(completed).toBe(true);
+  });
+
+  it("advances quarterly by 3 months", () => {
+    expect(computeNextDue(new Date("2026-01-01"), "quarterly", null).nextDue).toEqual(
+      new Date("2026-04-01"),
+    );
+  });
+});
+
+describe("processDueRecurring", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(runBatch).mockResolvedValue({ success: true });
+  });
+
+  it("inserts a transaction and updates the template atomically per due template", async () => {
+    vi.mocked(recRepo.listDueTemplates).mockResolvedValueOnce([
+      {
+        id: "r1",
+        user_id: "user_1",
+        amount: 1000,
+        currency: "USD",
+        type: "expense",
+        description: "Rent",
+        cadence: "monthly",
+        next_due_date: new Date("2026-07-01"),
+        last_insertion_date: null,
+        status: "active",
+        end_date: null,
+        category_id: null,
+      } as any,
+    ]);
+
+    const res = await processDueRecurring("user_1", new Date("2026-07-02"));
+
+    expect(res.processed).toBe(1);
+    expect(runBatch).toHaveBeenCalledTimes(1);
+    expect(txnRepo.buildInsertTransaction).toHaveBeenCalledTimes(1);
+    expect(recRepo.buildUpdateTemplate).toHaveBeenCalledTimes(1);
+    const [batchArgs] = vi.mocked(runBatch).mock.calls[0];
+    expect(batchArgs).toEqual([{ __insert: true }, { __update: true }]);
+
+    // buildUpdateTemplate is called as (userId, id, patch) — patch is 3rd arg.
+    const [, , patch] = vi.mocked(recRepo.buildUpdateTemplate).mock.calls[0];
+    expect((patch.next_due_date as Date).getUTCMonth()).toBe(7); // August (0-indexed: Jan=0, Aug=7)
+    expect(patch.last_insertion_date).toEqual(new Date("2026-07-02"));
+    expect(patch.status).toBeUndefined(); // not completed (no end_date)
+  });
+
+  it("marks the template completed when the new next_due_date passes end_date", async () => {
+    vi.mocked(recRepo.listDueTemplates).mockResolvedValueOnce([
+      {
+        id: "r1",
+        user_id: "user_1",
+        amount: 1000,
+        currency: "USD",
+        type: "expense",
+        description: "Rent",
+        cadence: "monthly",
+        next_due_date: new Date("2026-11-01"),
+        last_insertion_date: null,
+        status: "active",
+        end_date: new Date("2026-11-15"),
+        category_id: null,
+      } as any,
+    ]);
+
+    const res = await processDueRecurring("user_1", new Date("2026-11-02"));
+    expect(res.processed).toBe(1);
+    const [, , patch] = vi.mocked(recRepo.buildUpdateTemplate).mock.calls[0];
+    expect(patch.status).toBe("completed");
+  });
+
+  it("skips a template already inserted this period (idempotency)", async () => {
+    vi.mocked(recRepo.listDueTemplates).mockResolvedValueOnce([
+      {
+        id: "r1",
+        user_id: "user_1",
+        amount: 1000,
+        currency: "USD",
+        type: "expense",
+        description: "Rent",
+        cadence: "monthly",
+        next_due_date: new Date("2026-07-01"),
+        last_insertion_date: new Date("2026-07-01T12:00:00Z"),
+        status: "active",
+        end_date: null,
+        category_id: null,
+      } as any,
+    ]);
+
+    const res = await processDueRecurring("user_1", new Date("2026-07-02"));
+    expect(res.processed).toBe(0);
+    expect(runBatch).not.toHaveBeenCalled();
+    expect(txnRepo.buildInsertTransaction).not.toHaveBeenCalled();
   });
 });

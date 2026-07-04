@@ -86,3 +86,7 @@ export async function softDeleteTransaction(
     .returning();
   return row ?? null;
 }
+
+export function buildInsertTransaction(input: TransactionInsert) {
+  return getDB().insert(transactions).values(input);
+}
