@@ -8,7 +8,7 @@ export const Transaction = z.object({
   currency: z.string().length(3).default("USD"),
   type: z.enum(["expense", "income"]),
   description: z.string().min(1),
-  date: z.date(),
+  date: z.coerce.date(),
   categoryId: z.string().nullable().optional(),
   recurringTemplateId: z.string().nullable().optional(),
   source: z.enum(["manual", "chat", "csv_import"]),
@@ -16,3 +16,16 @@ export const Transaction = z.object({
 });
 
 export type Transaction = z.infer<typeof Transaction>;
+
+export const TransactionPatch = Transaction.partial();
+
+export type TransactionPatch = z.infer<typeof TransactionPatch>;
+
+export const TransactionListQuery = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  type: z.enum(["expense", "income"]).optional(),
+  categoryId: z.string().optional(),
+});
+
+export type TransactionListQuery = z.infer<typeof TransactionListQuery>;
