@@ -1,45 +1,51 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { getDB } from "@/db";
-import { categories, type InsertCategory } from "@/db/schema";
+import { categories } from "@/db/schema";
 
-export async function createCategory(category: InsertCategory) {
-  const response = await getDB().insert(categories).values(category).returning();
-  if (response.length <= 0) {
-    return null;
-  }
+type CategoryRow = typeof categories.$inferSelect;
+type CategoryInsert = typeof categories.$inferInsert;
 
-  return response[0];
+export async function createCategory(_userId: string, input: CategoryInsert) {
+  const [row] = await getDB().insert(categories).values(input).returning();
+  return row;
 }
 
-export async function getCategories() {
-  const response = await getDB()
-    .select({
-      id: categories.id,
-      name: categories.name,
-      color: categories.color,
-      icon: categories.icon,
-      created_at: categories.created_at,
-    })
-    .from(categories);
-
-  return response;
+export async function getCategoryById(userId: string, id: string): Promise<CategoryRow | null> {
+  const [row] = await getDB()
+    .select()
+    .from(categories)
+    .where(
+      and(eq(categories.id, id), eq(categories.user_id, userId), isNull(categories.deleted_at)),
+    );
+  return row ?? null;
 }
 
-export async function updateCategory(category: InsertCategory) {
-  const response = await getDB().update(categories).set(category).returning();
-  if (response.length <= 0) {
-    return null;
-  }
-
-  return response;
+export async function listCategories(userId: string): Promise<CategoryRow[]> {
+  return getDB()
+    .select()
+    .from(categories)
+    .where(and(eq(categories.user_id, userId), isNull(categories.deleted_at)));
 }
 
-export async function deleteCategory(id: string) {
-  const response = await getDB().delete(categories).where(eq(categories.id, id)).returning();
-  if (response.length <= 0) {
-    return null;
-  }
+export async function updateCategory(
+  userId: string,
+  id: string,
+  patch: Partial<CategoryInsert>,
+): Promise<CategoryRow | null> {
+  const [row] = await getDB()
+    .update(categories)
+    .set(patch)
+    .where(and(eq(categories.id, id), eq(categories.user_id, userId)))
+    .returning();
+  return row ?? null;
+}
 
-  return response[0];
+export async function softDeleteCategory(userId: string, id: string): Promise<CategoryRow | null> {
+  const [row] = await getDB()
+    .update(categories)
+    .set({ deleted_at: new Date() })
+    .where(and(eq(categories.id, id), eq(categories.user_id, userId)))
+    .returning();
+  return row ?? null;
 }
