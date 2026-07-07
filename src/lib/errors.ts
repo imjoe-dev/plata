@@ -66,3 +66,13 @@ export class InternalError extends AppError {
     return { ...super.toJSON(), message: this.message };
   }
 }
+
+export class UnauthorizedError extends AppError {
+  constructor() {
+    super(401, "Unauthorized");
+  }
+
+  toJSON(): ErrorJSON {
+    return super.toJSON();
+  }
+}

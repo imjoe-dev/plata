@@ -8,3 +8,7 @@ export const Category = z.object({
 });
 
 export type Category = z.infer<typeof Category>;
+
+export const CategoryPatch = Category.partial();
+
+export type CategoryPatch = z.infer<typeof CategoryPatch>;

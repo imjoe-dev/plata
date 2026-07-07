@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { Category } from "@/lib/schemas/categories";
-import { Transaction } from "@/lib/schemas/transactions";
-import { RecurringTemplate } from "@/lib/schemas/recurring-templates";
+import { Category, CategoryPatch } from "@/lib/schemas/categories";
+import { Transaction, TransactionPatch, TransactionListQuery } from "@/lib/schemas/transactions";
+import {
+  RecurringTemplate,
+  RecurringTemplatePatch,
+  RecurringTemplateListQuery,
+} from "@/lib/schemas/recurring-templates";
 
 describe("Category schema", () => {
   it("parses a valid category", () => {
@@ -64,5 +68,67 @@ describe("RecurringTemplate schema", () => {
         status: "active",
       }),
     ).toThrow();
+  });
+});
+
+describe("Transaction schema — wire readiness", () => {
+  it("coerces an ISO date string to a Date", () => {
+    const out = Transaction.parse({
+      amount: 10,
+      type: "expense",
+      description: "x",
+      date: "2026-07-01T00:00:00.000Z",
+      source: "manual",
+    });
+    expect(out.date).toBeInstanceOf(Date);
+  });
+
+  it("TransactionPatch accepts a partial body", () => {
+    expect(TransactionPatch.parse({ description: "Y" })).toEqual({ description: "Y" });
+  });
+
+  it("TransactionListQuery coerces from/to and validates type", () => {
+    const out = TransactionListQuery.parse({
+      from: "2026-01-01T00:00:00.000Z",
+      to: "2026-12-31T00:00:00.000Z",
+      type: "income",
+      categoryId: "c1",
+    });
+    expect(out.from).toBeInstanceOf(Date);
+    expect(out.to).toBeInstanceOf(Date);
+    expect(out.type).toBe("income");
+  });
+
+  it("TransactionListQuery rejects an unknown type", () => {
+    expect(() => TransactionListQuery.parse({ type: "nope" })).toThrow();
+  });
+});
+
+describe("RecurringTemplate schema — wire readiness", () => {
+  it("coerces an ISO date string for nextDueDate", () => {
+    const out = RecurringTemplate.parse({
+      amount: 100,
+      type: "expense",
+      description: "x",
+      cadence: "monthly",
+      status: "active",
+      nextDueDate: "2026-08-01T00:00:00.000Z",
+    });
+    expect(out.nextDueDate).toBeInstanceOf(Date);
+  });
+
+  it("RecurringTemplatePatch accepts a partial body", () => {
+    expect(RecurringTemplatePatch.parse({ status: "paused" })).toEqual({ status: "paused" });
+  });
+
+  it("RecurringTemplateListQuery validates status", () => {
+    expect(RecurringTemplateListQuery.parse({ status: "active" }).status).toBe("active");
+    expect(() => RecurringTemplateListQuery.parse({ status: "nope" })).toThrow();
+  });
+});
+
+describe("CategoryPatch", () => {
+  it("accepts a partial body", () => {
+    expect(CategoryPatch.parse({ name: "B" })).toEqual({ name: "B" });
   });
 });
