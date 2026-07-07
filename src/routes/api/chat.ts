@@ -4,6 +4,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 
+import { allToolDefinitions } from "@/lib/ai/tools/index";
+
 const SUPPORTED_MODELS = ["gpt-5.4-mini"] as const;
 type SupportedModel = (typeof SUPPORTED_MODELS)[number];
 
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/api/chat")({
         const stream = chat({
           adapter: adapters[model_id],
           messages,
+          tools: [...allToolDefinitions],
         });
 
         return toServerSentEventsResponse(stream);

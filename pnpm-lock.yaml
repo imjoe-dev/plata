@@ -23,6 +23,9 @@ importers:
       '@tanstack/ai':
         specifier: ^0.28.0
         version: 0.28.0
+      '@tanstack/ai-client':
+        specifier: ^0.16.3
+        version: 0.16.3
       '@tanstack/ai-openai':
         specifier: ^0.14.1
         version: 0.14.1(@tanstack/ai-client@0.16.3)(@tanstack/ai@0.28.0)(ws@8.21.0)(zod@4.4.3)
