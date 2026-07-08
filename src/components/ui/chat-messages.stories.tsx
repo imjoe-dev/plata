@@ -23,6 +23,17 @@ const markdownExample = `Got it! Here's the breakdown of **your rent payment**:
 | Feb   | $1,500 | Paid   |
 | Mar   | $1,500 | Pending |
 
+Here's the SQL query I ran to fetch this:
+
+\`\`\`sql
+SELECT month, amount, status
+FROM rent_payments
+WHERE user_id = ?
+ORDER BY month DESC;
+\`\`\`
+
+And the inline command: run \`plata export --month=jan\` to download.
+
 [View details](https://example.com) for more information.`;
 
 export const Conversation: StoryObj<typeof ChatMessages.List> = {
@@ -61,7 +72,13 @@ export const UserMessageOnly: StoryObj<typeof ChatMessages.List> = {
     return (
       <ChatMessages.List>
         <ChatMessages.UserMessage>
-          Show me all **housing expenses** from last month
+          {`Show me all **housing expenses** from last month
+
+\`\`\`json
+{"category": "housing", "period": "2026-06"}
+\`\`\`
+
+Run the query with \`plata query --housing\`.`}
         </ChatMessages.UserMessage>
       </ChatMessages.List>
     );
