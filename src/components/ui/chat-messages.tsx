@@ -39,8 +39,28 @@ const markdownComponents: Components = {
   td: (props) => <Table.Cell {...props} />,
   tr: (props) => <Table.Row {...props} />,
   img: () => null,
-  code: () => null,
-  pre: () => null,
+  code: ({ className, children, ...props }) => {
+    if (className) {
+      return (
+        <code className={cn("font-mono text-xs whitespace-pre-wrap", className)} {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className="bg-sunken text-fg px-1.5 py-0.5 font-mono text-xs" {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children, ...props }) => (
+    <pre
+      className="bg-sunken text-fg my-2 overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap"
+      {...props}
+    >
+      {children}
+    </pre>
+  ),
 };
 
 const userMarkdownComponents: Components = {
@@ -76,8 +96,28 @@ const userMarkdownComponents: Components = {
   td: () => null,
   tr: () => null,
   img: () => null,
-  code: () => null,
-  pre: () => null,
+  code: ({ className, children, ...props }) => {
+    if (className) {
+      return (
+        <code className={cn("font-mono text-xs whitespace-pre-wrap", className)} {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className="bg-current/[0.07] px-1.5 py-0.5 font-mono text-xs" {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children, ...props }) => (
+    <pre
+      className="my-2 overflow-x-auto bg-current/[0.07] p-2 font-mono text-xs whitespace-pre-wrap"
+      {...props}
+    >
+      {children}
+    </pre>
+  ),
 };
 
 function List({ children, className, ...props }: React.ComponentProps<"div">) {
