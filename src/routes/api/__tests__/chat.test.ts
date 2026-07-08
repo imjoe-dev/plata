@@ -42,5 +42,7 @@ describe("POST /api/chat", () => {
     const call = vi.mocked(chat).mock.calls[0][0] as any;
     expect(Array.isArray(call.tools)).toBe(true);
     expect(call.tools).toHaveLength(17);
+    expect(call.systemPrompts).toEqual([expect.any(String)]);
+    expect((call.systemPrompts as string[])[0]).toContain("Identity & Mandate");
   });
 });
