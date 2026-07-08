@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/chat", () => {
-  it("passes all 17 tool definitions to chat()", async () => {
+  it("passes tools and the system prompt to chat()", async () => {
     const res = await Route.server.handlers.POST({
       request: new Request("http://localhost/api/chat", {
         method: "POST",
