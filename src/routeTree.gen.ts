@@ -8,298 +8,302 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as LoginRouteImport } from "./routes/login";
-import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route";
-import { Route as ProtectedIndexRouteImport } from "./routes/_protected/index";
-import { Route as ApiChatRouteImport } from "./routes/api/chat";
-import { Route as ApiTransactionsIndexRouteImport } from "./routes/api/transactions/index";
-import { Route as ApiRecurringTemplatesIndexRouteImport } from "./routes/api/recurring-templates/index";
-import { Route as ApiCategoriesIndexRouteImport } from "./routes/api/categories/index";
-import { Route as ApiTransactionsIdRouteImport } from "./routes/api/transactions/$id";
-import { Route as ApiCategoriesIdRouteImport } from "./routes/api/categories/$id";
-import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
-import { Route as ApiRecurringTemplatesIdIndexRouteImport } from "./routes/api/recurring-templates/$id/index";
-import { Route as ApiRecurringTemplatesIdPauseRouteImport } from "./routes/api/recurring-templates/$id/pause";
-import { Route as ApiRecurringTemplatesIdActivateRouteImport } from "./routes/api/recurring-templates/$id/activate";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
+import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiTransactionsIndexRouteImport } from './routes/api/transactions/index'
+import { Route as ApiRecurringTemplatesIndexRouteImport } from './routes/api/recurring-templates/index'
+import { Route as ApiCategoriesIndexRouteImport } from './routes/api/categories/index'
+import { Route as ApiTransactionsIdRouteImport } from './routes/api/transactions/$id'
+import { Route as ApiCategoriesIdRouteImport } from './routes/api/categories/$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiRecurringTemplatesIdIndexRouteImport } from './routes/api/recurring-templates/$id/index'
+import { Route as ApiRecurringTemplatesIdPauseRouteImport } from './routes/api/recurring-templates/$id/pause'
+import { Route as ApiRecurringTemplatesIdActivateRouteImport } from './routes/api/recurring-templates/$id/activate'
 
 const LoginRoute = LoginRouteImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
-  id: "/_protected",
+  id: '/_protected',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => ProtectedRouteRoute,
-} as any);
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
-  id: "/api/chat",
-  path: "/api/chat",
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiTransactionsIndexRoute = ApiTransactionsIndexRouteImport.update({
-  id: "/api/transactions/",
-  path: "/api/transactions/",
+  id: '/api/transactions/',
+  path: '/api/transactions/',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiRecurringTemplatesIndexRoute = ApiRecurringTemplatesIndexRouteImport.update({
-  id: "/api/recurring-templates/",
-  path: "/api/recurring-templates/",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const ApiRecurringTemplatesIndexRoute =
+  ApiRecurringTemplatesIndexRouteImport.update({
+    id: '/api/recurring-templates/',
+    path: '/api/recurring-templates/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCategoriesIndexRoute = ApiCategoriesIndexRouteImport.update({
-  id: "/api/categories/",
-  path: "/api/categories/",
+  id: '/api/categories/',
+  path: '/api/categories/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiTransactionsIdRoute = ApiTransactionsIdRouteImport.update({
-  id: "/api/transactions/$id",
-  path: "/api/transactions/$id",
+  id: '/api/transactions/$id',
+  path: '/api/transactions/$id',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiCategoriesIdRoute = ApiCategoriesIdRouteImport.update({
-  id: "/api/categories/$id",
-  path: "/api/categories/$id",
+  id: '/api/categories/$id',
+  path: '/api/categories/$id',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: "/api/auth/$",
-  path: "/api/auth/$",
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any);
-const ApiRecurringTemplatesIdIndexRoute = ApiRecurringTemplatesIdIndexRouteImport.update({
-  id: "/api/recurring-templates/$id/",
-  path: "/api/recurring-templates/$id/",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiRecurringTemplatesIdPauseRoute = ApiRecurringTemplatesIdPauseRouteImport.update({
-  id: "/api/recurring-templates/$id/pause",
-  path: "/api/recurring-templates/$id/pause",
-  getParentRoute: () => rootRouteImport,
-} as any);
-const ApiRecurringTemplatesIdActivateRoute = ApiRecurringTemplatesIdActivateRouteImport.update({
-  id: "/api/recurring-templates/$id/activate",
-  path: "/api/recurring-templates/$id/activate",
-  getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
+const ApiRecurringTemplatesIdIndexRoute =
+  ApiRecurringTemplatesIdIndexRouteImport.update({
+    id: '/api/recurring-templates/$id/',
+    path: '/api/recurring-templates/$id/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiRecurringTemplatesIdPauseRoute =
+  ApiRecurringTemplatesIdPauseRouteImport.update({
+    id: '/api/recurring-templates/$id/pause',
+    path: '/api/recurring-templates/$id/pause',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiRecurringTemplatesIdActivateRoute =
+  ApiRecurringTemplatesIdActivateRouteImport.update({
+    id: '/api/recurring-templates/$id/activate',
+    path: '/api/recurring-templates/$id/activate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof ProtectedIndexRoute;
-  "/login": typeof LoginRoute;
-  "/api/chat": typeof ApiChatRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/categories/$id": typeof ApiCategoriesIdRoute;
-  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
-  "/api/categories/": typeof ApiCategoriesIndexRoute;
-  "/api/recurring-templates/": typeof ApiRecurringTemplatesIndexRoute;
-  "/api/transactions/": typeof ApiTransactionsIndexRoute;
-  "/api/recurring-templates/$id/activate": typeof ApiRecurringTemplatesIdActivateRoute;
-  "/api/recurring-templates/$id/pause": typeof ApiRecurringTemplatesIdPauseRoute;
-  "/api/recurring-templates/$id/": typeof ApiRecurringTemplatesIdIndexRoute;
+  '/': typeof ProtectedIndexRoute
+  '/login': typeof LoginRoute
+  '/api/chat': typeof ApiChatRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/categories/$id': typeof ApiCategoriesIdRoute
+  '/api/transactions/$id': typeof ApiTransactionsIdRoute
+  '/api/categories/': typeof ApiCategoriesIndexRoute
+  '/api/recurring-templates/': typeof ApiRecurringTemplatesIndexRoute
+  '/api/transactions/': typeof ApiTransactionsIndexRoute
+  '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
+  '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
+  '/api/recurring-templates/$id/': typeof ApiRecurringTemplatesIdIndexRoute
 }
 export interface FileRoutesByTo {
-  "/login": typeof LoginRoute;
-  "/api/chat": typeof ApiChatRoute;
-  "/": typeof ProtectedIndexRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/categories/$id": typeof ApiCategoriesIdRoute;
-  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
-  "/api/categories": typeof ApiCategoriesIndexRoute;
-  "/api/recurring-templates": typeof ApiRecurringTemplatesIndexRoute;
-  "/api/transactions": typeof ApiTransactionsIndexRoute;
-  "/api/recurring-templates/$id/activate": typeof ApiRecurringTemplatesIdActivateRoute;
-  "/api/recurring-templates/$id/pause": typeof ApiRecurringTemplatesIdPauseRoute;
-  "/api/recurring-templates/$id": typeof ApiRecurringTemplatesIdIndexRoute;
+  '/login': typeof LoginRoute
+  '/api/chat': typeof ApiChatRoute
+  '/': typeof ProtectedIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/categories/$id': typeof ApiCategoriesIdRoute
+  '/api/transactions/$id': typeof ApiTransactionsIdRoute
+  '/api/categories': typeof ApiCategoriesIndexRoute
+  '/api/recurring-templates': typeof ApiRecurringTemplatesIndexRoute
+  '/api/transactions': typeof ApiTransactionsIndexRoute
+  '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
+  '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
+  '/api/recurring-templates/$id': typeof ApiRecurringTemplatesIdIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/_protected": typeof ProtectedRouteRouteWithChildren;
-  "/login": typeof LoginRoute;
-  "/api/chat": typeof ApiChatRoute;
-  "/_protected/": typeof ProtectedIndexRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/categories/$id": typeof ApiCategoriesIdRoute;
-  "/api/transactions/$id": typeof ApiTransactionsIdRoute;
-  "/api/categories/": typeof ApiCategoriesIndexRoute;
-  "/api/recurring-templates/": typeof ApiRecurringTemplatesIndexRoute;
-  "/api/transactions/": typeof ApiTransactionsIndexRoute;
-  "/api/recurring-templates/$id/activate": typeof ApiRecurringTemplatesIdActivateRoute;
-  "/api/recurring-templates/$id/pause": typeof ApiRecurringTemplatesIdPauseRoute;
-  "/api/recurring-templates/$id/": typeof ApiRecurringTemplatesIdIndexRoute;
+  __root__: typeof rootRouteImport
+  '/_protected': typeof ProtectedRouteRouteWithChildren
+  '/login': typeof LoginRoute
+  '/api/chat': typeof ApiChatRoute
+  '/_protected/': typeof ProtectedIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/categories/$id': typeof ApiCategoriesIdRoute
+  '/api/transactions/$id': typeof ApiTransactionsIdRoute
+  '/api/categories/': typeof ApiCategoriesIndexRoute
+  '/api/recurring-templates/': typeof ApiRecurringTemplatesIndexRoute
+  '/api/transactions/': typeof ApiTransactionsIndexRoute
+  '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
+  '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
+  '/api/recurring-templates/$id/': typeof ApiRecurringTemplatesIdIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/login"
-    | "/api/chat"
-    | "/api/auth/$"
-    | "/api/categories/$id"
-    | "/api/transactions/$id"
-    | "/api/categories/"
-    | "/api/recurring-templates/"
-    | "/api/transactions/"
-    | "/api/recurring-templates/$id/activate"
-    | "/api/recurring-templates/$id/pause"
-    | "/api/recurring-templates/$id/";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/login'
+    | '/api/chat'
+    | '/api/auth/$'
+    | '/api/categories/$id'
+    | '/api/transactions/$id'
+    | '/api/categories/'
+    | '/api/recurring-templates/'
+    | '/api/transactions/'
+    | '/api/recurring-templates/$id/activate'
+    | '/api/recurring-templates/$id/pause'
+    | '/api/recurring-templates/$id/'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/login"
-    | "/api/chat"
-    | "/"
-    | "/api/auth/$"
-    | "/api/categories/$id"
-    | "/api/transactions/$id"
-    | "/api/categories"
-    | "/api/recurring-templates"
-    | "/api/transactions"
-    | "/api/recurring-templates/$id/activate"
-    | "/api/recurring-templates/$id/pause"
-    | "/api/recurring-templates/$id";
+    | '/login'
+    | '/api/chat'
+    | '/'
+    | '/api/auth/$'
+    | '/api/categories/$id'
+    | '/api/transactions/$id'
+    | '/api/categories'
+    | '/api/recurring-templates'
+    | '/api/transactions'
+    | '/api/recurring-templates/$id/activate'
+    | '/api/recurring-templates/$id/pause'
+    | '/api/recurring-templates/$id'
   id:
-    | "__root__"
-    | "/_protected"
-    | "/login"
-    | "/api/chat"
-    | "/_protected/"
-    | "/api/auth/$"
-    | "/api/categories/$id"
-    | "/api/transactions/$id"
-    | "/api/categories/"
-    | "/api/recurring-templates/"
-    | "/api/transactions/"
-    | "/api/recurring-templates/$id/activate"
-    | "/api/recurring-templates/$id/pause"
-    | "/api/recurring-templates/$id/";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/_protected'
+    | '/login'
+    | '/api/chat'
+    | '/_protected/'
+    | '/api/auth/$'
+    | '/api/categories/$id'
+    | '/api/transactions/$id'
+    | '/api/categories/'
+    | '/api/recurring-templates/'
+    | '/api/transactions/'
+    | '/api/recurring-templates/$id/activate'
+    | '/api/recurring-templates/$id/pause'
+    | '/api/recurring-templates/$id/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren;
-  LoginRoute: typeof LoginRoute;
-  ApiChatRoute: typeof ApiChatRoute;
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
-  ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute;
-  ApiTransactionsIdRoute: typeof ApiTransactionsIdRoute;
-  ApiCategoriesIndexRoute: typeof ApiCategoriesIndexRoute;
-  ApiRecurringTemplatesIndexRoute: typeof ApiRecurringTemplatesIndexRoute;
-  ApiTransactionsIndexRoute: typeof ApiTransactionsIndexRoute;
-  ApiRecurringTemplatesIdActivateRoute: typeof ApiRecurringTemplatesIdActivateRoute;
-  ApiRecurringTemplatesIdPauseRoute: typeof ApiRecurringTemplatesIdPauseRoute;
-  ApiRecurringTemplatesIdIndexRoute: typeof ApiRecurringTemplatesIdIndexRoute;
+  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  ApiChatRoute: typeof ApiChatRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute
+  ApiTransactionsIdRoute: typeof ApiTransactionsIdRoute
+  ApiCategoriesIndexRoute: typeof ApiCategoriesIndexRoute
+  ApiRecurringTemplatesIndexRoute: typeof ApiRecurringTemplatesIndexRoute
+  ApiTransactionsIndexRoute: typeof ApiTransactionsIndexRoute
+  ApiRecurringTemplatesIdActivateRoute: typeof ApiRecurringTemplatesIdActivateRoute
+  ApiRecurringTemplatesIdPauseRoute: typeof ApiRecurringTemplatesIdPauseRoute
+  ApiRecurringTemplatesIdIndexRoute: typeof ApiRecurringTemplatesIdIndexRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/login": {
-      id: "/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LoginRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_protected": {
-      id: "/_protected";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof ProtectedRouteRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_protected/": {
-      id: "/_protected/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof ProtectedIndexRouteImport;
-      parentRoute: typeof ProtectedRouteRoute;
-    };
-    "/api/chat": {
-      id: "/api/chat";
-      path: "/api/chat";
-      fullPath: "/api/chat";
-      preLoaderRoute: typeof ApiChatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/transactions/": {
-      id: "/api/transactions/";
-      path: "/api/transactions";
-      fullPath: "/api/transactions/";
-      preLoaderRoute: typeof ApiTransactionsIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/recurring-templates/": {
-      id: "/api/recurring-templates/";
-      path: "/api/recurring-templates";
-      fullPath: "/api/recurring-templates/";
-      preLoaderRoute: typeof ApiRecurringTemplatesIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/categories/": {
-      id: "/api/categories/";
-      path: "/api/categories";
-      fullPath: "/api/categories/";
-      preLoaderRoute: typeof ApiCategoriesIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/transactions/$id": {
-      id: "/api/transactions/$id";
-      path: "/api/transactions/$id";
-      fullPath: "/api/transactions/$id";
-      preLoaderRoute: typeof ApiTransactionsIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/categories/$id": {
-      id: "/api/categories/$id";
-      path: "/api/categories/$id";
-      fullPath: "/api/categories/$id";
-      preLoaderRoute: typeof ApiCategoriesIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/auth/$": {
-      id: "/api/auth/$";
-      path: "/api/auth/$";
-      fullPath: "/api/auth/$";
-      preLoaderRoute: typeof ApiAuthSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/recurring-templates/$id/": {
-      id: "/api/recurring-templates/$id/";
-      path: "/api/recurring-templates/$id";
-      fullPath: "/api/recurring-templates/$id/";
-      preLoaderRoute: typeof ApiRecurringTemplatesIdIndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/recurring-templates/$id/pause": {
-      id: "/api/recurring-templates/$id/pause";
-      path: "/api/recurring-templates/$id/pause";
-      fullPath: "/api/recurring-templates/$id/pause";
-      preLoaderRoute: typeof ApiRecurringTemplatesIdPauseRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/recurring-templates/$id/activate": {
-      id: "/api/recurring-templates/$id/activate";
-      path: "/api/recurring-templates/$id/activate";
-      fullPath: "/api/recurring-templates/$id/activate";
-      preLoaderRoute: typeof ApiRecurringTemplatesIdActivateRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected/': {
+      id: '/_protected/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transactions/': {
+      id: '/api/transactions/'
+      path: '/api/transactions'
+      fullPath: '/api/transactions/'
+      preLoaderRoute: typeof ApiTransactionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recurring-templates/': {
+      id: '/api/recurring-templates/'
+      path: '/api/recurring-templates'
+      fullPath: '/api/recurring-templates/'
+      preLoaderRoute: typeof ApiRecurringTemplatesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/categories/': {
+      id: '/api/categories/'
+      path: '/api/categories'
+      fullPath: '/api/categories/'
+      preLoaderRoute: typeof ApiCategoriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/transactions/$id': {
+      id: '/api/transactions/$id'
+      path: '/api/transactions/$id'
+      fullPath: '/api/transactions/$id'
+      preLoaderRoute: typeof ApiTransactionsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/categories/$id': {
+      id: '/api/categories/$id'
+      path: '/api/categories/$id'
+      fullPath: '/api/categories/$id'
+      preLoaderRoute: typeof ApiCategoriesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recurring-templates/$id/': {
+      id: '/api/recurring-templates/$id/'
+      path: '/api/recurring-templates/$id'
+      fullPath: '/api/recurring-templates/$id/'
+      preLoaderRoute: typeof ApiRecurringTemplatesIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recurring-templates/$id/pause': {
+      id: '/api/recurring-templates/$id/pause'
+      path: '/api/recurring-templates/$id/pause'
+      fullPath: '/api/recurring-templates/$id/pause'
+      preLoaderRoute: typeof ApiRecurringTemplatesIdPauseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recurring-templates/$id/activate': {
+      id: '/api/recurring-templates/$id/activate'
+      path: '/api/recurring-templates/$id/activate'
+      fullPath: '/api/recurring-templates/$id/activate'
+      preLoaderRoute: typeof ApiRecurringTemplatesIdActivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface ProtectedRouteRouteChildren {
-  ProtectedIndexRoute: typeof ProtectedIndexRoute;
+  ProtectedIndexRoute: typeof ProtectedIndexRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedIndexRoute: ProtectedIndexRoute,
-};
+}
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
   ProtectedRouteRouteChildren,
-);
+)
 
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
@@ -314,16 +318,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRecurringTemplatesIdActivateRoute: ApiRecurringTemplatesIdActivateRoute,
   ApiRecurringTemplatesIdPauseRoute: ApiRecurringTemplatesIdPauseRoute,
   ApiRecurringTemplatesIdIndexRoute: ApiRecurringTemplatesIdIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }

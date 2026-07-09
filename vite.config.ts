@@ -13,6 +13,7 @@ const config = defineConfig({
     "*": "vp check --fix",
   },
   fmt: {
+    ignorePatterns: ["src/routeTree.gen.ts"],
     sortTailwindcss: {
       functions: ["cn", "cva"],
     },
