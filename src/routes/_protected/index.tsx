@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
+import { AssistantMessageParts } from "@/components/ui/chat-message-parts";
 import { ChatMessages } from "@/components/ui/chat-messages";
 import { PromptInput } from "@/components/ui/prompt-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -55,12 +56,7 @@ function HomePage() {
                       .join("")}
                   </ChatMessages.UserMessage>
                 ) : (
-                  <ChatMessages.AssistantMessage key={message.id}>
-                    {message.parts
-                      .filter((p) => p.type === "text")
-                      .map((p) => p.content)
-                      .join("")}
-                  </ChatMessages.AssistantMessage>
+                  <AssistantMessageParts key={message.id} parts={message.parts} />
                 ),
               )}
             </ChatMessages.List>

@@ -180,26 +180,75 @@ function Attachment({ name, children, className }: React.ComponentProps<"div"> &
   );
 }
 
-function ToolCallName({ children, className, ...props }: Collapsible.Trigger.Props) {
+type ToolCallVariant = "default" | "error";
+
+function ToolCallName({
+  children,
+  className,
+  variant = "default",
+  pending = false,
+  ...props
+}: Collapsible.Trigger.Props & { variant?: ToolCallVariant; pending?: boolean }) {
+  const isError = variant === "error";
   return (
     <Collapsible.Trigger
       className={cn(
-        "hover:bg-sunken duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none",
+        "duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none",
+        isError ? "hover:bg-negative/10" : "hover:bg-sunken",
         className,
       )}
       {...props}
     >
-      <Wrench className="text-fg-muted size-3.5" />
-      <span className="text-fg-strong font-mono text-xs font-medium">{children}</span>
-      <ChevronDown className="text-fg-muted ml-auto size-3.5 transition-transform data-panel-open:rotate-180" />
+      <Wrench className={cn("size-3.5", isError ? "text-negative" : "text-fg-muted")} />
+      <span
+        className={cn(
+          "font-mono text-xs font-medium",
+          isError ? "text-negative" : "text-fg-strong",
+        )}
+      >
+        {children}
+      </span>
+      {pending && (
+        <span className="text-fg-muted ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+          <span
+            aria-hidden="true"
+            className="inline-block size-3 animate-spin border border-current border-t-transparent"
+          />
+          running
+        </span>
+      )}
+      {isError && !pending && (
+        <span className="text-negative ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+          <span aria-hidden="true" className="size-[5px] bg-current" />
+          error
+        </span>
+      )}
+      <ChevronDown
+        className={cn(
+          "size-3.5 transition-transform data-panel-open:rotate-180",
+          isError ? "text-negative" : "text-fg-muted",
+          !pending && !isError && "ml-auto",
+        )}
+      />
     </Collapsible.Trigger>
   );
 }
 ToolCallName.displayName = "ChatMessages.ToolCallName";
 
-function ToolCall({ className, ...props }: Collapsible.Root.Props) {
+function ToolCall({
+  className,
+  variant = "default",
+  ...props
+}: Collapsible.Root.Props & { variant?: ToolCallVariant }) {
   return (
-    <Collapsible.Root className={cn("border-hairline bg-raised border", className)} {...props} />
+    <Collapsible.Root
+      className={cn(
+        "border",
+        variant === "error" ? "border-negative/40 bg-negative/5" : "border-hairline bg-raised",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -234,6 +283,17 @@ function ToolCallResponse({ className, children, ...props }: React.ComponentProp
   );
 }
 
+function ToolCallError({ className, children, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div className={className} {...props}>
+      <span className="text-negative mb-1 block font-mono text-[10px]">Error</span>
+      <pre className="bg-negative/10 text-negative overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
+        {children}
+      </pre>
+    </div>
+  );
+}
+
 export const ChatMessages = {
   List,
   UserMessage,
@@ -243,5 +303,6 @@ export const ChatMessages = {
   ToolCallContent,
   ToolCallArgs,
   ToolCallResponse,
+  ToolCallError,
   Attachment,
 };

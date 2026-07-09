@@ -142,6 +142,43 @@ export const ToolCallExpanded: StoryObj<typeof ChatMessages.List> = {
   },
 };
 
+export const ToolCallPending: StoryObj<typeof ChatMessages.List> = {
+  render() {
+    return (
+      <ChatMessages.List>
+        <ChatMessages.ToolCall>
+          <ChatMessages.ToolCallName pending>fetch_transactions</ChatMessages.ToolCallName>
+          <ChatMessages.ToolCallContent>
+            <ChatMessages.ToolCallArgs>
+              {JSON.stringify({ category: "housing", period: "last_month" }, null, 2)}
+            </ChatMessages.ToolCallArgs>
+          </ChatMessages.ToolCallContent>
+        </ChatMessages.ToolCall>
+      </ChatMessages.List>
+    );
+  },
+};
+
+export const ToolCallError: StoryObj<typeof ChatMessages.List> = {
+  render() {
+    return (
+      <ChatMessages.List>
+        <ChatMessages.ToolCall variant="error" defaultOpen>
+          <ChatMessages.ToolCallName variant="error">update_category</ChatMessages.ToolCallName>
+          <ChatMessages.ToolCallContent>
+            <ChatMessages.ToolCallArgs>
+              {JSON.stringify({ id: "cat_missing", name: "Restaurants" }, null, 2)}
+            </ChatMessages.ToolCallArgs>
+            <ChatMessages.ToolCallError>
+              Category &quot;cat_missing&quot; not found for this user.
+            </ChatMessages.ToolCallError>
+          </ChatMessages.ToolCallContent>
+        </ChatMessages.ToolCall>
+      </ChatMessages.List>
+    );
+  },
+};
+
 export const AttachmentChip: StoryObj<typeof ChatMessages.List> = {
   render() {
     return (
