@@ -42,7 +42,7 @@ describe("createTransactionHandler", () => {
       amount: 12.34,
       type: "expense",
       description: "Lunch",
-      date: new Date("2026-07-01T00:00:00.000Z"),
+      date: "2026-07-01T00:00:00.000Z",
       source: "chat",
       currency: "USD",
     });

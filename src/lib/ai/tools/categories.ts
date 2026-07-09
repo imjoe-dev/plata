@@ -16,20 +16,20 @@ export const CategoryRow = z.object({
 });
 export type CategoryRow = z.infer<typeof CategoryRow>;
 
-const ListCategoriesInput = z.object({});
+export const ListCategoriesInput = z.object({});
 
-const CreateCategoryInput = Category.extend({
+export const CreateCategoryInput = Category.extend({
   name: Category.shape.name.meta({ description: "Category name." }),
   type: Category.shape.type.meta({ description: "Category type: expense, income, or both." }),
   color: Category.shape.color.meta({ description: "Optional color, e.g. a hex code." }),
   icon: Category.shape.icon.meta({ description: "Optional icon name." }),
 });
 
-const IdInput = z.object({
+export const IdInput = z.object({
   id: z.string().meta({ description: "Category id." }),
 });
 
-const UpdateCategoryInput = CategoryPatch.extend({
+export const UpdateCategoryInput = CategoryPatch.extend({
   id: z.string().meta({ description: "Category id." }),
   name: CategoryPatch.shape.name?.meta({ description: "New category name." }),
   type: CategoryPatch.shape.type?.meta({ description: "New category type." }),

@@ -34,13 +34,13 @@ const AmountInput = z
   .positive()
   .meta({ description: "Amount in major currency units, e.g. 12.50 for $12.50." });
 
-const ListRecurringTemplatesInput = z.object({
+export const ListRecurringTemplatesInput = z.object({
   status: RecurringTemplateListQuery.shape.status?.meta({
     description: "Filter by status: active, paused, completed, or failed.",
   }),
 });
 
-const CreateRecurringTemplateInput = RecurringTemplate.omit({ amount: true }).extend({
+export const CreateRecurringTemplateInput = RecurringTemplate.omit({ amount: true }).extend({
   amount: AmountInput,
   currency: RecurringTemplate.shape.currency.meta({ description: "ISO 4217 currency code." }),
   type: RecurringTemplate.shape.type.meta({ description: "expense or income." }),
@@ -51,19 +51,29 @@ const CreateRecurringTemplateInput = RecurringTemplate.omit({ amount: true }).ex
   cadence: RecurringTemplate.shape.cadence.meta({
     description: "How often the template recurs.",
   }),
-  nextDueDate: RecurringTemplate.shape.nextDueDate?.meta({
+  nextDueDate: z.string().nullable().optional().meta({
     description: "Optional ISO date for the next due date.",
   }),
   status: RecurringTemplate.shape.status.meta({ description: "Template status." }),
-  startDate: RecurringTemplate.shape.startDate?.meta({ description: "Optional ISO start date." }),
-  endDate: RecurringTemplate.shape.endDate?.meta({ description: "Optional ISO end date." }),
+  startDate: z.string().nullable().optional().meta({ description: "Optional ISO start date." }),
+  endDate: z.string().nullable().optional().meta({ description: "Optional ISO end date." }),
 });
 
-const IdInput = z.object({ id: z.string().meta({ description: "Recurring template id." }) });
+export const IdInput = z.object({ id: z.string().meta({ description: "Recurring template id." }) });
 
-const UpdateRecurringTemplateInput = RecurringTemplatePatch.omit({ amount: true }).extend({
+export const UpdateRecurringTemplateInput = RecurringTemplatePatch.omit({
+  amount: true,
+  nextDueDate: true,
+  startDate: true,
+  endDate: true,
+}).extend({
   id: z.string().meta({ description: "Recurring template id." }),
   amount: AmountInput.optional(),
+  nextDueDate: z.string().nullable().optional().meta({
+    description: "Optional ISO date for the next due date.",
+  }),
+  startDate: z.string().nullable().optional().meta({ description: "Optional ISO start date." }),
+  endDate: z.string().nullable().optional().meta({ description: "Optional ISO end date." }),
 });
 
 export const listRecurringTemplatesDef = toolDefinition({

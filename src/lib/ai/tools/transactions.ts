@@ -26,11 +26,11 @@ const AmountInput = z
   .positive()
   .meta({ description: "Amount in major currency units, e.g. 9.99 for $9.99." });
 
-const ListTransactionsInput = z.object({
-  from: TransactionListQuery.shape.from?.meta({
+export const ListTransactionsInput = z.object({
+  from: z.string().optional().meta({
     description: "ISO date string, inclusive lower bound.",
   }),
-  to: TransactionListQuery.shape.to?.meta({
+  to: z.string().optional().meta({
     description: "ISO date string, inclusive upper bound.",
   }),
   type: TransactionListQuery.shape.type?.meta({ description: "Filter by expense or income." }),
@@ -39,7 +39,7 @@ const ListTransactionsInput = z.object({
   }),
 });
 
-const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).extend({
+export const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).extend({
   amount: AmountInput,
   source: z
     .enum(["manual", "chat", "csv_import"])
@@ -48,7 +48,7 @@ const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).
   currency: Transaction.shape.currency.meta({ description: "ISO 4217 currency code, e.g. USD." }),
   type: Transaction.shape.type.meta({ description: "Transaction type: expense or income." }),
   description: Transaction.shape.description.meta({ description: "Human-readable description." }),
-  date: Transaction.shape.date.meta({ description: "ISO date string." }),
+  date: z.string().meta({ description: "ISO date string." }),
   categoryId: Transaction.shape.categoryId?.meta({ description: "Optional category id." }),
   recurringTemplateId: Transaction.shape.recurringTemplateId?.meta({
     description: "Optional recurring template id.",
@@ -56,11 +56,12 @@ const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).
   notes: Transaction.shape.notes?.meta({ description: "Optional free-form notes." }),
 });
 
-const IdInput = z.object({ id: z.string().meta({ description: "Transaction id." }) });
+export const IdInput = z.object({ id: z.string().meta({ description: "Transaction id." }) });
 
-const UpdateTransactionInput = TransactionPatch.omit({ amount: true }).extend({
+export const UpdateTransactionInput = TransactionPatch.omit({ amount: true, date: true }).extend({
   id: z.string().meta({ description: "Transaction id." }),
   amount: AmountInput.optional(),
+  date: z.string().optional().meta({ description: "ISO date string." }),
 });
 
 export const listTransactionsDef = toolDefinition({
