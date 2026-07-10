@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
-import { AssistantMessageParts } from "@/components/ui/chat-message-parts";
 import { ChatMessages } from "@/components/ui/chat-messages";
 import { PromptInput } from "@/components/ui/prompt-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,7 +55,33 @@ function HomePage() {
                       .join("")}
                   </ChatMessages.UserMessage>
                 ) : (
-                  <AssistantMessageParts key={message.id} parts={message.parts} />
+                  message.parts.map((part, i) => {
+                    if (part.type === "text") {
+                      return (
+                        <ChatMessages.AssistantMessage key={`${message.id}-${i}`}>
+                          {part.content}
+                        </ChatMessages.AssistantMessage>
+                      );
+                    }
+                    if (part.type === "tool-call") {
+                      return (
+                        <ChatMessages.ToolCall key={`${message.id}-${i}`} data-status={part.state}>
+                          <ChatMessages.ToolCallName pending={part.state !== "complete"}>
+                            {part.name}
+                          </ChatMessages.ToolCallName>
+                          <ChatMessages.ToolCallContent>
+                            <ChatMessages.ToolCallArgs>{part.arguments}</ChatMessages.ToolCallArgs>
+                            {part.output !== undefined && (
+                              <ChatMessages.ToolCallResponse>
+                                {JSON.stringify(part.output)}
+                              </ChatMessages.ToolCallResponse>
+                            )}
+                          </ChatMessages.ToolCallContent>
+                        </ChatMessages.ToolCall>
+                      );
+                    }
+                    return null;
+                  })
                 ),
               )}
             </ChatMessages.List>
