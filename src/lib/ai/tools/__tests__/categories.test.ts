@@ -55,4 +55,15 @@ describe("categories tool definitions", () => {
     };
     expect(CategoryRow.safeParse(row).success).toBe(true);
   });
+
+  it("mutating tools (create, update, delete) have needsApproval set to true", () => {
+    expect(createCategoryDef.needsApproval).toBe(true);
+    expect(updateCategoryDef.needsApproval).toBe(true);
+    expect(deleteCategoryDef.needsApproval).toBe(true);
+  });
+
+  it("read-only tools (list, get) have no needsApproval field", () => {
+    expect(listCategoriesDef.needsApproval).toBeUndefined();
+    expect(getCategoryDef.needsApproval).toBeUndefined();
+  });
 });

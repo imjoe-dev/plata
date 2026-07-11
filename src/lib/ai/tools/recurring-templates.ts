@@ -88,6 +88,7 @@ export const createRecurringTemplateDef = toolDefinition({
   description: "Create a new recurring template. Amount is in major currency units.",
   inputSchema: CreateRecurringTemplateInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
 });
 
 export const getRecurringTemplateDef = toolDefinition({
@@ -102,6 +103,7 @@ export const updateRecurringTemplateDef = toolDefinition({
   description: "Update an existing recurring template by id. Amount is in major currency units.",
   inputSchema: UpdateRecurringTemplateInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
 });
 
 export const deleteRecurringTemplateDef = toolDefinition({
@@ -109,6 +111,7 @@ export const deleteRecurringTemplateDef = toolDefinition({
   description: "Soft-delete a recurring template by id.",
   inputSchema: IdInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
 });
 
 export const activateRecurringTemplateDef = toolDefinition({
@@ -116,6 +119,7 @@ export const activateRecurringTemplateDef = toolDefinition({
   description: "Activate a paused recurring template by id.",
   inputSchema: IdInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
 });
 
 export const pauseRecurringTemplateDef = toolDefinition({
@@ -123,4 +127,5 @@ export const pauseRecurringTemplateDef = toolDefinition({
   description: "Pause an active recurring template by id.",
   inputSchema: IdInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
 });

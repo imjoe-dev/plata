@@ -3,9 +3,11 @@ import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import type { ToolCallPart } from "@tanstack/ai-client";
 import { Table } from "@/components/ui/table";
 import { Wrench, ChevronDown } from "lucide-react";
 import { Collapsible } from "@base-ui/react/collapsible";
+import { Button } from "@/components/ui/button";
 
 const markdownComponents: Components = {
   p: (props) => <p className="text-fg text-sm leading-relaxed" {...props} />,
@@ -180,36 +182,102 @@ function Attachment({ name, children, className }: React.ComponentProps<"div"> &
   );
 }
 
-type ToolCallVariant = "default" | "error";
+export type ToolCallDisplayState = "running" | "pending-approval" | "complete" | "denied" | "error";
 
-function ToolCallName({
-  children,
-  className,
-  variant = "default",
-  pending = false,
-  ...props
-}: Collapsible.Trigger.Props & { variant?: ToolCallVariant; pending?: boolean }) {
-  const isError = variant === "error";
+export function getToolCallDisplayState(part: ToolCallPart): ToolCallDisplayState {
+  const state = part.state as string; // Handle type compatibility with library version
+
+  // pending-approval: when approval has been requested and approval exists
+  if (state === "approval-requested" && part.approval) {
+    return "pending-approval";
+  }
+
+  // denied: when in error state and explicitly denied by user (approved === false)
+  if (state === "error" && part.approval?.approved === false) {
+    return "denied";
+  }
+
+  // error: when in error state but not denied (genuine execution failure)
+  if (state === "error" && part.approval?.approved !== false) {
+    return "error";
+  }
+
+  // complete: when execution finished successfully (state is complete or output is defined without error)
+  if (state === "complete" || (part.output !== undefined && state !== "error")) {
+    return "complete";
+  }
+
+  // running: intermediate states during execution and between approval decision and continuation
+  if (
+    state === "awaiting-input" ||
+    state === "input-streaming" ||
+    state === "input-complete" ||
+    state === "approval-responded"
+  ) {
+    return "running";
+  }
+
+  // default to running for any unhandled states
+  return "running";
+}
+
+const TOOL_CALL_NAME_STYLES: Record<
+  ToolCallDisplayState,
+  { icon: string; label: string; hover: string; indicator: string }
+> = {
+  running: {
+    icon: "text-fg-muted",
+    label: "text-fg-strong",
+    hover: "hover:bg-sunken",
+    indicator: "text-fg-muted",
+  },
+  complete: {
+    icon: "text-fg-muted",
+    label: "text-fg-strong",
+    hover: "hover:bg-sunken",
+    indicator: "text-fg-muted",
+  },
+  "pending-approval": {
+    icon: "text-caution",
+    label: "text-caution",
+    hover: "hover:bg-caution/10",
+    indicator: "text-caution",
+  },
+  denied: {
+    icon: "text-info",
+    label: "text-info",
+    hover: "hover:bg-info/10",
+    indicator: "text-info",
+  },
+  error: {
+    icon: "text-negative",
+    label: "text-negative",
+    hover: "hover:bg-negative/10",
+    indicator: "text-negative",
+  },
+};
+
+function ToolCallName({ className, part }: { part: ToolCallPart; className?: string }) {
+  const displayState = getToolCallDisplayState(part);
+  const styles = TOOL_CALL_NAME_STYLES[displayState];
+
   return (
     <Collapsible.Trigger
       className={cn(
         "duration-fast flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none",
-        isError ? "hover:bg-negative/10" : "hover:bg-sunken",
+        styles.hover,
         className,
       )}
-      {...props}
     >
-      <Wrench className={cn("size-3.5", isError ? "text-negative" : "text-fg-muted")} />
-      <span
-        className={cn(
-          "font-mono text-xs font-medium",
-          isError ? "text-negative" : "text-fg-strong",
-        )}
-      >
-        {children}
-      </span>
-      {pending && (
-        <span className="text-fg-muted ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+      <Wrench className={cn("size-3.5", styles.icon)} />
+      <span className={cn("font-mono text-xs font-medium", styles.label)}>{part.name}</span>
+      {displayState === "running" && (
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase",
+            styles.indicator,
+          )}
+        >
           <span
             aria-hidden="true"
             className="inline-block size-3 animate-spin border border-current border-t-transparent"
@@ -217,8 +285,35 @@ function ToolCallName({
           running
         </span>
       )}
-      {isError && !pending && (
-        <span className="text-negative ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+      {displayState === "pending-approval" && (
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase",
+            styles.indicator,
+          )}
+        >
+          <span aria-hidden="true" className="size-[5px] bg-current" />
+          awaiting approval
+        </span>
+      )}
+      {displayState === "denied" && (
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase",
+            styles.indicator,
+          )}
+        >
+          <span aria-hidden="true" className="size-[5px] bg-current" />
+          denied
+        </span>
+      )}
+      {displayState === "error" && (
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase",
+            styles.indicator,
+          )}
+        >
           <span aria-hidden="true" className="size-[5px] bg-current" />
           error
         </span>
@@ -226,8 +321,8 @@ function ToolCallName({
       <ChevronDown
         className={cn(
           "size-3.5 transition-transform data-panel-open:rotate-180",
-          isError ? "text-negative" : "text-fg-muted",
-          !pending && !isError && "ml-auto",
+          styles.icon,
+          displayState === "complete" && "ml-auto",
         )}
       />
     </Collapsible.Trigger>
@@ -237,18 +332,28 @@ ToolCallName.displayName = "ChatMessages.ToolCallName";
 
 function ToolCall({
   className,
-  variant = "default",
-  ...props
-}: Collapsible.Root.Props & { variant?: ToolCallVariant }) {
+  part,
+  children,
+}: {
+  part: ToolCallPart;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const displayState = getToolCallDisplayState(part);
+  const isError = displayState === "error";
+  const isPendingApproval = displayState === "pending-approval";
+
   return (
     <Collapsible.Root
       className={cn(
         "border",
-        variant === "error" ? "border-negative/40 bg-negative/5" : "border-hairline bg-raised",
+        isError ? "border-negative/40 bg-negative/5" : "border-hairline bg-raised",
         className,
       )}
-      {...props}
-    />
+      open={isPendingApproval ? true : undefined}
+    >
+      {children}
+    </Collapsible.Root>
   );
 }
 
@@ -261,38 +366,95 @@ function ToolCallContent({ className, ...props }: Collapsible.Panel.Props) {
   );
 }
 
-function ToolCallArgs({ className, children, ...props }: React.ComponentProps<"div">) {
+function ToolCallArgs({ part, className }: { part: ToolCallPart; className?: string }) {
+  if (!part.arguments) {
+    return null;
+  }
+
   return (
-    <div className={className} {...props}>
+    <div className={className}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Arguments</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
-        {children}
+        {part.arguments}
       </pre>
     </div>
   );
 }
 
-function ToolCallResponse({ className, children, ...props }: React.ComponentProps<"div">) {
+function ToolCallResponse({ part, className }: { part: ToolCallPart; className?: string }) {
+  if (getToolCallDisplayState(part) !== "complete" || part.output === undefined) {
+    return null;
+  }
+
   return (
-    <div className={className} {...props}>
+    <div className={className}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Response</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
-        {children}
+        {JSON.stringify(part.output)}
       </pre>
     </div>
   );
 }
 
-function ToolCallError({ className, children, ...props }: React.ComponentProps<"div">) {
+function ToolCallError({ part, className }: { part: ToolCallPart; className?: string }) {
+  if (getToolCallDisplayState(part) !== "error") {
+    return null;
+  }
+
+  const errorText =
+    (part.output as { error?: string } | undefined)?.error ?? JSON.stringify(part.output);
+
   return (
-    <div className={className} {...props}>
+    <div className={className}>
       <span className="text-negative mb-1 block font-mono text-[10px]">Error</span>
       <pre className="bg-negative/10 text-negative overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
-        {children}
+        {errorText}
       </pre>
     </div>
   );
 }
+
+function ToolCallApprovalActions({
+  part,
+  onApprove,
+  onDeny,
+  className,
+}: {
+  part: ToolCallPart;
+  onApprove: () => void;
+  onDeny: () => void;
+  className?: string;
+}) {
+  if (getToolCallDisplayState(part) !== "pending-approval") {
+    return null;
+  }
+
+  return (
+    <div className={cn("flex gap-2", className)}>
+      <Button variant="primary" size="sm" onClick={onApprove}>
+        Approve
+      </Button>
+      <Button variant="destructive" size="sm" onClick={onDeny}>
+        Deny
+      </Button>
+    </div>
+  );
+}
+ToolCallApprovalActions.displayName = "ChatMessages.ToolCallApprovalActions";
+
+function ToolCallDeniedNotice({ part, className }: { part: ToolCallPart; className?: string }) {
+  if (getToolCallDisplayState(part) !== "denied") {
+    return null;
+  }
+
+  return (
+    <div className={className}>
+      <span className="text-info mb-1 block font-mono text-[10px]">Declined</span>
+      <div className="bg-info/10 text-info p-2 text-xs">You declined this action.</div>
+    </div>
+  );
+}
+ToolCallDeniedNotice.displayName = "ChatMessages.ToolCallDeniedNotice";
 
 export const ChatMessages = {
   List,
@@ -302,7 +464,9 @@ export const ChatMessages = {
   ToolCallName,
   ToolCallContent,
   ToolCallArgs,
+  ToolCallApprovalActions,
   ToolCallResponse,
+  ToolCallDeniedNotice,
   ToolCallError,
   Attachment,
 };

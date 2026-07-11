@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_protected/")({
 });
 
 function HomePage() {
-  const { messages, sendMessage, isLoading, error } = usePlataChat();
+  const { messages, sendMessage, isLoading, error, addToolApprovalResponse } = usePlataChat();
 
   function handleSubmit(text: string): boolean {
     if (isLoading) return false;
@@ -65,17 +65,22 @@ function HomePage() {
                     }
                     if (part.type === "tool-call") {
                       return (
-                        <ChatMessages.ToolCall key={`${message.id}-${i}`} data-status={part.state}>
-                          <ChatMessages.ToolCallName pending={part.state !== "complete"}>
-                            {part.name}
-                          </ChatMessages.ToolCallName>
+                        <ChatMessages.ToolCall key={`${message.id}-${i}`} part={part}>
+                          <ChatMessages.ToolCallName part={part} />
                           <ChatMessages.ToolCallContent>
-                            <ChatMessages.ToolCallArgs>{part.arguments}</ChatMessages.ToolCallArgs>
-                            {part.output !== undefined && (
-                              <ChatMessages.ToolCallResponse>
-                                {JSON.stringify(part.output)}
-                              </ChatMessages.ToolCallResponse>
-                            )}
+                            <ChatMessages.ToolCallArgs part={part} />
+                            <ChatMessages.ToolCallApprovalActions
+                              part={part}
+                              onApprove={() =>
+                                addToolApprovalResponse({ id: part.approval!.id, approved: true })
+                              }
+                              onDeny={() =>
+                                addToolApprovalResponse({ id: part.approval!.id, approved: false })
+                              }
+                            />
+                            <ChatMessages.ToolCallResponse part={part} />
+                            <ChatMessages.ToolCallDeniedNotice part={part} />
+                            <ChatMessages.ToolCallError part={part} />
                           </ChatMessages.ToolCallContent>
                         </ChatMessages.ToolCall>
                       );

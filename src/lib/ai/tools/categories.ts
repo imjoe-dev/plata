@@ -49,6 +49,7 @@ export const createCategoryDef = toolDefinition({
   description: "Create a new category.",
   inputSchema: CreateCategoryInput,
   outputSchema: CategoryRow,
+  needsApproval: true,
 });
 
 export const getCategoryDef = toolDefinition({
@@ -63,6 +64,7 @@ export const updateCategoryDef = toolDefinition({
   description: "Update an existing category by id.",
   inputSchema: UpdateCategoryInput,
   outputSchema: CategoryRow,
+  needsApproval: true,
 });
 
 export const deleteCategoryDef = toolDefinition({
@@ -70,4 +72,5 @@ export const deleteCategoryDef = toolDefinition({
   description: "Soft-delete a category by id.",
   inputSchema: IdInput,
   outputSchema: CategoryRow,
+  needsApproval: true,
 });

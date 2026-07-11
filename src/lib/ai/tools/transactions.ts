@@ -77,6 +77,7 @@ export const createTransactionDef = toolDefinition({
   description: "Create a new transaction. Amount is in major currency units (e.g. 9.99 for $9.99).",
   inputSchema: CreateTransactionInput,
   outputSchema: TransactionRow,
+  needsApproval: true,
 });
 
 export const getTransactionDef = toolDefinition({
@@ -91,6 +92,7 @@ export const updateTransactionDef = toolDefinition({
   description: "Update an existing transaction by id. Amount is in major currency units.",
   inputSchema: UpdateTransactionInput,
   outputSchema: TransactionRow,
+  needsApproval: true,
 });
 
 export const deleteTransactionDef = toolDefinition({
@@ -98,4 +100,5 @@ export const deleteTransactionDef = toolDefinition({
   description: "Soft-delete a transaction by id.",
   inputSchema: IdInput,
   outputSchema: TransactionRow,
+  needsApproval: true,
 });

@@ -90,4 +90,15 @@ describe("transactions tool definitions", () => {
     };
     expect(TransactionRow.safeParse(row).success).toBe(true);
   });
+
+  it("mutating tools (create, update, delete) have needsApproval set to true", () => {
+    expect(createTransactionDef.needsApproval).toBe(true);
+    expect(updateTransactionDef.needsApproval).toBe(true);
+    expect(deleteTransactionDef.needsApproval).toBe(true);
+  });
+
+  it("read-only tools (list, get) have no needsApproval field", () => {
+    expect(listTransactionsDef.needsApproval).toBeUndefined();
+    expect(getTransactionDef.needsApproval).toBeUndefined();
+  });
 });

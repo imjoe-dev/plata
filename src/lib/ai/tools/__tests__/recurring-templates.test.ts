@@ -75,4 +75,17 @@ describe("recurring-templates tool definitions", () => {
     };
     expect(RecurringTemplateRow.safeParse(row).success).toBe(true);
   });
+
+  it("mutating tools (create, update, delete, activate, pause) have needsApproval set to true", () => {
+    expect(createRecurringTemplateDef.needsApproval).toBe(true);
+    expect(updateRecurringTemplateDef.needsApproval).toBe(true);
+    expect(deleteRecurringTemplateDef.needsApproval).toBe(true);
+    expect(activateRecurringTemplateDef.needsApproval).toBe(true);
+    expect(pauseRecurringTemplateDef.needsApproval).toBe(true);
+  });
+
+  it("read-only tools (list, get) have no needsApproval field", () => {
+    expect(listRecurringTemplatesDef.needsApproval).toBeUndefined();
+    expect(getRecurringTemplateDef.needsApproval).toBeUndefined();
+  });
 });
