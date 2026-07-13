@@ -3,7 +3,7 @@
   "name": "tanstack-start-app",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "./src/server.ts",
   "d1_databases": [
     {
       "binding": "DB",
@@ -12,4 +12,7 @@
       "migrations_dir": "drizzle",
     },
   ],
+  "triggers": {
+    "crons": ["0 * * * *"],
+  },
 }

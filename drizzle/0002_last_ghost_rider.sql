@@ -1,0 +1,2 @@
+CREATE INDEX `recurring_templates_status_next_due_date_idx` ON `recurring_templates` (`status`,`next_due_date`);--> statement-breakpoint
+CREATE UNIQUE INDEX `transactions_recurring_template_due_unique` ON `transactions` (`recurring_template_id`,`date`) WHERE "transactions"."recurring_template_id" IS NOT NULL;

@@ -25,6 +25,19 @@ export async function setupTestDB() {
   sqlite = new Database(":memory:");
   const db = drizzle(sqlite, { schema });
   migrate(db, { migrationsFolder: "drizzle" });
+  // better-sqlite3's drizzle driver has no native `.batch()` (unlike D1), so
+  // `runBatch` (which calls `getDB().batch(...)`) can't run against this test
+  // DB out of the box. Shim it by executing each statement sequentially and
+  // stopping at the first failure — enough to exercise `runBatch`'s real
+  // error path (e.g. a genuine unique-constraint violation) against this
+  // in-memory DB; it doesn't need D1's cross-statement atomicity to do that.
+  (db as unknown as { batch: (stmts: unknown[]) => Promise<unknown[]> }).batch = async (
+    stmts: unknown[],
+  ) => {
+    const results: unknown[] = [];
+    for (const stmt of stmts) results.push(await stmt);
+    return results;
+  };
   testDB.db = db;
 }
 

@@ -105,3 +105,17 @@ export function buildUpdateTemplate(userId: string, id: string, patch: Partial<T
       ),
     );
 }
+
+// Cross-user: no user_id filter, unlike listDueTemplates above.
+export async function listAllDueTemplates(now: Date): Promise<TemplateRow[]> {
+  return getDB()
+    .select()
+    .from(recurring_templates)
+    .where(
+      and(
+        eq(recurring_templates.status, "active"),
+        lte(recurring_templates.next_due_date, now),
+        isNull(recurring_templates.deleted_at),
+      ),
+    );
+}

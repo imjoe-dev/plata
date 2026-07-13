@@ -2,6 +2,7 @@ import {
   buildUpdateTemplate,
   createRecurringTemplate as repoCreate,
   getRecurringTemplateById as repoGetById,
+  listAllDueTemplates,
   listDueTemplates,
   listRecurringTemplates as repoList,
   softDeleteRecurringTemplate as repoSoftDelete,
@@ -12,6 +13,9 @@ import { runBatch } from "@/lib/db/transaction";
 import { getCategoryById } from "@/lib/repositories/category";
 import { InternalError, NotFoundError } from "@/lib/errors";
 import type { RecurringTemplate } from "@/lib/schemas/recurring-templates";
+import type { recurring_templates } from "@/db/schema";
+
+type TemplateRow = typeof recurring_templates.$inferSelect;
 
 export async function createRecurringTemplate(userId: string, input: RecurringTemplate) {
   if (input.categoryId) {
@@ -126,6 +130,97 @@ export function computeNextDue(
   return { nextDue, completed: endDate ? nextDue > endDate : false };
 }
 
+/**
+ * Detects a DB unique-constraint violation (specifically the
+ * `transactions_recurring_template_due_unique` guard) anywhere in an error's
+ * cause chain, as opposed to any other kind of failure. `runBatch` wraps the
+ * underlying driver error in an `InternalError` (see `@/lib/db/transaction`),
+ * so the real driver error — a better-sqlite3 `SqliteError` locally, or D1's
+ * equivalent in production — is one or more `.cause` hops away.
+ */
+function isDuplicateOccurrenceError(err: unknown, depth = 0): boolean {
+  if (!err || typeof err !== "object" || depth > 5) return false;
+  const code = (err as { code?: unknown }).code;
+  if (code === "SQLITE_CONSTRAINT_UNIQUE") return true;
+  const message = (err as { message?: unknown }).message;
+  if (typeof message === "string" && /UNIQUE constraint failed/i.test(message)) return true;
+  return isDuplicateOccurrenceError((err as { cause?: unknown }).cause, depth + 1);
+}
+
+/**
+ * Shared per-template catch-up loop, used by both `processDueRecurring`
+ * (per-user, single call) and `runScheduledMaterialization` (cross-user
+ * sweep). Materializes every occurrence a template is due for — one
+ * transaction per missed due date, oldest first — until it's caught up to
+ * `now` or reaches its `end_date` (-> `completed`).
+ *
+ * Failure isolation lives here: any error while materializing this template
+ * is caught, the template is marked `status: "failed"`, and the error is not
+ * re-thrown — the caller moves on to the next template. A duplicate
+ * `(recurring_template_id, date)` insert (from an overlapping/re-invoked run)
+ * is treated as "already handled": the occurrence isn't re-created, but the
+ * template's `next_due_date` still advances as if it had been, and the
+ * template is not marked failed.
+ */
+async function processTemplateOccurrences(
+  tpl: TemplateRow,
+  now: Date,
+): Promise<{ occurrencesCreated: number; failed: boolean }> {
+  const userId = tpl.user_id;
+  let occurrencesCreated = 0;
+  let currentDue = tpl.next_due_date ?? now;
+  let status = tpl.status;
+
+  try {
+    while (status === "active" && currentDue <= now) {
+      const { nextDue, completed } = computeNextDue(currentDue, tpl.cadence, tpl.end_date ?? null);
+
+      const txnPayload = {
+        id: crypto.randomUUID(),
+        amount: tpl.amount,
+        currency: tpl.currency,
+        type: tpl.type,
+        description: tpl.description,
+        date: currentDue,
+        category_id: tpl.category_id,
+        recurring_template_id: tpl.id,
+        user_id: userId,
+        source: "manual" as const,
+        notes: null,
+      };
+
+      const tplPatch: Record<string, unknown> = {
+        next_due_date: nextDue,
+        last_insertion_date: now,
+      };
+      if (completed) tplPatch.status = "completed";
+
+      try {
+        await runBatch([
+          buildInsertTransaction(txnPayload),
+          buildUpdateTemplate(userId, tpl.id, tplPatch),
+        ]);
+        occurrencesCreated += 1;
+      } catch (err) {
+        if (!isDuplicateOccurrenceError(err)) throw err;
+        // Already materialized by a prior/overlapping run. The batch above
+        // failed atomically (no insert, no update), so advance the template's
+        // state ourselves without re-inserting the transaction.
+        await repoUpdate(userId, tpl.id, tplPatch);
+      }
+
+      currentDue = nextDue;
+      status = completed ? "completed" : status;
+    }
+    return { occurrencesCreated, failed: false };
+  } catch {
+    // Best-effort: if marking failed itself throws, don't let that propagate
+    // and abort the sweep — the caller must still move on to the next template.
+    await repoUpdate(userId, tpl.id, { status: "failed" }).catch(() => {});
+    return { occurrencesCreated, failed: true };
+  }
+}
+
 export async function processDueRecurring(userId: string, now: Date) {
   const templates = await listDueTemplates(userId, now);
   let processed = 0;
@@ -139,36 +234,26 @@ export async function processDueRecurring(userId: string, now: Date) {
       continue;
     }
 
-    const currentDue = tpl.next_due_date ?? now;
-    const { nextDue, completed } = computeNextDue(currentDue, tpl.cadence, tpl.end_date ?? null);
-
-    const txnPayload = {
-      id: crypto.randomUUID(),
-      amount: tpl.amount,
-      currency: tpl.currency,
-      type: tpl.type,
-      description: tpl.description,
-      date: currentDue,
-      category_id: tpl.category_id,
-      recurring_template_id: tpl.id,
-      user_id: userId,
-      source: "manual" as const,
-      notes: null,
-    };
-
-    const tplPatch: Record<string, unknown> = {
-      next_due_date: nextDue,
-      last_insertion_date: now,
-    };
-    if (completed) tplPatch.status = "completed";
-
-    await runBatch([
-      buildInsertTransaction(txnPayload),
-      buildUpdateTemplate(userId, tpl.id, tplPatch),
-    ]);
-
-    processed += 1;
+    const { occurrencesCreated } = await processTemplateOccurrences(tpl, now);
+    processed += occurrencesCreated;
   }
 
   return { processed };
+}
+
+export async function runScheduledMaterialization(now: Date) {
+  const templates = await listAllDueTemplates(now);
+
+  let processedTemplates = 0;
+  let occurrencesCreated = 0;
+  let failedTemplates = 0;
+
+  for (const tpl of templates) {
+    processedTemplates += 1;
+    const result = await processTemplateOccurrences(tpl, now);
+    occurrencesCreated += result.occurrencesCreated;
+    if (result.failed) failedTemplates += 1;
+  }
+
+  return { processedTemplates, occurrencesCreated, failedTemplates };
 }

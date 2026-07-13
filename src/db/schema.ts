@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, unique, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -145,6 +145,9 @@ export const transactions = sqliteTable(
     index("transactions_user_id_date_idx").on(table.user_id, table.date),
     index("transactions_user_id_created_at_idx").on(table.user_id, table.created_at),
     index("transactions_user_id_category_id_idx").on(table.user_id, table.category_id),
+    uniqueIndex("transactions_recurring_template_due_unique")
+      .on(table.recurring_template_id, table.date)
+      .where(sql`${table.recurring_template_id} IS NOT NULL`),
   ],
 );
 
@@ -186,6 +189,7 @@ export const recurring_templates = sqliteTable(
   (table) => [
     index("recurring_templates_user_id_idx").on(table.user_id),
     index("recurring_templates_user_id_status_idx").on(table.user_id, table.status),
+    index("recurring_templates_status_next_due_date_idx").on(table.status, table.next_due_date),
   ],
 );
 

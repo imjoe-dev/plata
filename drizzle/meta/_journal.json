@@ -15,6 +15,13 @@
       "when": 1783967343317,
       "tag": "0001_normal_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783977551091,
+      "tag": "0002_last_ghost_rider",
+      "breakpoints": true
     }
   ]
 }
