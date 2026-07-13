@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Paperclip } from "lucide-react";
 import { ChatMessages } from "./chat-messages";
-import type { ToolCallPart } from "@tanstack/ai-client";
 
 const meta = {
   component: ChatMessages.List,
@@ -37,50 +36,6 @@ And the inline command: run \`plata export --month=jan\` to download.
 
 [View details](https://example.com) for more information.`;
 
-const conversationToolCallPart: ToolCallPart = {
-  type: "tool-call",
-  id: "1",
-  name: "create_recurring_transaction",
-  arguments: JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2),
-  state: "complete",
-  output: { id: "t_abc123", status: "created", nextDate: "2026-07-01" },
-};
-
-const collapsedToolCallPart: ToolCallPart = {
-  type: "tool-call",
-  id: "2",
-  name: "fetch_transactions",
-  arguments: JSON.stringify({ category: "housing", period: "last_month" }, null, 2),
-  state: "complete",
-  output: { count: 3, transactions: [{ id: "t1" }, { id: "t2" }, { id: "t3" }] },
-};
-
-const expandedToolCallPart: ToolCallPart = {
-  type: "tool-call",
-  id: "3",
-  name: "create_recurring_transaction",
-  arguments: JSON.stringify({ amount: 1500, category: "housing", frequency: "monthly" }, null, 2),
-  state: "complete",
-  output: { id: "t_abc123", status: "created" },
-};
-
-const pendingToolCallPart: ToolCallPart = {
-  type: "tool-call",
-  id: "4",
-  name: "fetch_transactions",
-  arguments: JSON.stringify({ category: "housing", period: "last_month" }, null, 2),
-  state: "input-complete",
-};
-
-const errorToolCallPart = {
-  type: "tool-call",
-  id: "5",
-  name: "update_category",
-  arguments: JSON.stringify({ id: "cat_missing", name: "Restaurants" }, null, 2),
-  state: "error" as const,
-  output: { error: 'Category "cat_missing" not found for this user.' },
-} as unknown as ToolCallPart;
-
 export const Conversation: StoryObj<typeof ChatMessages.List> = {
   render() {
     return (
@@ -89,13 +44,6 @@ export const Conversation: StoryObj<typeof ChatMessages.List> = {
           Create a recurring transaction for my rent
         </ChatMessages.UserMessage>
         <ChatMessages.AssistantMessage>{markdownExample}</ChatMessages.AssistantMessage>
-        <ChatMessages.ToolCall part={conversationToolCallPart}>
-          <ChatMessages.ToolCallName part={conversationToolCallPart} />
-          <ChatMessages.ToolCallContent>
-            <ChatMessages.ToolCallArgs part={conversationToolCallPart} />
-            <ChatMessages.ToolCallResponse part={conversationToolCallPart} />
-          </ChatMessages.ToolCallContent>
-        </ChatMessages.ToolCall>
         <ChatMessages.Attachment name="receipt.pdf">
           <Paperclip className="text-fg-muted size-3" />
         </ChatMessages.Attachment>
@@ -127,69 +75,6 @@ export const AssistantMessageMarkdown: StoryObj<typeof ChatMessages.List> = {
     return (
       <ChatMessages.List>
         <ChatMessages.AssistantMessage>{markdownExample}</ChatMessages.AssistantMessage>
-      </ChatMessages.List>
-    );
-  },
-};
-
-export const ToolCallCollapsed: StoryObj<typeof ChatMessages.List> = {
-  render() {
-    return (
-      <ChatMessages.List>
-        <ChatMessages.ToolCall part={collapsedToolCallPart}>
-          <ChatMessages.ToolCallName part={collapsedToolCallPart} />
-          <ChatMessages.ToolCallContent>
-            <ChatMessages.ToolCallArgs part={collapsedToolCallPart} />
-            <ChatMessages.ToolCallResponse part={collapsedToolCallPart} />
-          </ChatMessages.ToolCallContent>
-        </ChatMessages.ToolCall>
-      </ChatMessages.List>
-    );
-  },
-};
-
-export const ToolCallExpanded: StoryObj<typeof ChatMessages.List> = {
-  render() {
-    return (
-      <ChatMessages.List>
-        <ChatMessages.ToolCall part={expandedToolCallPart}>
-          <ChatMessages.ToolCallName part={expandedToolCallPart} />
-          <ChatMessages.ToolCallContent>
-            <ChatMessages.ToolCallArgs part={expandedToolCallPart} />
-            <ChatMessages.ToolCallResponse part={expandedToolCallPart} />
-          </ChatMessages.ToolCallContent>
-        </ChatMessages.ToolCall>
-      </ChatMessages.List>
-    );
-  },
-};
-
-export const ToolCallPending: StoryObj<typeof ChatMessages.List> = {
-  render() {
-    return (
-      <ChatMessages.List>
-        <ChatMessages.ToolCall part={pendingToolCallPart}>
-          <ChatMessages.ToolCallName part={pendingToolCallPart} />
-          <ChatMessages.ToolCallContent>
-            <ChatMessages.ToolCallArgs part={pendingToolCallPart} />
-          </ChatMessages.ToolCallContent>
-        </ChatMessages.ToolCall>
-      </ChatMessages.List>
-    );
-  },
-};
-
-export const ToolCallError: StoryObj<typeof ChatMessages.List> = {
-  render() {
-    return (
-      <ChatMessages.List>
-        <ChatMessages.ToolCall part={errorToolCallPart}>
-          <ChatMessages.ToolCallName part={errorToolCallPart} />
-          <ChatMessages.ToolCallContent>
-            <ChatMessages.ToolCallArgs part={errorToolCallPart} />
-            <ChatMessages.ToolCallError part={errorToolCallPart} />
-          </ChatMessages.ToolCallContent>
-        </ChatMessages.ToolCall>
       </ChatMessages.List>
     );
   },

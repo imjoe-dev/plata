@@ -3,7 +3,9 @@ import type { UIMessage } from "@tanstack/ai-react";
 import { ChatMessages } from "@/components/ui/chat-messages";
 import { PromptInput } from "@/components/ui/prompt-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToolCall } from "@/components/ui/tool-call";
 import { usePlataChat } from "@/hooks/use-plata-chat";
+import { getToolCallDisplayState, getToolCallStatusLabel } from "@/lib/ai/tool-call-display-state";
 
 export const Route = createFileRoute("/_protected/")({
   component: HomePage,
@@ -64,25 +66,36 @@ function HomePage() {
                       );
                     }
                     if (part.type === "tool-call") {
+                      const displayState = getToolCallDisplayState(part);
+                      const statusLabel = getToolCallStatusLabel(displayState);
                       return (
-                        <ChatMessages.ToolCall key={`${message.id}-${i}`} part={part}>
-                          <ChatMessages.ToolCallName part={part} />
-                          <ChatMessages.ToolCallContent>
-                            <ChatMessages.ToolCallArgs part={part} />
-                            <ChatMessages.ToolCallApprovalActions
-                              part={part}
-                              onApprove={() =>
-                                addToolApprovalResponse({ id: part.approval!.id, approved: true })
-                              }
-                              onDeny={() =>
-                                addToolApprovalResponse({ id: part.approval!.id, approved: false })
-                              }
-                            />
-                            <ChatMessages.ToolCallResponse part={part} />
-                            <ChatMessages.ToolCallDeniedNotice part={part} />
-                            <ChatMessages.ToolCallError part={part} />
-                          </ChatMessages.ToolCallContent>
-                        </ChatMessages.ToolCall>
+                        <ToolCall.Root
+                          key={`${message.id}-${i}`}
+                          displayState={displayState}
+                          statusLabel={statusLabel}
+                          onApprove={() =>
+                            addToolApprovalResponse({ id: part.approval!.id, approved: true })
+                          }
+                          onDeny={() =>
+                            addToolApprovalResponse({ id: part.approval!.id, approved: false })
+                          }
+                        >
+                          <ToolCall.Name>{part.name}</ToolCall.Name>
+                          <ToolCall.Content>
+                            <ToolCall.Args>{part.arguments}</ToolCall.Args>
+                            <ToolCall.ApprovalActions />
+                            <ToolCall.Response>
+                              {part.output !== undefined ? JSON.stringify(part.output) : undefined}
+                            </ToolCall.Response>
+                            <ToolCall.DeniedNotice>You declined this action.</ToolCall.DeniedNotice>
+                            <ToolCall.Error>
+                              {(part.output as { error?: string } | undefined)?.error ??
+                                (part.output !== undefined
+                                  ? JSON.stringify(part.output)
+                                  : undefined)}
+                            </ToolCall.Error>
+                          </ToolCall.Content>
+                        </ToolCall.Root>
                       );
                     }
                     return null;
