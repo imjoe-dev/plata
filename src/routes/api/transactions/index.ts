@@ -9,8 +9,18 @@ export const Route = createFileRoute("/api/transactions/")({
     handlers: {
       GET: apiHandler(async ({ request }) => {
         const userId = await requireUser(request);
-        const query = parseQuery(TransactionListQuery, request);
-        return listTransactions(userId, query);
+        const {
+          page: rawPage,
+          limit: rawLimit,
+          ...filters
+        } = parseQuery(TransactionListQuery, request);
+        const page = rawPage ?? 1;
+        const limit = rawLimit ?? 20;
+        const { rows, total } = await listTransactions(userId, filters, { page, limit });
+        return {
+          data: rows,
+          meta: { count: rows.length, page, limit, total, hasMore: page * limit < total },
+        };
       }),
       POST: apiHandler(
         async ({ request }) => {

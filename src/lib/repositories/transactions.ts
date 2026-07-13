@@ -1,7 +1,8 @@
-import { and, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
 
 import { getDB } from "@/db";
 import { transactions } from "@/db/schema";
+import type { Pagination, PaginatedListResult } from "@/lib/schemas/transactions";
 
 type TransactionRow = typeof transactions.$inferSelect;
 type TransactionInsert = typeof transactions.$inferInsert;
@@ -37,17 +38,29 @@ export async function getTransactionById(
 
 export async function listTransactions(
   userId: string,
-  filters: ListFilters = {},
-): Promise<TransactionRow[]> {
+  filters: ListFilters,
+  pagination: Pagination,
+): Promise<PaginatedListResult<TransactionRow>> {
   const conds = [eq(transactions.user_id, userId), isNull(transactions.deleted_at)];
   if (filters.from) conds.push(gte(transactions.date, filters.from));
   if (filters.to) conds.push(lte(transactions.date, filters.to));
   if (filters.type) conds.push(eq(transactions.type, filters.type));
   if (filters.categoryId) conds.push(eq(transactions.category_id, filters.categoryId));
-  return getDB()
-    .select()
-    .from(transactions)
-    .where(and(...conds));
+  const where = and(...conds);
+  const db = getDB();
+
+  const [rows, total] = await Promise.all([
+    db
+      .select()
+      .from(transactions)
+      .where(where)
+      .orderBy(desc(transactions.created_at))
+      .limit(pagination.limit)
+      .offset((pagination.page - 1) * pagination.limit),
+    db.$count(transactions, where),
+  ]);
+
+  return { rows, total };
 }
 
 export async function updateTransaction(

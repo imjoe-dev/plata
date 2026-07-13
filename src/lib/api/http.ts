@@ -38,6 +38,20 @@ export function apiHandler(
   return async (ctx: HandlerCtx): Promise<Response> => {
     try {
       const result = await fn(ctx);
+      // If the handler returns an object with both data and meta fields already set,
+      // pass it through unchanged (paginated envelope case, built by the route).
+      if (
+        typeof result === "object" &&
+        result !== null &&
+        !Array.isArray(result) &&
+        "data" in result &&
+        "meta" in result
+      ) {
+        return json(result, opts.status ?? 200);
+      }
+      // Otherwise, apply existing envelope logic:
+      // - Array → { data: array, meta: { count } }
+      // - Plain object → { data: object }
       const body = Array.isArray(result)
         ? { data: result, meta: { count: result.length } }
         : { data: result };

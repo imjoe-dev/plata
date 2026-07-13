@@ -1,7 +1,12 @@
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
 
-import { Transaction, TransactionListQuery, TransactionPatch } from "@/lib/schemas/transactions";
+import {
+  Transaction,
+  TransactionListQuery,
+  TransactionPatch,
+  nullishAsAbsent,
+} from "@/lib/schemas/transactions";
 
 export const TransactionRow = z.object({
   id: z.string(),
@@ -27,16 +32,30 @@ const AmountInput = z
   .meta({ description: "Amount in major currency units, e.g. 9.99 for $9.99." });
 
 export const ListTransactionsInput = z.object({
-  from: z.string().optional().meta({
+  from: nullishAsAbsent(z.string().optional()).meta({
     description: "ISO date string, inclusive lower bound.",
   }),
-  to: z.string().optional().meta({
+  to: nullishAsAbsent(z.string().optional()).meta({
     description: "ISO date string, inclusive upper bound.",
   }),
   type: TransactionListQuery.shape.type?.meta({ description: "Filter by expense or income." }),
   categoryId: TransactionListQuery.shape.categoryId?.meta({
     description: "Filter by category id.",
   }),
+  page: nullishAsAbsent(z.number().int().positive().optional()).meta({
+    description: "Page number to retrieve, 1-based. Defaults to 1.",
+  }),
+  limit: nullishAsAbsent(z.number().int().min(1).max(100).optional()).meta({
+    description: "Maximum number of rows per page, 1-100. Defaults to 20.",
+  }),
+});
+
+export const ListTransactionsOutput = z.object({
+  transactions: z.array(TransactionRow),
+  page: z.number().int().positive(),
+  limit: z.number().int().min(1).max(100),
+  total: z.number().int().nonnegative(),
+  hasMore: z.boolean(),
 });
 
 export const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).extend({
@@ -69,7 +88,7 @@ export const listTransactionsDef = toolDefinition({
   description:
     "List transactions for the current user, optionally filtered by date range, type, or category.",
   inputSchema: ListTransactionsInput,
-  outputSchema: z.array(TransactionRow),
+  outputSchema: ListTransactionsOutput,
 });
 
 export const createTransactionDef = toolDefinition({

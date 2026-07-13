@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { Category, CategoryPatch } from "@/lib/schemas/categories";
 import { Transaction, TransactionPatch, TransactionListQuery } from "@/lib/schemas/transactions";
+import type { Pagination, PaginatedListResult } from "@/lib/schemas/transactions";
 import {
   RecurringTemplate,
   RecurringTemplatePatch,
@@ -104,6 +105,108 @@ describe("Transaction schema — wire readiness", () => {
   });
 });
 
+describe("TransactionListQuery — null/empty preprocessing", () => {
+  it("treats from: null as absent", () => {
+    const out = TransactionListQuery.parse({ from: null });
+    expect(out.from).toBeUndefined();
+  });
+
+  it("treats to: null as absent", () => {
+    const out = TransactionListQuery.parse({ to: null });
+    expect(out.to).toBeUndefined();
+  });
+
+  it("treats type: null as absent", () => {
+    const out = TransactionListQuery.parse({ type: null });
+    expect(out.type).toBeUndefined();
+  });
+
+  it("treats categoryId: '' as absent", () => {
+    const out = TransactionListQuery.parse({ categoryId: "" });
+    expect(out.categoryId).toBeUndefined();
+  });
+
+  it("treats categoryId: null as absent", () => {
+    const out = TransactionListQuery.parse({ categoryId: null });
+    expect(out.categoryId).toBeUndefined();
+  });
+
+  it("treats from: '' as absent (no date-parsing error)", () => {
+    const out = TransactionListQuery.parse({ from: "" });
+    expect(out.from).toBeUndefined();
+  });
+
+  it("treats to: '' as absent (no date-parsing error)", () => {
+    const out = TransactionListQuery.parse({ to: "" });
+    expect(out.to).toBeUndefined();
+  });
+
+  it("treats type: '' as absent", () => {
+    const out = TransactionListQuery.parse({ type: "" });
+    expect(out.type).toBeUndefined();
+  });
+
+  it("still rejects an invalid enum value for type", () => {
+    expect(() => TransactionListQuery.parse({ type: "invalid" })).toThrow();
+  });
+
+  it("still rejects a malformed date for from/to", () => {
+    expect(() => TransactionListQuery.parse({ from: "not-a-date" })).toThrow();
+    expect(() => TransactionListQuery.parse({ to: "not-a-date" })).toThrow();
+  });
+
+  it("treats an all-null filter payload as no filters (the chat-tool crash case)", () => {
+    const out = TransactionListQuery.parse({ from: null, to: null, type: null, categoryId: null });
+    expect(out.from).toBeUndefined();
+    expect(out.to).toBeUndefined();
+    expect(out.type).toBeUndefined();
+    expect(out.categoryId).toBeUndefined();
+  });
+
+  it("passes through valid values unchanged", () => {
+    const out = TransactionListQuery.parse({
+      from: "2026-01-01T00:00:00.000Z",
+      to: "2026-01-31T00:00:00.000Z",
+      type: "expense",
+      categoryId: "cat_1",
+    });
+    expect(out.from).toBeInstanceOf(Date);
+    expect(out.to).toBeInstanceOf(Date);
+    expect(out.type).toBe("expense");
+    expect(out.categoryId).toBe("cat_1");
+  });
+});
+
+describe("TransactionListQuery — pagination fields", () => {
+  it("coerces page and limit from query-string values", () => {
+    const out = TransactionListQuery.parse({ page: "2", limit: "10" });
+    expect(out.page).toBe(2);
+    expect(out.limit).toBe(10);
+  });
+
+  it("leaves page and limit undefined when omitted", () => {
+    const out = TransactionListQuery.parse({});
+    expect(out.page).toBeUndefined();
+    expect(out.limit).toBeUndefined();
+  });
+
+  it("treats page: null and limit: '' as absent", () => {
+    const out = TransactionListQuery.parse({ page: null, limit: "" });
+    expect(out.page).toBeUndefined();
+    expect(out.limit).toBeUndefined();
+  });
+
+  it("rejects a non-positive page", () => {
+    expect(() => TransactionListQuery.parse({ page: "0" })).toThrow();
+    expect(() => TransactionListQuery.parse({ page: "-1" })).toThrow();
+  });
+
+  it("rejects a limit outside the 1-100 range", () => {
+    expect(() => TransactionListQuery.parse({ limit: "0" })).toThrow();
+    expect(() => TransactionListQuery.parse({ limit: "101" })).toThrow();
+  });
+});
+
 describe("RecurringTemplate schema — wire readiness", () => {
   it("coerces an ISO date string for nextDueDate", () => {
     const out = RecurringTemplate.parse({
@@ -130,5 +233,89 @@ describe("RecurringTemplate schema — wire readiness", () => {
 describe("CategoryPatch", () => {
   it("accepts a partial body", () => {
     expect(CategoryPatch.parse({ name: "B" })).toEqual({ name: "B" });
+  });
+});
+
+describe("Pagination type", () => {
+  it("instantiates with valid page and limit values", () => {
+    const pagination: Pagination = {
+      page: 1,
+      limit: 20,
+    };
+    expect(pagination.page).toBe(1);
+    expect(pagination.limit).toBe(20);
+  });
+
+  it("accepts various valid page and limit combinations", () => {
+    const pagination1: Pagination = { page: 2, limit: 50 };
+    expect(pagination1.page).toBe(2);
+    expect(pagination1.limit).toBe(50);
+
+    const pagination2: Pagination = { page: 100, limit: 1 };
+    expect(pagination2.page).toBe(100);
+    expect(pagination2.limit).toBe(1);
+  });
+});
+
+describe("PaginatedListResult type", () => {
+  it("instantiates with generic Transaction type", () => {
+    const result: PaginatedListResult<typeof Transaction> = {
+      rows: [],
+      total: 0,
+    };
+    expect(result.rows).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  it("instantiates with sample transaction rows and total count", () => {
+    const sampleTransaction = {
+      amount: 1234,
+      currency: "USD",
+      type: "expense" as const,
+      description: "Coffee",
+      date: new Date("2026-07-01"),
+      categoryId: "cat_1",
+      recurringTemplateId: null,
+      source: "manual" as const,
+      notes: null,
+    };
+
+    const result: PaginatedListResult<typeof sampleTransaction> = {
+      rows: [sampleTransaction],
+      total: 50,
+    };
+    expect(result.rows).toHaveLength(1);
+    expect(result.total).toBe(50);
+    expect(result.rows[0]).toEqual(sampleTransaction);
+  });
+
+  it("instantiates with multiple rows and various totals", () => {
+    interface SimpleRow {
+      id: string;
+      value: number;
+    }
+
+    const result: PaginatedListResult<SimpleRow> = {
+      rows: [
+        { id: "1", value: 100 },
+        { id: "2", value: 200 },
+      ],
+      total: 100,
+    };
+    expect(result.rows).toHaveLength(2);
+    expect(result.total).toBe(100);
+  });
+
+  it("instantiates with empty rows but non-zero total (out-of-bounds page)", () => {
+    interface Item {
+      id: number;
+    }
+
+    const result: PaginatedListResult<Item> = {
+      rows: [],
+      total: 25,
+    };
+    expect(result.rows).toHaveLength(0);
+    expect(result.total).toBe(25);
   });
 });

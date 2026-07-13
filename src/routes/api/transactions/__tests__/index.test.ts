@@ -36,18 +36,71 @@ beforeEach(() => {
 });
 
 describe("GET /api/transactions", () => {
-  it("passes parsed query filters to the service and envelopes the list", async () => {
+  it("defaults page=1/limit=20, passes filters and pagination to the service, and envelopes the list", async () => {
     authedUser();
-    vi.mocked(svc.listTransactions).mockResolvedValueOnce([{ id: "t1" }] as any);
+    vi.mocked(svc.listTransactions).mockResolvedValueOnce({
+      rows: [{ id: "t1" }],
+      total: 1,
+    } as any);
     const res = await Route.server!.handlers.GET({
       request: new Request("http://localhost/api/transactions?type=income&categoryId=c1"),
     });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ data: [{ id: "t1" }], meta: { count: 1 } });
-    expect(svc.listTransactions).toHaveBeenCalledWith("u1", {
-      type: "income",
-      categoryId: "c1",
+    expect(await res.json()).toEqual({
+      data: [{ id: "t1" }],
+      meta: { count: 1, page: 1, limit: 20, total: 1, hasMore: false },
     });
+    expect(svc.listTransactions).toHaveBeenCalledWith(
+      "u1",
+      { type: "income", categoryId: "c1" },
+      { page: 1, limit: 20 },
+    );
+  });
+
+  it("resolves explicit page/limit and reports hasMore=true for a partial window", async () => {
+    authedUser();
+    vi.mocked(svc.listTransactions).mockResolvedValueOnce({
+      rows: Array.from({ length: 10 }, (_, i) => ({ id: `t${i + 11}` })),
+      total: 25,
+    } as any);
+    const res = await Route.server!.handlers.GET({
+      request: new Request("http://localhost/api/transactions?page=2&limit=10"),
+    });
+    const body = await res.json();
+    expect(body.data).toHaveLength(10);
+    expect(body.meta).toEqual({ count: 10, page: 2, limit: 10, total: 25, hasMore: true });
+    expect(svc.listTransactions).toHaveBeenCalledWith("u1", {}, { page: 2, limit: 10 });
+  });
+
+  it("returns an empty data array with hasMore=false for an out-of-bounds page", async () => {
+    authedUser();
+    vi.mocked(svc.listTransactions).mockResolvedValueOnce({ rows: [], total: 25 } as any);
+    const res = await Route.server!.handlers.GET({
+      request: new Request("http://localhost/api/transactions?page=100&limit=10"),
+    });
+    const body = await res.json();
+    expect(body.data).toEqual([]);
+    expect(body.meta).toEqual({ count: 0, page: 100, limit: 10, total: 25, hasMore: false });
+  });
+
+  it("passes filters combined with pagination through, reflecting the filtered total", async () => {
+    authedUser();
+    vi.mocked(svc.listTransactions).mockResolvedValueOnce({
+      rows: Array.from({ length: 5 }, (_, i) => ({ id: `t${i}` })),
+      total: 12,
+    } as any);
+    const res = await Route.server!.handlers.GET({
+      request: new Request(
+        "http://localhost/api/transactions?type=expense&categoryId=c1&page=2&limit=5",
+      ),
+    });
+    const body = await res.json();
+    expect(body.meta).toEqual({ count: 5, page: 2, limit: 5, total: 12, hasMore: true });
+    expect(svc.listTransactions).toHaveBeenCalledWith(
+      "u1",
+      { type: "expense", categoryId: "c1" },
+      { page: 2, limit: 5 },
+    );
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -62,6 +115,14 @@ describe("GET /api/transactions", () => {
     authedUser();
     const res = await Route.server!.handlers.GET({
       request: new Request("http://localhost/api/transactions?type=nope"),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when limit is out of the 1-100 range", async () => {
+    authedUser();
+    const res = await Route.server!.handlers.GET({
+      request: new Request("http://localhost/api/transactions?limit=500"),
     });
     expect(res.status).toBe(400);
   });

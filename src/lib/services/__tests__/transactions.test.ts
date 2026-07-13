@@ -78,10 +78,17 @@ describe("transactions service", () => {
     await expect(getTransaction("user_1", "t1")).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("listTransactions delegates and passes filters", async () => {
-    vi.mocked(txnRepo.listTransactions).mockResolvedValueOnce([]);
-    await listTransactions("user_1", { type: "income" });
-    expect(txnRepo.listTransactions).toHaveBeenCalledWith("user_1", { type: "income" });
+  it("listTransactions delegates and passes filters and pagination", async () => {
+    vi.mocked(txnRepo.listTransactions).mockResolvedValueOnce({ rows: [], total: 0 });
+    await listTransactions("user_1", { type: "income" }, { page: 1, limit: 20 });
+    expect(txnRepo.listTransactions).toHaveBeenCalledWith(
+      "user_1",
+      { type: "income" },
+      {
+        page: 1,
+        limit: 20,
+      },
+    );
   });
 
   it("updateTransaction and deleteTransaction throw NotFound on null", async () => {

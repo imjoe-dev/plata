@@ -9,7 +9,10 @@ import {
 import { getCategoryById } from "@/lib/repositories/category";
 import { getRecurringTemplateById } from "@/lib/repositories/recurring-templates";
 import { InternalError, NotFoundError } from "@/lib/errors";
-import type { Transaction } from "@/lib/schemas/transactions";
+import type { Transaction, Pagination, PaginatedListResult } from "@/lib/schemas/transactions";
+import type { transactions } from "@/db/schema";
+
+type TransactionRow = typeof transactions.$inferSelect;
 
 export async function createTransaction(userId: string, input: Transaction) {
   if (input.categoryId) {
@@ -46,8 +49,12 @@ export async function getTransaction(userId: string, id: string) {
   return row;
 }
 
-export async function listTransactions(userId: string, filters: ListFilters = {}) {
-  return repoList(userId, filters);
+export async function listTransactions(
+  userId: string,
+  filters: ListFilters = {},
+  pagination: Pagination,
+): Promise<PaginatedListResult<TransactionRow>> {
+  return repoList(userId, filters, pagination);
 }
 
 export async function updateTransaction(userId: string, id: string, patch: Partial<Transaction>) {

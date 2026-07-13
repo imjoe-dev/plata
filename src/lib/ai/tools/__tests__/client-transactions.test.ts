@@ -26,12 +26,59 @@ function ok(body: unknown, status = 200): Response {
 }
 
 describe("listTransactionsHandler", () => {
-  it("GETs /api/transactions with query and converts cents to dollars", async () => {
-    fetchMock.mockResolvedValueOnce(ok({ data: [{ id: "t1", amount: 999 }], meta: { count: 1 } }));
+  it("returns paginated result with transactions converted to dollars", async () => {
+    fetchMock.mockResolvedValueOnce(
+      ok({
+        data: [{ id: "t1", amount: 999 }],
+        meta: { count: 1, page: 1, limit: 20, total: 50, hasMore: true },
+      }),
+    );
     const result = await listTransactionsHandler({ type: "expense" });
-    expect(result).toEqual([{ id: "t1", amount: 9.99 }]);
+    expect(result).toEqual({
+      transactions: [{ id: "t1", amount: 9.99 }],
+      page: 1,
+      limit: 20,
+      total: 50,
+      hasMore: true,
+    });
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/transactions?type=expense");
+  });
+
+  it("includes page and limit in query params", async () => {
+    fetchMock.mockResolvedValueOnce(
+      ok({
+        data: [],
+        meta: { count: 0, page: 2, limit: 50, total: 100, hasMore: true },
+      }),
+    );
+    await listTransactionsHandler({ page: 2, limit: 50 });
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("page=2");
+    expect(url).toContain("limit=50");
+  });
+
+  it("handles all filter params including pagination", async () => {
+    fetchMock.mockResolvedValueOnce(
+      ok({
+        data: [{ id: "t1", amount: 500 }],
+        meta: { count: 1, page: 1, limit: 20, total: 10, hasMore: false },
+      }),
+    );
+    const result = await listTransactionsHandler({
+      from: "2026-01-01T00:00:00.000Z",
+      to: "2026-12-31T00:00:00.000Z",
+      type: "income",
+      categoryId: "cat-1",
+      page: 1,
+      limit: 20,
+    });
+    expect(result.transactions).toEqual([{ id: "t1", amount: 5 }]);
+    expect(result.hasMore).toBe(false);
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("from=2026-01-01");
+    expect(url).toContain("type=income");
+    expect(url).toContain("categoryId=cat-1");
   });
 });
 

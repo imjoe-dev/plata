@@ -1,7 +1,7 @@
 import { clientTools } from "@tanstack/ai-client";
 import { z } from "zod";
 
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/ai/fetch";
+import { apiDelete, apiGet, apiGetWithMeta, apiPatch, apiPost } from "@/lib/ai/fetch";
 import {
   createCategoryDef,
   CreateCategoryInput,
@@ -21,6 +21,7 @@ import {
   IdInput as TransactionIdInput,
   listTransactionsDef,
   ListTransactionsInput,
+  ListTransactionsOutput,
   type TransactionRow,
   updateTransactionDef,
   UpdateTransactionInput,
@@ -81,14 +82,33 @@ const deleteCategory = deleteCategoryDef.client(deleteCategoryHandler);
 
 export async function listTransactionsHandler(
   input: z.input<typeof ListTransactionsInput>,
-): Promise<TransactionRow[]> {
-  const rows = await apiGet<TransactionRow[]>("/api/transactions", {
+): Promise<z.infer<typeof ListTransactionsOutput>> {
+  const { data, meta } = await apiGetWithMeta<TransactionRow[]>("/api/transactions", {
     from: input.from,
     to: input.to,
     type: input.type,
     categoryId: input.categoryId,
+    page: input.page,
+    limit: input.limit,
   });
-  return rows.map(toDollars);
+
+  // Type the meta response based on the expected shape
+  type PaginationMeta = {
+    count: number;
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
+  const paginationMeta = meta as PaginationMeta;
+
+  return {
+    transactions: data.map(toDollars),
+    page: paginationMeta.page,
+    limit: paginationMeta.limit,
+    total: paginationMeta.total,
+    hasMore: paginationMeta.hasMore,
+  };
 }
 
 export async function createTransactionHandler(

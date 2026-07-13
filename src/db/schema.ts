@@ -143,6 +143,7 @@ export const transactions = sqliteTable(
   (table) => [
     index("transactions_user_id_idx").on(table.user_id),
     index("transactions_user_id_date_idx").on(table.user_id, table.date),
+    index("transactions_user_id_created_at_idx").on(table.user_id, table.created_at),
     index("transactions_user_id_category_id_idx").on(table.user_id, table.category_id),
   ],
 );

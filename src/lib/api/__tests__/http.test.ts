@@ -105,6 +105,47 @@ describe("apiHandler", () => {
     const res = await handler({ request: new Request("http://localhost/") });
     expect(res.status).toBe(404);
   });
+
+  it("passes through a paginated envelope with data and meta fields unchanged", async () => {
+    const handler = apiHandler(async () => ({
+      data: [{ id: "t1" }, { id: "t2" }],
+      meta: { count: 2, page: 1, limit: 20, total: 50, hasMore: true },
+    }));
+    const res = await handler({ request: new Request("http://localhost/") });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      data: [{ id: "t1" }, { id: "t2" }],
+      meta: { count: 2, page: 1, limit: 20, total: 50, hasMore: true },
+    });
+  });
+
+  it("does not match a plain object that happens to have a data key but no meta", async () => {
+    const handler = apiHandler(async () => ({ data: "some_value", name: "test" }));
+    const res = await handler({ request: new Request("http://localhost/") });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      data: { data: "some_value", name: "test" },
+    });
+  });
+
+  it("does not match a plain object that happens to have a meta key but no data", async () => {
+    const handler = apiHandler(async () => ({ meta: { count: 1 }, name: "test" }));
+    const res = await handler({ request: new Request("http://localhost/") });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      data: { meta: { count: 1 }, name: "test" },
+    });
+  });
+
+  it("preserves error handling within paginated envelope case", async () => {
+    const handler = apiHandler(async () => {
+      throw new ValidationError({ field: ["error"] });
+    });
+    const res = await handler({ request: new Request("http://localhost/") });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as any;
+    expect(body.error.name).toBe("ValidationError");
+  });
 });
 
 describe("parseBody", () => {
