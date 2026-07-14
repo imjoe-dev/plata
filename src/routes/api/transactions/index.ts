@@ -28,7 +28,7 @@ export const Route = createFileRoute("/api/transactions/")({
           const body = await parseBody(Transaction, request);
           return createTransaction(userId, body);
         },
-        { status: 201 },
+        { status: 201, rateLimit: true },
       ),
     },
   },

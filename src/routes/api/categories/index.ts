@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/categories/")({
           const body = await parseBody(Category, request);
           return createCategory(userId, body);
         },
-        { status: 201 },
+        { status: 201, rateLimit: true },
       ),
     },
   },

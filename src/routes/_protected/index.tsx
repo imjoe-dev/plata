@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
 import { ChatMessages } from "@/components/ui/chat-messages";
 import { PromptInput } from "@/components/ui/prompt-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToolCall } from "@/components/ui/tool-call";
+import { toastManager } from "@/components/ui/toast-manager";
 import { usePlataChat } from "@/hooks/use-plata-chat";
 import { getToolCallDisplayState, getToolCallStatusLabel } from "@/lib/ai/tool-call-display-state";
 
@@ -13,6 +15,14 @@ export const Route = createFileRoute("/_protected/")({
 
 function HomePage() {
   const { messages, sendMessage, isLoading, error, addToolApprovalResponse } = usePlataChat();
+
+  useEffect(() => {
+    if (!error) return;
+    toastManager.add({
+      title: error.message || "Something went wrong. Please try again.",
+      data: { variant: "error" },
+    });
+  }, [error]);
 
   function handleSubmit(text: string): boolean {
     if (isLoading) return false;

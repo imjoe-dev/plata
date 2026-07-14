@@ -10,7 +10,11 @@ vi.mock("@/lib/services/categories", () => ({
   createCategory: vi.fn(),
   listCategories: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/categories";
 import * as RouteMod from "@/routes/api/categories/index";
@@ -28,8 +32,11 @@ function noSession() {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("GET /api/categories", () => {
@@ -91,5 +98,17 @@ describe("POST /api/categories", () => {
     });
     const res = await Route.server!.handlers.POST({ request: req });
     expect(res.status).toBe(409);
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const req = new Request("http://localhost/api/categories", {
+      method: "POST",
+      body: JSON.stringify({ name: "A", type: "expense" }),
+    });
+    const res = await Route.server!.handlers.POST({ request: req });
+    expect(res.status).toBe(429);
+    expect(svc.createCategory).not.toHaveBeenCalled();
   });
 });

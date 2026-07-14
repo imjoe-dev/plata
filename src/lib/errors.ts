@@ -76,3 +76,13 @@ export class UnauthorizedError extends AppError {
     return super.toJSON();
   }
 }
+
+export class RateLimitedError extends AppError {
+  constructor() {
+    super(429, "Rate limit exceeded");
+  }
+
+  toJSON(): ErrorJSON {
+    return super.toJSON();
+  }
+}

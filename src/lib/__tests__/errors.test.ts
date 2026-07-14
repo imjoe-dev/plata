@@ -5,6 +5,7 @@ import {
   ConflictError,
   InternalError,
   NotFoundError,
+  RateLimitedError,
   UnauthorizedError,
   ValidationError,
 } from "@/lib/errors";
@@ -42,11 +43,19 @@ describe("AppError subclasses", () => {
     expect(new InternalError("boom").status).toBe(500);
   });
 
+  it("RateLimitedError has status 429 and a name/status JSON", () => {
+    const err = new RateLimitedError();
+    expect(err.status).toBe(429);
+    expect(err.name).toBe("RateLimitedError");
+    expect(err.toJSON()).toEqual({ name: "RateLimitedError", status: 429 });
+  });
+
   it("all subclasses extend AppError", () => {
     expect(new UnauthorizedError()).toBeInstanceOf(AppError);
     expect(new ValidationError({})).toBeInstanceOf(AppError);
     expect(new NotFoundError("x", "1")).toBeInstanceOf(AppError);
     expect(new ConflictError("c", "f")).toBeInstanceOf(AppError);
     expect(new InternalError("x")).toBeInstanceOf(AppError);
+    expect(new RateLimitedError()).toBeInstanceOf(AppError);
   });
 });

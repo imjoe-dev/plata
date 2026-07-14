@@ -17,7 +17,11 @@ vi.mock("@/lib/services/recurring-templates", () => ({
   pauseTemplate: vi.fn(),
   activateTemplate: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/recurring-templates";
 import * as RouteMod from "@/routes/api/recurring-templates/$id/pause";
@@ -30,8 +34,11 @@ function authedUser(id = "u1") {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("POST /api/recurring-templates/$id/pause", () => {
@@ -67,5 +74,16 @@ describe("POST /api/recurring-templates/$id/pause", () => {
       params: { id: "r1" },
     });
     expect(res.status).toBe(500);
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const res = await Route.server!.handlers.POST({
+      request: new Request("http://localhost/api/recurring-templates/r1/pause", { method: "POST" }),
+      params: { id: "r1" },
+    });
+    expect(res.status).toBe(429);
+    expect(svc.pauseTemplate).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { allToolDefinitions } from "@/lib/ai/tools/index";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
+import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 
 const SUPPORTED_MODELS = ["gpt-5.4-mini"] as const;
 type SupportedModel = (typeof SUPPORTED_MODELS)[number];
@@ -22,6 +23,14 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        let userId: string;
+        try {
+          userId = await requireUser(request);
+          await checkRateLimit(env.CHAT_RATE_LIMITER, userId);
+        } catch (error) {
+          return toErrorResponse(error);
+        }
+
         const body = await request.json();
         const { messages, forwardedProps } = await chatParamsFromRequestBody(body);
         const { model_id } = modelIdSchema.parse(forwardedProps ?? {});

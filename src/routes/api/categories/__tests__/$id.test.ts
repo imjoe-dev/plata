@@ -15,7 +15,11 @@ vi.mock("@/lib/services/categories", () => ({
   updateCategory: vi.fn(),
   deleteCategory: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/categories";
 import * as RouteMod from "@/routes/api/categories/$id";
@@ -33,8 +37,11 @@ function noSession() {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("GET /api/categories/$id", () => {
@@ -83,6 +90,18 @@ describe("PATCH /api/categories/$id", () => {
     expect(await res.json()).toEqual({ data: { id: "c1", name: "B" } });
     expect(svc.updateCategory).toHaveBeenCalledWith("u1", "c1", { name: "B" });
   });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const req = new Request("http://localhost/api/categories/c1", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "B" }),
+    });
+    const res = await Route.server!.handlers.PATCH({ request: req, params: { id: "c1" } });
+    expect(res.status).toBe(429);
+    expect(svc.updateCategory).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/categories/$id", () => {
@@ -98,5 +117,16 @@ describe("DELETE /api/categories/$id", () => {
     });
     expect(res.status).toBe(200);
     expect(svc.deleteCategory).toHaveBeenCalledWith("u1", "c1");
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const res = await Route.server!.handlers.DELETE({
+      request: new Request("http://localhost/api/categories/c1", { method: "DELETE" }),
+      params: { id: "c1" },
+    });
+    expect(res.status).toBe(429);
+    expect(svc.deleteCategory).not.toHaveBeenCalled();
   });
 });

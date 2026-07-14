@@ -13,7 +13,11 @@ vi.mock("@/lib/services/transactions", () => ({
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/transactions";
 import * as RouteMod from "@/routes/api/transactions/index";
@@ -31,8 +35,11 @@ function noSession() {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("GET /api/transactions", () => {
@@ -178,5 +185,23 @@ describe("POST /api/transactions", () => {
     });
     const res = await Route.server!.handlers.POST({ request: req });
     expect(res.status).toBe(404);
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const req = new Request("http://localhost/api/transactions", {
+      method: "POST",
+      body: JSON.stringify({
+        amount: 12.34,
+        type: "expense",
+        description: "Lunch",
+        date: "2026-07-01T00:00:00.000Z",
+        source: "manual",
+      }),
+    });
+    const res = await Route.server!.handlers.POST({ request: req });
+    expect(res.status).toBe(429);
+    expect(svc.createTransaction).not.toHaveBeenCalled();
   });
 });

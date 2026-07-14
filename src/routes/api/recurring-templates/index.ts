@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/recurring-templates/")({
           const body = await parseBody(RecurringTemplate, request);
           return createRecurringTemplate(userId, body);
         },
-        { status: 201 },
+        { status: 201, rateLimit: true },
       ),
     },
   },

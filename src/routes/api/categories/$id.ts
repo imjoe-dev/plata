@@ -11,15 +11,21 @@ export const Route = createFileRoute("/api/categories/$id")({
         const userId = await requireUser(request);
         return getCategory(userId, params!.id);
       }),
-      PATCH: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        const patch = await parseBody(CategoryPatch, request);
-        return updateCategory(userId, params!.id, patch);
-      }),
-      DELETE: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        return deleteCategory(userId, params!.id);
-      }),
+      PATCH: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          const patch = await parseBody(CategoryPatch, request);
+          return updateCategory(userId, params!.id, patch);
+        },
+        { rateLimit: true },
+      ),
+      DELETE: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          return deleteCategory(userId, params!.id);
+        },
+        { rateLimit: true },
+      ),
     },
   },
 });

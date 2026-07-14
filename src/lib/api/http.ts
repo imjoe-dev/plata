@@ -2,7 +2,7 @@ import type { ZodType } from "zod";
 import { ZodError } from "zod";
 
 import { auth } from "@/lib/auth/server";
-import { AppError, UnauthorizedError, ValidationError } from "@/lib/errors";
+import { AppError, RateLimitedError, UnauthorizedError, ValidationError } from "@/lib/errors";
 
 export type HandlerCtx = { request: Request; params?: Record<string, string> };
 
@@ -33,10 +33,22 @@ export function toErrorResponse(error: unknown): Response {
 
 export function apiHandler(
   fn: (ctx: HandlerCtx) => Promise<unknown>,
-  opts: { status?: number } = {},
+  opts: { status?: number; rateLimit?: boolean } = {},
 ) {
   return async (ctx: HandlerCtx): Promise<Response> => {
     try {
+      if (opts.rateLimit) {
+        // The wrapped handler resolves its own userId via requireUser(request) too
+        // (existing per-route convention) — this duplicate session lookup is the
+        // accepted tradeoff for keeping fn's shape/signature unchanged. See plan.md
+        // § Technical Decisions ("Mutation rate limit is opt-in per handler registration").
+        // Imported dynamically (rather than statically like chat.ts/auth/$.ts) so that
+        // routes which never opt in never touch the `cloudflare:workers` module at all —
+        // keeping their behavior byte-for-byte identical to before this option existed.
+        const { env } = await import("cloudflare:workers");
+        const userId = await requireUser(ctx.request);
+        await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+      }
       const result = await fn(ctx);
       // If the handler returns an object with both data and meta fields already set,
       // pass it through unchanged (paginated envelope case, built by the route).
@@ -90,4 +102,25 @@ export async function requireUser(request: Request): Promise<string> {
     throw new UnauthorizedError();
   }
   return session.user.id;
+}
+
+interface RateLimit {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
+export async function checkRateLimit(binding: RateLimit, key: string): Promise<void> {
+  try {
+    const result = await binding.limit({ key });
+    if (!result.success) {
+      throw new RateLimitedError();
+    }
+  } catch (error) {
+    // If the binding call itself throws, or if success was false, throw RateLimitedError
+    // This implements the "fail closed" requirement from spec §7/US-006
+    if (error instanceof RateLimitedError) {
+      throw error;
+    }
+    // Wrap any other binding error as RateLimitedError
+    throw new RateLimitedError();
+  }
 }

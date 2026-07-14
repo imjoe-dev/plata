@@ -15,7 +15,11 @@ vi.mock("@/lib/services/recurring-templates", () => ({
   pauseTemplate: vi.fn(),
   activateTemplate: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/recurring-templates";
 import * as RouteMod from "@/routes/api/recurring-templates/index";
@@ -33,8 +37,11 @@ function noSession() {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("GET /api/recurring-templates", () => {
@@ -97,5 +104,24 @@ describe("POST /api/recurring-templates", () => {
     });
     const res = await Route.server!.handlers.POST({ request: req });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const req = new Request("http://localhost/api/recurring-templates", {
+      method: "POST",
+      body: JSON.stringify({
+        amount: 1500,
+        type: "expense",
+        description: "Rent",
+        cadence: "monthly",
+        status: "active",
+        nextDueDate: "2026-08-01T00:00:00.000Z",
+      }),
+    });
+    const res = await Route.server!.handlers.POST({ request: req });
+    expect(res.status).toBe(429);
+    expect(svc.createRecurringTemplate).not.toHaveBeenCalled();
   });
 });

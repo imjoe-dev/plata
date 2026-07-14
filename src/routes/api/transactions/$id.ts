@@ -11,15 +11,21 @@ export const Route = createFileRoute("/api/transactions/$id")({
         const userId = await requireUser(request);
         return getTransaction(userId, params!.id);
       }),
-      PATCH: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        const patch = await parseBody(TransactionPatch, request);
-        return updateTransaction(userId, params!.id, patch);
-      }),
-      DELETE: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        return deleteTransaction(userId, params!.id);
-      }),
+      PATCH: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          const patch = await parseBody(TransactionPatch, request);
+          return updateTransaction(userId, params!.id, patch);
+        },
+        { rateLimit: true },
+      ),
+      DELETE: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          return deleteTransaction(userId, params!.id);
+        },
+        { rateLimit: true },
+      ),
     },
   },
 });

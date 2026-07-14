@@ -5,6 +5,7 @@ import {
   ConflictError,
   InternalError,
   NotFoundError,
+  RateLimitedError,
   UnauthorizedError,
   ValidationError,
 } from "@/lib/errors";
@@ -13,8 +14,20 @@ vi.mock("@/lib/auth/server", () => ({
   auth: vi.fn(),
 }));
 
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn() } },
+}));
+
 import { auth } from "@/lib/auth/server";
-import { apiHandler, parseBody, parseQuery, requireUser, toErrorResponse } from "@/lib/api/http";
+import { env } from "cloudflare:workers";
+import {
+  apiHandler,
+  checkRateLimit,
+  parseBody,
+  parseQuery,
+  requireUser,
+  toErrorResponse,
+} from "@/lib/api/http";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -59,6 +72,15 @@ describe("toErrorResponse", () => {
     const res = toErrorResponse(new InternalError("boom"));
     expect(res.status).toBe(500);
     expect(await res.json()).toMatchObject({ error: { name: "InternalError", status: 500 } });
+  });
+
+  it("maps RateLimitedError to 429", async () => {
+    const res = toErrorResponse(new RateLimitedError());
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({
+      error: { name: "RateLimitedError", status: 429 },
+      message: "Rate limit exceeded",
+    });
   });
 
   it("maps a ZodError to 400 with fieldErrors", async () => {
@@ -146,6 +168,83 @@ describe("apiHandler", () => {
     const body = (await res.json()) as any;
     expect(body.error.name).toBe("ValidationError");
   });
+
+  describe("rateLimit option", () => {
+    it("never applies a rate limit when opts is omitted, even past what would be the mutation limit", async () => {
+      const handler = apiHandler(async () => ({ id: "c1" }));
+      const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+      limitSpy.mockResolvedValue({ success: false });
+
+      for (let i = 0; i < 40; i++) {
+        const res = await handler({ request: new Request("http://localhost/") });
+        expect(res.status).toBe(200);
+      }
+      expect(limitSpy).not.toHaveBeenCalled();
+    });
+
+    it("never applies a rate limit when opts.rateLimit is false", async () => {
+      const handler = apiHandler(async () => ({ id: "c1" }), { rateLimit: false });
+      const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+      limitSpy.mockResolvedValue({ success: false });
+
+      const res = await handler({ request: new Request("http://localhost/") });
+      expect(res.status).toBe(200);
+      expect(limitSpy).not.toHaveBeenCalled();
+    });
+
+    it("returns 429 and never invokes the wrapped handler when the mutation limiter reports exceeded", async () => {
+      vi.mocked(auth).mockReturnValue({
+        api: {
+          getSession: vi.fn().mockResolvedValue({ user: { id: "u1" }, session: { id: "s1" } }),
+        },
+      } as any);
+      const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+      limitSpy.mockResolvedValue({ success: false });
+
+      const fn = vi.fn(async () => ({ id: "c1" }));
+      const handler = apiHandler(fn, { rateLimit: true });
+      const res = await handler({ request: new Request("http://localhost/") });
+
+      expect(res.status).toBe(429);
+      const body = (await res.json()) as any;
+      expect(body.error.name).toBe("RateLimitedError");
+      expect(fn).not.toHaveBeenCalled();
+      expect(limitSpy).toHaveBeenCalledWith({ key: "u1" });
+    });
+
+    it("invokes the wrapped handler as normal when under the mutation limit", async () => {
+      vi.mocked(auth).mockReturnValue({
+        api: {
+          getSession: vi.fn().mockResolvedValue({ user: { id: "u1" }, session: { id: "s1" } }),
+        },
+      } as any);
+      const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+      limitSpy.mockResolvedValue({ success: true });
+
+      const fn = vi.fn(async () => ({ id: "c1" }));
+      const handler = apiHandler(fn, { rateLimit: true });
+      const res = await handler({ request: new Request("http://localhost/") });
+
+      expect(res.status).toBe(200);
+      expect(fn).toHaveBeenCalledTimes(1);
+      expect(limitSpy).toHaveBeenCalledWith({ key: "u1" });
+    });
+
+    it("returns 401 and never checks the rate limit when no session exists", async () => {
+      vi.mocked(auth).mockReturnValue({
+        api: { getSession: vi.fn().mockResolvedValue(null) },
+      } as any);
+      const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
+      const fn = vi.fn(async () => ({ id: "c1" }));
+      const handler = apiHandler(fn, { rateLimit: true });
+      const res = await handler({ request: new Request("http://localhost/") });
+
+      expect(res.status).toBe(401);
+      expect(fn).not.toHaveBeenCalled();
+      expect(limitSpy).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe("parseBody", () => {
@@ -197,5 +296,40 @@ describe("requireUser", () => {
     } as any);
     const req = new Request("http://localhost/");
     await expect(requireUser(req)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+describe("checkRateLimit", () => {
+  it("throws RateLimitedError when binding reports limit exceeded", async () => {
+    const mockBinding = {
+      limit: vi.fn().mockResolvedValue({ success: false }),
+    };
+    await expect(checkRateLimit(mockBinding as any, "test-key")).rejects.toBeInstanceOf(
+      RateLimitedError,
+    );
+  });
+
+  it("throws RateLimitedError when binding call itself throws (fail closed)", async () => {
+    const mockBinding = {
+      limit: vi.fn().mockRejectedValue(new Error("Binding error")),
+    };
+    await expect(checkRateLimit(mockBinding as any, "test-key")).rejects.toBeInstanceOf(
+      RateLimitedError,
+    );
+  });
+
+  it("resolves without throwing when under the limit", async () => {
+    const mockBinding = {
+      limit: vi.fn().mockResolvedValue({ success: true }),
+    };
+    await expect(checkRateLimit(mockBinding as any, "test-key")).resolves.toBeUndefined();
+  });
+
+  it("calls binding.limit with the provided key", async () => {
+    const mockBinding = {
+      limit: vi.fn().mockResolvedValue({ success: true }),
+    };
+    await checkRateLimit(mockBinding as any, "user-123");
+    expect(mockBinding.limit).toHaveBeenCalledWith({ key: "user-123" });
   });
 });

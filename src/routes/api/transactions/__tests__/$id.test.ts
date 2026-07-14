@@ -15,7 +15,11 @@ vi.mock("@/lib/services/transactions", () => ({
   updateTransaction: vi.fn(),
   deleteTransaction: vi.fn(),
 }));
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
+import { env } from "cloudflare:workers";
 import { auth } from "@/lib/auth/server";
 import * as svc from "@/lib/services/transactions";
 import * as RouteMod from "@/routes/api/transactions/$id";
@@ -33,8 +37,11 @@ function noSession() {
   } as any);
 }
 
+const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
+
 beforeEach(() => {
   vi.clearAllMocks();
+  limitSpy.mockResolvedValue({ success: true });
 });
 
 describe("GET /api/transactions/$id", () => {
@@ -83,6 +90,18 @@ describe("PATCH /api/transactions/$id", () => {
     expect(await res.json()).toEqual({ data: { id: "t1", description: "Y" } });
     expect(svc.updateTransaction).toHaveBeenCalledWith("u1", "t1", { description: "Y" });
   });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const req = new Request("http://localhost/api/transactions/t1", {
+      method: "PATCH",
+      body: JSON.stringify({ description: "Y" }),
+    });
+    const res = await Route.server!.handlers.PATCH({ request: req, params: { id: "t1" } });
+    expect(res.status).toBe(429);
+    expect(svc.updateTransaction).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/transactions/$id", () => {
@@ -98,5 +117,16 @@ describe("DELETE /api/transactions/$id", () => {
     });
     expect(res.status).toBe(200);
     expect(svc.deleteTransaction).toHaveBeenCalledWith("u1", "t1");
+  });
+
+  it("returns 429 when the mutation rate limit is exceeded, without calling the service", async () => {
+    authedUser();
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const res = await Route.server!.handlers.DELETE({
+      request: new Request("http://localhost/api/transactions/t1", { method: "DELETE" }),
+      params: { id: "t1" },
+    });
+    expect(res.status).toBe(429);
+    expect(svc.deleteTransaction).not.toHaveBeenCalled();
   });
 });

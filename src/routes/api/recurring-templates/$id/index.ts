@@ -15,15 +15,21 @@ export const Route = createFileRoute("/api/recurring-templates/$id/")({
         const userId = await requireUser(request);
         return getRecurringTemplate(userId, params!.id);
       }),
-      PATCH: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        const patch = await parseBody(RecurringTemplatePatch, request);
-        return updateRecurringTemplate(userId, params!.id, patch);
-      }),
-      DELETE: apiHandler(async ({ request, params }) => {
-        const userId = await requireUser(request);
-        return deleteRecurringTemplate(userId, params!.id);
-      }),
+      PATCH: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          const patch = await parseBody(RecurringTemplatePatch, request);
+          return updateRecurringTemplate(userId, params!.id, patch);
+        },
+        { rateLimit: true },
+      ),
+      DELETE: apiHandler(
+        async ({ request, params }) => {
+          const userId = await requireUser(request);
+          return deleteRecurringTemplate(userId, params!.id);
+        },
+        { rateLimit: true },
+      ),
     },
   },
 });
