@@ -49,6 +49,20 @@ src/
 - Toast notifications surface auth and other errors globally
 - All UI components follow a rigorous, dark-themed, zero-radius design system (see `components.md`)
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues (`imjoe-dev/plata`) via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary, used as-is (no repo-specific renaming). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web
