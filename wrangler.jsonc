@@ -47,4 +47,7 @@
   "triggers": {
     "crons": ["0 * * * *"],
   },
+  "observability": {
+    "enabled": true,
+  },
 }
