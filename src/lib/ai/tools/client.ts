@@ -2,6 +2,7 @@ import { clientTools } from "@tanstack/ai-client";
 import { z } from "zod";
 
 import { apiDelete, apiGet, apiGetWithMeta, apiPatch, apiPost } from "@/lib/ai/fetch";
+import { toDollars } from "@/lib/currency";
 import {
   createCategoryDef,
   CreateCategoryInput,
@@ -41,10 +42,6 @@ import {
   UpdateRecurringTemplateInput,
 } from "./recurring-templates";
 
-function toDollars<T extends { amount: number }>(row: T): T {
-  return { ...row, amount: row.amount / 100 };
-}
-
 export async function listCategoriesHandler(): Promise<CategoryRow[]> {
   return apiGet<CategoryRow[]>("/api/categories");
 }
@@ -74,11 +71,13 @@ export async function deleteCategoryHandler(
   return apiDelete<CategoryRow>(`/api/categories/${input.id}`);
 }
 
-const listCategories = listCategoriesDef.client(listCategoriesHandler);
-const createCategory = createCategoryDef.client(createCategoryHandler);
-const getCategory = getCategoryDef.client(getCategoryHandler);
-const updateCategory = updateCategoryDef.client(updateCategoryHandler);
-const deleteCategory = deleteCategoryDef.client(deleteCategoryHandler);
+const categoryClientTools = [
+  listCategoriesDef.client(listCategoriesHandler),
+  createCategoryDef.client(createCategoryHandler),
+  getCategoryDef.client(getCategoryHandler),
+  updateCategoryDef.client(updateCategoryHandler),
+  deleteCategoryDef.client(deleteCategoryHandler),
+] as const;
 
 export async function listTransactionsHandler(
   input: z.input<typeof ListTransactionsInput>,
@@ -140,11 +139,13 @@ export async function deleteTransactionHandler(
   return toDollars(row);
 }
 
-const listTransactions = listTransactionsDef.client(listTransactionsHandler);
-const createTransaction = createTransactionDef.client(createTransactionHandler);
-const getTransaction = getTransactionDef.client(getTransactionHandler);
-const updateTransaction = updateTransactionDef.client(updateTransactionHandler);
-const deleteTransaction = deleteTransactionDef.client(deleteTransactionHandler);
+const transactionClientTools = [
+  listTransactionsDef.client(listTransactionsHandler),
+  createTransactionDef.client(createTransactionHandler),
+  getTransactionDef.client(getTransactionHandler),
+  updateTransactionDef.client(updateTransactionHandler),
+  deleteTransactionDef.client(deleteTransactionHandler),
+] as const;
 
 export async function listRecurringTemplatesHandler(
   input: z.input<typeof ListRecurringTemplatesInput>,
@@ -204,32 +205,18 @@ export async function pauseRecurringTemplateHandler(
   return toDollars(row);
 }
 
-const listRecurringTemplates = listRecurringTemplatesDef.client(listRecurringTemplatesHandler);
-const createRecurringTemplate = createRecurringTemplateDef.client(createRecurringTemplateHandler);
-const getRecurringTemplate = getRecurringTemplateDef.client(getRecurringTemplateHandler);
-const updateRecurringTemplate = updateRecurringTemplateDef.client(updateRecurringTemplateHandler);
-const deleteRecurringTemplate = deleteRecurringTemplateDef.client(deleteRecurringTemplateHandler);
-const activateRecurringTemplate = activateRecurringTemplateDef.client(
-  activateRecurringTemplateHandler,
-);
-const pauseRecurringTemplate = pauseRecurringTemplateDef.client(pauseRecurringTemplateHandler);
+const recurringTemplateClientTools = [
+  listRecurringTemplatesDef.client(listRecurringTemplatesHandler),
+  createRecurringTemplateDef.client(createRecurringTemplateHandler),
+  getRecurringTemplateDef.client(getRecurringTemplateHandler),
+  updateRecurringTemplateDef.client(updateRecurringTemplateHandler),
+  deleteRecurringTemplateDef.client(deleteRecurringTemplateHandler),
+  activateRecurringTemplateDef.client(activateRecurringTemplateHandler),
+  pauseRecurringTemplateDef.client(pauseRecurringTemplateHandler),
+] as const;
 
 export const allClientTools = clientTools(
-  listCategories,
-  createCategory,
-  getCategory,
-  updateCategory,
-  deleteCategory,
-  listTransactions,
-  createTransaction,
-  getTransaction,
-  updateTransaction,
-  deleteTransaction,
-  listRecurringTemplates,
-  createRecurringTemplate,
-  getRecurringTemplate,
-  updateRecurringTemplate,
-  deleteRecurringTemplate,
-  activateRecurringTemplate,
-  pauseRecurringTemplate,
+  ...categoryClientTools,
+  ...transactionClientTools,
+  ...recurringTemplateClientTools,
 );

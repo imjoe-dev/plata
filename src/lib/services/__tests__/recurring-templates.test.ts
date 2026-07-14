@@ -55,7 +55,7 @@ describe("recurring-templates service", () => {
   it("creates a template with no FK refs", async () => {
     vi.mocked(recRepo.createRecurringTemplate).mockResolvedValueOnce({ id: "r1" } as any);
     await createRecurringTemplate("user_1", validInput);
-    const [, payload] = vi.mocked(recRepo.createRecurringTemplate).mock.calls[0];
+    const [payload] = vi.mocked(recRepo.createRecurringTemplate).mock.calls[0];
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.user_id).toBe("user_1");
     expect(payload.amount).toBe(1500);

@@ -74,3 +74,11 @@ export const deleteCategoryDef = toolDefinition({
   outputSchema: CategoryRow,
   needsApproval: true,
 });
+
+export const categoryToolDefs = [
+  listCategoriesDef,
+  createCategoryDef,
+  getCategoryDef,
+  updateCategoryDef,
+  deleteCategoryDef,
+] as const;

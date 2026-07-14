@@ -38,7 +38,7 @@ export async function createRecurringTemplate(userId: string, input: RecurringTe
     user_id: userId,
   };
 
-  const row = await repoCreate(userId, payload);
+  const row = await repoCreate(payload);
   if (!row) throw new InternalError("createRecurringTemplate returned no row");
   return row;
 }

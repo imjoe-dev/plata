@@ -129,3 +129,13 @@ export const pauseRecurringTemplateDef = toolDefinition({
   outputSchema: RecurringTemplateRow,
   needsApproval: true,
 });
+
+export const recurringTemplateToolDefs = [
+  listRecurringTemplatesDef,
+  createRecurringTemplateDef,
+  getRecurringTemplateDef,
+  updateRecurringTemplateDef,
+  deleteRecurringTemplateDef,
+  activateRecurringTemplateDef,
+  pauseRecurringTemplateDef,
+] as const;

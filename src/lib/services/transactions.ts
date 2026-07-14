@@ -38,7 +38,7 @@ export async function createTransaction(userId: string, input: Transaction) {
     notes: input.notes ?? null,
   };
 
-  const row = await repoCreate(userId, payload);
+  const row = await repoCreate(payload);
   if (!row) throw new InternalError("createTransaction returned no row");
   return row;
 }

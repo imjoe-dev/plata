@@ -121,3 +121,11 @@ export const deleteTransactionDef = toolDefinition({
   outputSchema: TransactionRow,
   needsApproval: true,
 });
+
+export const transactionToolDefs = [
+  listTransactionsDef,
+  createTransactionDef,
+  getTransactionDef,
+  updateTransactionDef,
+  deleteTransactionDef,
+] as const;

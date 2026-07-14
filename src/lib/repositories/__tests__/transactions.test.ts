@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 async function seedTxn(userId: string, id: string, date = new Date("2026-07-01")) {
-  return createTransaction(userId, {
+  return createTransaction({
     id,
     amount: 1000,
     currency: "USD",
@@ -85,7 +85,7 @@ describe("transactions repository", () => {
       // assertions are deterministic (the DB default uses subsecond precision, which
       // can tie when inserts happen in the same millisecond during a fast test loop).
       for (let i = 0; i < count; i++) {
-        await createTransaction(userId, {
+        await createTransaction({
           id: `t${i}`,
           amount: 1000,
           currency: "USD",
@@ -122,13 +122,13 @@ describe("transactions repository", () => {
 
     it("reflects only the filtered rows in total when combined with a category filter", async () => {
       await seedMany("user_1", 50);
-      await createCategory("user_1", {
+      await createCategory({
         id: "cat_1",
         name: "Groceries",
         type: "expense",
         user_id: "user_1",
       });
-      await createTransaction("user_1", {
+      await createTransaction({
         id: "matched",
         amount: 1000,
         currency: "USD",

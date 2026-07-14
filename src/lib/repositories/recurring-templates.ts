@@ -2,33 +2,26 @@ import { and, eq, isNull, lte } from "drizzle-orm";
 
 import { getDB } from "@/db";
 import { recurring_templates } from "@/db/schema";
+import { createSoftDeleteRepo } from "./soft-delete";
 
 type TemplateRow = typeof recurring_templates.$inferSelect;
 type TemplateInsert = typeof recurring_templates.$inferInsert;
 
 type Status = "active" | "paused" | "completed" | "failed";
 
-export async function createRecurringTemplate(_userId: string, input: TemplateInsert) {
-  const [row] = await getDB().insert(recurring_templates).values(input).returning();
-  return row;
-}
+const recurringTemplateRepo = createSoftDeleteRepo(recurring_templates);
 
-export async function getRecurringTemplateById(
+export const createRecurringTemplate = (input: TemplateInsert) =>
+  recurringTemplateRepo.create(input);
+export const getRecurringTemplateById = (userId: string, id: string) =>
+  recurringTemplateRepo.getById(userId, id);
+export const updateRecurringTemplate = (
   userId: string,
   id: string,
-): Promise<TemplateRow | null> {
-  const [row] = await getDB()
-    .select()
-    .from(recurring_templates)
-    .where(
-      and(
-        eq(recurring_templates.id, id),
-        eq(recurring_templates.user_id, userId),
-        isNull(recurring_templates.deleted_at),
-      ),
-    );
-  return row ?? null;
-}
+  patch: Partial<TemplateInsert>,
+) => recurringTemplateRepo.update(userId, id, patch);
+export const softDeleteRecurringTemplate = (userId: string, id: string) =>
+  recurringTemplateRepo.softDelete(userId, id);
 
 export async function listRecurringTemplates(
   userId: string,
@@ -54,43 +47,6 @@ export async function listDueTemplates(userId: string, now: Date): Promise<Templ
         isNull(recurring_templates.deleted_at),
       ),
     );
-}
-
-export async function updateRecurringTemplate(
-  userId: string,
-  id: string,
-  patch: Partial<TemplateInsert>,
-): Promise<TemplateRow | null> {
-  const [row] = await getDB()
-    .update(recurring_templates)
-    .set(patch)
-    .where(
-      and(
-        eq(recurring_templates.id, id),
-        eq(recurring_templates.user_id, userId),
-        isNull(recurring_templates.deleted_at),
-      ),
-    )
-    .returning();
-  return row ?? null;
-}
-
-export async function softDeleteRecurringTemplate(
-  userId: string,
-  id: string,
-): Promise<TemplateRow | null> {
-  const [row] = await getDB()
-    .update(recurring_templates)
-    .set({ deleted_at: new Date() })
-    .where(
-      and(
-        eq(recurring_templates.id, id),
-        eq(recurring_templates.user_id, userId),
-        isNull(recurring_templates.deleted_at),
-      ),
-    )
-    .returning();
-  return row ?? null;
 }
 
 export function buildUpdateTemplate(userId: string, id: string, patch: Partial<TemplateInsert>) {

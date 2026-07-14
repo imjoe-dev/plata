@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 async function seedTpl(userId: string, id: string, over: Record<string, unknown> = {}) {
-  return createRecurringTemplate(userId, {
+  return createRecurringTemplate({
     id,
     amount: 1000,
     currency: "USD",

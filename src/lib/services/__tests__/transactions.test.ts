@@ -48,7 +48,7 @@ describe("transactions service", () => {
   it("creates a transaction with no FK refs", async () => {
     vi.mocked(txnRepo.createTransaction).mockResolvedValueOnce({ id: "t1" } as any);
     await createTransaction("user_1", validInput);
-    const [, payload] = vi.mocked(txnRepo.createTransaction).mock.calls[0];
+    const [payload] = vi.mocked(txnRepo.createTransaction).mock.calls[0];
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.user_id).toBe("user_1");
     expect(payload.amount).toBe(1234);

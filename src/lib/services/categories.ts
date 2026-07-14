@@ -27,7 +27,7 @@ export async function createCategory(userId: string, input: Category) {
     user_id: userId,
   };
   try {
-    const row = await repoCreate(userId, payload);
+    const row = await repoCreate(payload);
     if (!row) throw new InternalError("createCategory returned no row");
     return row;
   } catch (cause) {

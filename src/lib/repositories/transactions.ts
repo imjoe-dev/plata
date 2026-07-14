@@ -3,6 +3,7 @@ import { and, desc, eq, gte, isNull, lte } from "drizzle-orm";
 import { getDB } from "@/db";
 import { transactions } from "@/db/schema";
 import type { Pagination, PaginatedListResult } from "@/lib/schemas/transactions";
+import { createSoftDeleteRepo } from "./soft-delete";
 
 type TransactionRow = typeof transactions.$inferSelect;
 type TransactionInsert = typeof transactions.$inferInsert;
@@ -14,27 +15,15 @@ export type ListFilters = {
   categoryId?: string;
 };
 
-export async function createTransaction(_userId: string, input: TransactionInsert) {
-  const [row] = await getDB().insert(transactions).values(input).returning();
-  return row;
-}
+const transactionRepo = createSoftDeleteRepo(transactions);
 
-export async function getTransactionById(
-  userId: string,
-  id: string,
-): Promise<TransactionRow | null> {
-  const [row] = await getDB()
-    .select()
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.user_id, userId),
-        isNull(transactions.deleted_at),
-      ),
-    );
-  return row ?? null;
-}
+export const createTransaction = (input: TransactionInsert) => transactionRepo.create(input);
+export const getTransactionById = (userId: string, id: string) =>
+  transactionRepo.getById(userId, id);
+export const updateTransaction = (userId: string, id: string, patch: Partial<TransactionInsert>) =>
+  transactionRepo.update(userId, id, patch);
+export const softDeleteTransaction = (userId: string, id: string) =>
+  transactionRepo.softDelete(userId, id);
 
 export async function listTransactions(
   userId: string,
@@ -61,43 +50,6 @@ export async function listTransactions(
   ]);
 
   return { rows, total };
-}
-
-export async function updateTransaction(
-  userId: string,
-  id: string,
-  patch: Partial<TransactionInsert>,
-): Promise<TransactionRow | null> {
-  const [row] = await getDB()
-    .update(transactions)
-    .set(patch)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.user_id, userId),
-        isNull(transactions.deleted_at),
-      ),
-    )
-    .returning();
-  return row ?? null;
-}
-
-export async function softDeleteTransaction(
-  userId: string,
-  id: string,
-): Promise<TransactionRow | null> {
-  const [row] = await getDB()
-    .update(transactions)
-    .set({ deleted_at: new Date() })
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.user_id, userId),
-        isNull(transactions.deleted_at),
-      ),
-    )
-    .returning();
-  return row ?? null;
 }
 
 export function buildInsertTransaction(input: TransactionInsert) {

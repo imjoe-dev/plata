@@ -31,7 +31,7 @@ describe("category service", () => {
       type: "expense",
     } as any);
     await createCategory("user_1", { name: "A", type: "expense" });
-    const [, payload] = vi.mocked(repo.createCategory).mock.calls[0];
+    const [payload] = vi.mocked(repo.createCategory).mock.calls[0];
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.user_id).toBe("user_1");
     expect(payload.name).toBe("A");

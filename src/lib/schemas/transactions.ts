@@ -1,10 +1,9 @@
 import { z } from "zod";
 
+import { dollarsToCentsSchema } from "@/lib/currency";
+
 export const Transaction = z.object({
-  amount: z
-    .number()
-    .positive()
-    .transform((v) => Math.round(v * 100)),
+  amount: dollarsToCentsSchema,
   currency: z.string().length(3).default("USD"),
   type: z.enum(["expense", "income"]),
   description: z.string().min(1),

@@ -21,7 +21,7 @@ beforeEach(() => {
 
 describe("category repository", () => {
   it("creates and retrieves a category scoped by user", async () => {
-    const created = await createCategory("user_1", {
+    const created = await createCategory({
       id: "cat_1",
       name: "Groceries",
       type: "expense",
@@ -33,7 +33,7 @@ describe("category repository", () => {
   });
 
   it("does not leak a category across users", async () => {
-    await createCategory("user_1", {
+    await createCategory({
       id: "cat_1",
       name: "Groceries",
       type: "expense",
@@ -43,14 +43,14 @@ describe("category repository", () => {
   });
 
   it("lists only the calling user's categories", async () => {
-    await createCategory("user_1", { id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
-    await createCategory("user_2", { id: "cat_2", name: "B", type: "expense", user_id: "user_2" });
+    await createCategory({ id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
+    await createCategory({ id: "cat_2", name: "B", type: "expense", user_id: "user_2" });
     const list = await listCategories("user_1");
     expect(list.map((c) => c.id)).toEqual(["cat_1"]);
   });
 
   it("soft-deletes and excludes the row from reads", async () => {
-    await createCategory("user_1", { id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
+    await createCategory({ id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
     const deleted = await softDeleteCategory("user_1", "cat_1");
     expect(deleted?.deleted_at).toBeTruthy();
     expect(await getCategoryById("user_1", "cat_1")).toBeNull();
@@ -58,7 +58,7 @@ describe("category repository", () => {
   });
 
   it("updateCategory returns null when the row belongs to another user", async () => {
-    await createCategory("user_1", { id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
+    await createCategory({ id: "cat_1", name: "A", type: "expense", user_id: "user_1" });
     const res = await updateCategory("user_2", "cat_1", { name: "B" });
     expect(res).toBeNull();
   });
