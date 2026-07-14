@@ -25,7 +25,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Plata — Personal Finance Tracker",
+      },
+      {
+        name: "description",
+        content:
+          "Plata is a multi-user personal finance tracker for logging income and expenses, manually, via chat, or by CSV import, with LLM-guided categorization and reports.",
       },
     ],
     links: [
