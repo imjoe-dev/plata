@@ -17,7 +17,7 @@
       "name": "CHAT_RATE_LIMITER",
       "namespace_id": "1",
       "simple": {
-        "limit": 5,
+        "limit": 30,
         "period": 60,
       },
     },
@@ -25,7 +25,7 @@
       "name": "AUTH_RATE_LIMITER",
       "namespace_id": "2",
       "simple": {
-        "limit": 5,
+        "limit": 30,
         "period": 60,
       },
     },
