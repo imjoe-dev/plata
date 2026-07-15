@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/functions";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { ChatProvider } from "@/contexts/chat-context";
 
 export const Route = createFileRoute("/_protected")({
   component: ProtectedLayout,
@@ -14,5 +15,9 @@ export const Route = createFileRoute("/_protected")({
 });
 
 function ProtectedLayout() {
-  return <Outlet />;
+  return (
+    <ChatProvider>
+      <Outlet />
+    </ChatProvider>
+  );
 }

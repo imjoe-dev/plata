@@ -19,6 +19,7 @@ import { Route as ApiCategoriesIndexRouteImport } from './routes/api/categories/
 import { Route as ApiTransactionsIdRouteImport } from './routes/api/transactions/$id'
 import { Route as ApiCategoriesIdRouteImport } from './routes/api/categories/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ProtectedChatSessionIdRouteImport } from './routes/_protected/chat.$sessionId'
 import { Route as ApiRecurringTemplatesIdIndexRouteImport } from './routes/api/recurring-templates/$id/index'
 import { Route as ApiRecurringTemplatesIdPauseRouteImport } from './routes/api/recurring-templates/$id/pause'
 import { Route as ApiRecurringTemplatesIdActivateRouteImport } from './routes/api/recurring-templates/$id/activate'
@@ -74,6 +75,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtectedChatSessionIdRoute = ProtectedChatSessionIdRouteImport.update({
+  id: '/chat/$sessionId',
+  path: '/chat/$sessionId',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ApiRecurringTemplatesIdIndexRoute =
   ApiRecurringTemplatesIdIndexRouteImport.update({
     id: '/api/recurring-templates/$id/',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/': typeof ProtectedIndexRoute
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRouteWithChildren
+  '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRouteWithChildren
   '/': typeof ProtectedIndexRoute
+  '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/api/chat': typeof ApiChatRouteWithChildren
   '/_protected/': typeof ProtectedIndexRoute
+  '/_protected/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/chat'
+    | '/chat/$sessionId'
     | '/api/auth/$'
     | '/api/categories/$id'
     | '/api/transactions/$id'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/chat'
     | '/'
+    | '/chat/$sessionId'
     | '/api/auth/$'
     | '/api/categories/$id'
     | '/api/transactions/$id'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/chat'
     | '/_protected/'
+    | '/_protected/chat/$sessionId'
     | '/api/auth/$'
     | '/api/categories/$id'
     | '/api/transactions/$id'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_protected/chat/$sessionId': {
+      id: '/_protected/chat/$sessionId'
+      path: '/chat/$sessionId'
+      fullPath: '/chat/$sessionId'
+      preLoaderRoute: typeof ProtectedChatSessionIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/api/recurring-templates/$id/': {
       id: '/api/recurring-templates/$id/'
       path: '/api/recurring-templates/$id'
@@ -315,10 +334,12 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedRouteRouteChildren {
   ProtectedIndexRoute: typeof ProtectedIndexRoute
+  ProtectedChatSessionIdRoute: typeof ProtectedChatSessionIdRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedIndexRoute: ProtectedIndexRoute,
+  ProtectedChatSessionIdRoute: ProtectedChatSessionIdRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
