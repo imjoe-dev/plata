@@ -22,6 +22,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiRecurringTemplatesIdIndexRouteImport } from './routes/api/recurring-templates/$id/index'
 import { Route as ApiRecurringTemplatesIdPauseRouteImport } from './routes/api/recurring-templates/$id/pause'
 import { Route as ApiRecurringTemplatesIdActivateRouteImport } from './routes/api/recurring-templates/$id/activate'
+import { Route as ApiChatSessionsSessionIdMessagesRouteImport } from './routes/api/chat/sessions/$sessionId/messages'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -91,11 +92,17 @@ const ApiRecurringTemplatesIdActivateRoute =
     path: '/api/recurring-templates/$id/activate',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiChatSessionsSessionIdMessagesRoute =
+  ApiChatSessionsSessionIdMessagesRouteImport.update({
+    id: '/sessions/$sessionId/messages',
+    path: '/sessions/$sessionId/messages',
+    getParentRoute: () => ApiChatRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ProtectedIndexRoute
   '/login': typeof LoginRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
@@ -105,10 +112,11 @@ export interface FileRoutesByFullPath {
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
   '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
   '/api/recurring-templates/$id/': typeof ApiRecurringTemplatesIdIndexRoute
+  '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
   '/': typeof ProtectedIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
@@ -119,12 +127,13 @@ export interface FileRoutesByTo {
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
   '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
   '/api/recurring-templates/$id': typeof ApiRecurringTemplatesIdIndexRoute
+  '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_protected': typeof ProtectedRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/api/chat': typeof ApiChatRoute
+  '/api/chat': typeof ApiChatRouteWithChildren
   '/_protected/': typeof ProtectedIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/categories/$id': typeof ApiCategoriesIdRoute
@@ -135,6 +144,7 @@ export interface FileRoutesById {
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
   '/api/recurring-templates/$id/pause': typeof ApiRecurringTemplatesIdPauseRoute
   '/api/recurring-templates/$id/': typeof ApiRecurringTemplatesIdIndexRoute
+  '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/api/recurring-templates/$id/activate'
     | '/api/recurring-templates/$id/pause'
     | '/api/recurring-templates/$id/'
+    | '/api/chat/sessions/$sessionId/messages'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/api/recurring-templates/$id/activate'
     | '/api/recurring-templates/$id/pause'
     | '/api/recurring-templates/$id'
+    | '/api/chat/sessions/$sessionId/messages'
   id:
     | '__root__'
     | '/_protected'
@@ -180,12 +192,13 @@ export interface FileRouteTypes {
     | '/api/recurring-templates/$id/activate'
     | '/api/recurring-templates/$id/pause'
     | '/api/recurring-templates/$id/'
+    | '/api/chat/sessions/$sessionId/messages'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ApiChatRoute: typeof ApiChatRoute
+  ApiChatRoute: typeof ApiChatRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute
   ApiTransactionsIdRoute: typeof ApiTransactionsIdRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRecurringTemplatesIdActivateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat/sessions/$sessionId/messages': {
+      id: '/api/chat/sessions/$sessionId/messages'
+      path: '/sessions/$sessionId/messages'
+      fullPath: '/api/chat/sessions/$sessionId/messages'
+      preLoaderRoute: typeof ApiChatSessionsSessionIdMessagesRouteImport
+      parentRoute: typeof ApiChatRoute
+    }
   }
 }
 
@@ -305,10 +325,21 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
   ProtectedRouteRouteChildren,
 )
 
+interface ApiChatRouteChildren {
+  ApiChatSessionsSessionIdMessagesRoute: typeof ApiChatSessionsSessionIdMessagesRoute
+}
+
+const ApiChatRouteChildren: ApiChatRouteChildren = {
+  ApiChatSessionsSessionIdMessagesRoute: ApiChatSessionsSessionIdMessagesRoute,
+}
+
+const ApiChatRouteWithChildren =
+  ApiChatRoute._addFileChildren(ApiChatRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  ApiChatRoute: ApiChatRoute,
+  ApiChatRoute: ApiChatRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCategoriesIdRoute: ApiCategoriesIdRoute,
   ApiTransactionsIdRoute: ApiTransactionsIdRoute,
