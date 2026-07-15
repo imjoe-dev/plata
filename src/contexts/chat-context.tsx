@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
@@ -23,9 +15,7 @@ interface ChatContextValue {
   /** Starts a brand-new chat: marks `sessionId` as already-loaded (skipping hydration,
    *  since the session doesn't exist server-side yet) and sends the first message. */
   startNewChat: (text: string, sessionId: string) => void;
-  /** Sends a message into an already-hydrated session. */
   sendMessage: (text: string, sessionId: string) => void;
-  /** Clears the conversation and forgets which session was last loaded. */
   resetChat: () => void;
 }
 
@@ -37,7 +27,7 @@ export function useChatContext(): ChatContextValue {
   return ctx;
 }
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+export function ChatProvider({ children }: { children: React.ReactNode }) {
   const chat = usePlataChat();
   const navigate = useNavigate();
   const sessionId = useParams({ strict: false })?.sessionId;
@@ -53,10 +43,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!sessionId || !messagesQuery.data) return;
     chat.setMessages(messagesQuery.data);
     loadedSessionIdRef.current = sessionId;
-    // chat.setMessages isn't listed: this effect only fires when sessionId or the query result
-    // actually changes, and whichever render that happens on already closes over the current
-    // chat — including chat itself would instead re-run this effect on every chat-state change
-    // (e.g. every streamed token), which isn't what this effect is reacting to.
+    // chat.setMessages isn't listed: including chat would re-run this on every streamed token.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, messagesQuery.data]);
 
@@ -64,51 +51,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (!sessionId || !messagesQuery.isError) return;
     toastManager.add({ title: "Chat not found", data: { variant: "error" } });
     void navigate({ to: "/" });
-    // navigate isn't listed: TanStack Router's useNavigate() returns a stable function
-    // reference, the standard reason it's safe to omit from effect deps.
+    // navigate isn't listed: TanStack Router's useNavigate() returns a stable reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, messagesQuery.isError]);
 
-  const startNewChat = useCallback(
-    (text: string, newSessionId: string) => {
-      loadedSessionIdRef.current = newSessionId;
-      void chat.sendMessage(text, newSessionId);
-    },
-    [chat.sendMessage],
-  );
+  const startNewChat = (text: string, newSessionId: string) => {
+    loadedSessionIdRef.current = newSessionId;
+    void chat.sendMessage(text, newSessionId);
+  };
 
-  const sendMessage = useCallback(
-    (text: string, currentSessionId: string) => {
-      void chat.sendMessage(text, currentSessionId);
-    },
-    [chat.sendMessage],
-  );
+  const sendMessage = (text: string, currentSessionId: string) => {
+    void chat.sendMessage(text, currentSessionId);
+  };
 
-  const resetChat = useCallback(() => {
+  const resetChat = () => {
     chat.setMessages([]);
     loadedSessionIdRef.current = undefined;
-  }, [chat.setMessages]);
+  };
 
-  const value: ChatContextValue = useMemo(
-    () => ({
-      messages: chat.messages,
-      isLoading: chat.isLoading,
-      error: chat.error,
-      addToolApprovalResponse: chat.addToolApprovalResponse,
-      startNewChat,
-      sendMessage,
-      resetChat,
-    }),
-    [
-      chat.messages,
-      chat.isLoading,
-      chat.error,
-      chat.addToolApprovalResponse,
-      startNewChat,
-      sendMessage,
-      resetChat,
-    ],
-  );
+  const value: ChatContextValue = {
+    messages: chat.messages,
+    isLoading: chat.isLoading,
+    error: chat.error,
+    addToolApprovalResponse: chat.addToolApprovalResponse,
+    startNewChat,
+    sendMessage,
+    resetChat,
+  };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

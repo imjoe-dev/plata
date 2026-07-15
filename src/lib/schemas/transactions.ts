@@ -23,25 +23,10 @@ export const TransactionPatch = Transaction.omit({ currency: true })
 export type TransactionPatch = z.infer<typeof TransactionPatch>;
 
 /**
- * Wraps a schema so `null` and `""` are treated as "not provided" (normalized to `undefined`)
- * before the schema's own validation runs — e.g. the LLM chat tool sends explicit `null` for
- * filters it isn't using, and a bare `.optional()` field rejects that outright.
- *
- * Implemented with `z.preprocess`, but the returned schema's static type is recast to
- * `ZodOptional<ZodType<Output, Input | null | "">>`: Zod 4.4.3's `z.preprocess()` collapses
- * `z.input<>` to `unknown` once embedded inside a `z.object()` shape, which broke downstream
- * consumers (e.g. `ListTransactionsInput.shape.type` reused by the AI tool client) that rely on
- * `z.input<>` for their handler parameter types. The `ZodOptional` wrapper in the cast (rather
- * than a bare `ZodType`) is required too — without it, `z.object()` no longer recognizes the
- * key as optional and demands the property be present. The runtime behavior is untouched by
- * the cast — only the compile-time type is restored.
- *
- * Exported so schemas that independently redeclare a field (rather than reusing
- * `TransactionListQuery.shape.*`) — e.g. `ListTransactionsInput.from`/`.to` in
- * `src/lib/ai/tools/transactions.ts` — can apply the same null/empty handling. Verified
- * (via `z.toJSONSchema` and `@tanstack/ai`'s `convertSchemaToJsonSchema`) that wrapping an
- * enum in `z.preprocess` this way does not degrade its generated JSON Schema to a generic
- * string — the `enum` constraint survives, so the LLM tool-calling contract is unaffected.
+ * Normalizes `null`/`""` to `undefined` before validation — the LLM chat tool sends explicit
+ * `null` for unused filters, which a bare `.optional()` rejects. The return type is manually
+ * cast because Zod 4.4.3's `z.preprocess()` collapses `z.input<>` to `unknown` inside a
+ * `z.object()` shape; this only restores the compile-time type, runtime behavior is unaffected.
  */
 export function nullishAsAbsent<S extends z.ZodTypeAny>(
   schema: S,
@@ -57,9 +42,7 @@ export const TransactionListQuery = z.object({
   to: nullishAsAbsent(z.coerce.date().optional()),
   type: nullishAsAbsent(z.enum(["expense", "income"]).optional()),
   categoryId: nullishAsAbsent(z.string().optional()),
-  // Genuinely optional — no `.default()` here. Defaults (page=1, limit=20) are applied by the
-  // route handler, not the schema, so the AI tool's generated documentation accurately reflects
-  // these as optional fields with route-level defaults (see plan.md § Data Models).
+  // Genuinely optional: defaults (page=1, limit=20) are applied by the route handler, not here.
   page: nullishAsAbsent(z.coerce.number().int().positive().optional()),
   limit: nullishAsAbsent(z.coerce.number().int().min(1).max(100).optional()),
 });
@@ -67,14 +50,9 @@ export const TransactionListQuery = z.object({
 export type TransactionListQuery = z.infer<typeof TransactionListQuery>;
 
 /**
- * Resolved pagination values for use between the route handler, service, and repository layers.
- * These represent the actual pagination parameters in use after defaults have been applied.
- * - page: 1-based page number (≥ 1)
- * - limit: number of rows per page (1–100)
- *
- * Not a Zod schema — validation of these constraints happens at the HTTP boundary
- * (TransactionListQuery), and defaults are applied by the route handler before passing
- * these values downstream.
+ * Resolved pagination values (post-defaults) shared across the route/service/repository layers.
+ * `page` is 1-based; `limit` is 1–100. Not a Zod schema — validation happens at the HTTP
+ * boundary (TransactionListQuery).
  */
 export interface Pagination {
   page: number;
@@ -82,13 +60,8 @@ export interface Pagination {
 }
 
 /**
- * Generic result type for paginated repository/service responses.
- * Represents a single page of results plus metadata needed to compute pagination metadata.
- * - rows: the page's results (already filtered and ordered)
- * - total: total count of rows matching filters, across all pages (ignoring pagination)
- *
- * The route handler derives additional fields (hasMore, count, page, limit) from this
- * and the applied pagination parameters before building the HTTP response envelope.
+ * One page of repository/service results. `total` is the full matching count across all pages
+ * (not just this page) — the route handler derives hasMore/count/page/limit from this.
  */
 export interface PaginatedListResult<T> {
   rows: T[];

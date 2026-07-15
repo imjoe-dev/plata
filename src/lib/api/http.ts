@@ -38,14 +38,9 @@ export function apiHandler(
   return async (ctx: HandlerCtx): Promise<Response> => {
     try {
       if (opts.rateLimit) {
-        // The wrapped handler resolves its own userId via requireUser(request) too
-        // (existing per-route convention) — this duplicate session lookup is the
-        // accepted tradeoff for keeping fn's shape/signature unchanged. See plan.md
-        // § Technical Decisions ("Mutation rate limit is opt-in per handler registration").
-        // Imported dynamically (rather than statically like chat.ts/auth/$.ts) so that
-        // routes which never opt in never touch the `cloudflare:workers` module at all —
-        // keeping their behavior byte-for-byte identical to before this option existed.
+        // Dynamic import so routes that never opt into rateLimit never touch `cloudflare:workers`.
         const { env } = await import("cloudflare:workers");
+        // fn also re-resolves userId itself — an accepted duplicate lookup to keep fn's signature unchanged.
         const userId = await requireUser(ctx.request);
         await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
       }
@@ -61,9 +56,6 @@ export function apiHandler(
       ) {
         return json(result, opts.status ?? 200);
       }
-      // Otherwise, apply existing envelope logic:
-      // - Array → { data: array, meta: { count } }
-      // - Plain object → { data: object }
       const body = Array.isArray(result)
         ? { data: result, meta: { count: result.length } }
         : { data: result };
@@ -115,12 +107,10 @@ export async function checkRateLimit(binding: RateLimit, key: string): Promise<v
       throw new RateLimitedError();
     }
   } catch (error) {
-    // If the binding call itself throws, or if success was false, throw RateLimitedError
-    // This implements the "fail closed" requirement from spec §7/US-006
+    // Fail closed: a throwing binding is treated the same as a rejected limit check.
     if (error instanceof RateLimitedError) {
       throw error;
     }
-    // Wrap any other binding error as RateLimitedError
     throw new RateLimitedError();
   }
 }

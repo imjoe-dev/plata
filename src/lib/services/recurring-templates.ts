@@ -131,12 +131,8 @@ export function computeNextDue(
 }
 
 /**
- * Detects a DB unique-constraint violation (specifically the
- * `transactions_recurring_template_due_unique` guard) anywhere in an error's
- * cause chain, as opposed to any other kind of failure. `runBatch` wraps the
- * underlying driver error in an `InternalError` (see `@/lib/db/transaction`),
- * so the real driver error — a better-sqlite3 `SqliteError` locally, or D1's
- * equivalent in production — is one or more `.cause` hops away.
+ * Detects a `transactions_recurring_template_due_unique` violation anywhere in an error's
+ * cause chain — `runBatch` wraps the real driver error in `InternalError`, so it's hops away.
  */
 function isDuplicateOccurrenceError(err: unknown, depth = 0): boolean {
   if (!err || typeof err !== "object" || depth > 5) return false;
@@ -148,19 +144,11 @@ function isDuplicateOccurrenceError(err: unknown, depth = 0): boolean {
 }
 
 /**
- * Shared per-template catch-up loop, used by both `processDueRecurring`
- * (per-user, single call) and `runScheduledMaterialization` (cross-user
- * sweep). Materializes every occurrence a template is due for — one
- * transaction per missed due date, oldest first — until it's caught up to
- * `now` or reaches its `end_date` (-> `completed`).
- *
- * Failure isolation lives here: any error while materializing this template
- * is caught, the template is marked `status: "failed"`, and the error is not
- * re-thrown — the caller moves on to the next template. A duplicate
- * `(recurring_template_id, date)` insert (from an overlapping/re-invoked run)
- * is treated as "already handled": the occurrence isn't re-created, but the
- * template's `next_due_date` still advances as if it had been, and the
- * template is not marked failed.
+ * Shared catch-up loop for `processDueRecurring` (per-user) and `runScheduledMaterialization`
+ * (cross-user). Materializes missed occurrences oldest-first until caught up or `completed`.
+ * Errors are caught per-template (marked failed, not re-thrown) so the sweep continues; a
+ * duplicate `(recurring_template_id, date)` insert from an overlapping run is treated as
+ * already handled — `next_due_date` still advances, the template isn't marked failed.
  */
 async function processTemplateOccurrences(
   tpl: TemplateRow,
@@ -203,9 +191,7 @@ async function processTemplateOccurrences(
         occurrencesCreated += 1;
       } catch (err) {
         if (!isDuplicateOccurrenceError(err)) throw err;
-        // Already materialized by a prior/overlapping run. The batch above
-        // failed atomically (no insert, no update), so advance the template's
-        // state ourselves without re-inserting the transaction.
+        // Already materialized by a prior/overlapping run — advance state without re-inserting.
         await repoUpdate(userId, tpl.id, tplPatch);
       }
 
@@ -214,8 +200,7 @@ async function processTemplateOccurrences(
     }
     return { occurrencesCreated, failed: false };
   } catch {
-    // Best-effort: if marking failed itself throws, don't let that propagate
-    // and abort the sweep — the caller must still move on to the next template.
+    // Best-effort: swallow errors here so the sweep still moves on to the next template.
     await repoUpdate(userId, tpl.id, { status: "failed" }).catch(() => {});
     return { occurrencesCreated, failed: true };
   }

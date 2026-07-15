@@ -91,7 +91,6 @@ export async function listTransactionsHandler(
     limit: input.limit,
   });
 
-  // Type the meta response based on the expected shape
   type PaginationMeta = {
     count: number;
     page: number;

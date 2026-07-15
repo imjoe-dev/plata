@@ -68,9 +68,8 @@ describe("GET /api/chat/sessions/$sessionId/messages", () => {
   });
 
   it("returns 404 (not a distinct 403) for a session owned by a different user", async () => {
-    // listMessages scopes its lookup by the caller's userId (see ADR-0003 / src/lib/services/chat.ts),
-    // so a foreign-owned session throws the exact same NotFoundError as a nonexistent one — a non-owner
-    // can't distinguish "doesn't exist" from "exists but isn't yours" from the response alone.
+    // Per ADR-0003: a foreign-owned session throws the same NotFoundError as a nonexistent one,
+    // so a non-owner can't distinguish the two from the response alone.
     authedUser();
     vi.mocked(svc.listMessages).mockRejectedValueOnce(
       new NotFoundError("chat_session", SESSION_ID),

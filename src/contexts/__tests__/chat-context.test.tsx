@@ -182,11 +182,8 @@ describe("ChatProvider actions", () => {
   });
 
   it("preserves an in-flight message across the index-to-chat.$sessionId route swap, since ChatProvider itself never unmounts", () => {
-    // Simulates useChat's real optimistic-update behavior (sendMessage appends to messages
-    // immediately) well enough to prove the thing this whole architecture exists to guarantee:
-    // the same ChatProvider/usePlataChat instance survives a route change, so a message started
-    // on `/` is still present once the matched child swaps to chat.$sessionId — no remount, no
-    // dropped in-flight request.
+    // Proves the same ChatProvider instance survives a route change, so an in-flight message
+    // isn't dropped when the matched child swaps from `/` to chat.$sessionId.
     let messages: any[] = [];
     const sendMessage = vi.fn((content: string) => {
       messages = [...messages, { id: `m${messages.length}`, role: "user", parts: [{ content }] }];
@@ -206,7 +203,7 @@ describe("ChatProvider actions", () => {
           addToolApprovalResponse: vi.fn(),
         }) as any,
     );
-    vi.mocked(useParams).mockReturnValue({} as any); // starts on /
+    vi.mocked(useParams).mockReturnValue({} as any);
 
     const { rerender } = render(
       <ChatProvider>

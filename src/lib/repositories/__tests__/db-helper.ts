@@ -5,9 +5,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 
-// Hoisted handle so the vi.mock factory (which runs before top-level imports
-// resolve) can close over a stable reference. The actual DB is assigned in
-// setupTestDB, so repo calls during tests see the real test DB.
+// Hoisted so the vi.mock factory below (which runs before imports resolve) can close over it.
 const testDB = vi.hoisted<{ db: BetterSQLite3Database<typeof schema> | null }>(() => ({
   db: null,
 }));
@@ -25,12 +23,8 @@ export async function setupTestDB() {
   sqlite = new Database(":memory:");
   const db = drizzle(sqlite, { schema });
   migrate(db, { migrationsFolder: "drizzle" });
-  // better-sqlite3's drizzle driver has no native `.batch()` (unlike D1), so
-  // `runBatch` (which calls `getDB().batch(...)`) can't run against this test
-  // DB out of the box. Shim it by executing each statement sequentially and
-  // stopping at the first failure — enough to exercise `runBatch`'s real
-  // error path (e.g. a genuine unique-constraint violation) against this
-  // in-memory DB; it doesn't need D1's cross-statement atomicity to do that.
+  // better-sqlite3 has no native `.batch()` (unlike D1) — shim it by running statements
+  // sequentially and stopping at the first failure, enough to exercise runBatch's error path.
   (db as unknown as { batch: (stmts: unknown[]) => Promise<unknown[]> }).batch = async (
     stmts: unknown[],
   ) => {

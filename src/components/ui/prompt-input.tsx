@@ -14,7 +14,7 @@ import {
   Quote,
   Strikethrough,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface PromptInputContextValue {
   editor: Editor | null;
@@ -35,7 +35,7 @@ interface RootProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  children: ReactNode;
+  children: React.ReactNode;
   onSubmit?: (text: string) => boolean;
 }
 

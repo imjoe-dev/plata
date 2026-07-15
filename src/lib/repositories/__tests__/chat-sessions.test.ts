@@ -33,9 +33,7 @@ describe("chat_sessions repository", () => {
   });
 
   it("rejects a duplicate id with an error matching the service's constraint-violation regex", async () => {
-    // The service layer (getOrCreateSession) distinguishes an ownership conflict from a
-    // same-user race by pattern-matching this exact error text — this test guards that
-    // the real driver's message still matches what that regex expects.
+    // Guards that the driver's message still matches getOrCreateSession's constraint-violation regex.
     await createChatSession({ id: "sess_1", title: "First", user_id: "user_1" });
     await expect(
       createChatSession({ id: "sess_1", title: "Second", user_id: "user_2" }),

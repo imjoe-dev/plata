@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { materializeRecurring } from "../materialize-recurring";
 
-// Mock the service function
 vi.mock("@/lib/services/recurring-templates", () => ({
   runScheduledMaterialization: vi.fn(),
 }));
@@ -37,7 +36,6 @@ describe("materializeRecurring", () => {
 
     await materializeRecurring(mockController, mockEnv, mockCtx);
 
-    // Verify runScheduledMaterialization was called with the correct Date
     expect(mockRunScheduledMaterialization).toHaveBeenCalledOnce();
     expect(mockRunScheduledMaterialization).toHaveBeenCalledWith(expectedDate);
   });
@@ -64,7 +62,6 @@ describe("materializeRecurring", () => {
 
     await materializeRecurring(mockController, mockEnv, mockCtx);
 
-    // Verify ctx.waitUntil was called with a promise
     expect(mockCtx.waitUntil).toHaveBeenCalledOnce();
     const waitUntilArg = mockCtx.waitUntil.mock.calls[0][0];
     expect(waitUntilArg instanceof Promise).toBe(true);

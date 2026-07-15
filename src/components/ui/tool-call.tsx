@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ChevronDown, Wrench } from "lucide-react";
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, useContext } from "react";
 import { Button } from "@/components/ui/button";
 
 export type ToolCallDisplayState = "running" | "pending-approval" | "complete" | "denied" | "error";
@@ -22,18 +22,22 @@ const ToolCallContext = createContext<ToolCallContextValue>({
   actions: { approve: () => {}, deny: () => {} },
 });
 
-// Consumed by later tasks' leaf components via useContext(ToolCallContext).
-
-interface RootProps {
+type RootProps = Omit<Collapsible.Root.Props, "open"> & {
   displayState: ToolCallDisplayState;
   statusLabel?: string;
   onApprove?: () => void;
   onDeny?: () => void;
-  className?: string;
-  children: ReactNode;
-}
+};
 
-function Root({ displayState, statusLabel, onApprove, onDeny, className, children }: RootProps) {
+function Root({
+  displayState,
+  statusLabel,
+  onApprove,
+  onDeny,
+  className,
+  children,
+  ...props
+}: RootProps) {
   const isError = displayState === "error";
   const isPendingApproval = displayState === "pending-approval";
 
@@ -54,6 +58,7 @@ function Root({ displayState, statusLabel, onApprove, onDeny, className, childre
           "border",
           className,
         )}
+        {...props}
         data-tool-call-state={displayState}
         open={isPendingApproval ? true : undefined}
       >
@@ -72,18 +77,14 @@ function Content({ className, ...props }: Collapsible.Panel.Props) {
   );
 }
 
-interface NameProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function Name({ children, className }: NameProps) {
+function Name({ children, className, ...props }: Collapsible.Trigger.Props) {
   return (
     <Collapsible.Trigger
       className={cn(
         "duration-fast group-data-[tool-call-state=pending-approval]:hover:bg-caution/10 group-data-[tool-call-state=denied]:hover:bg-info/10 group-data-[tool-call-state=error]:hover:bg-negative/10 hover:bg-sunken flex w-full cursor-pointer items-center gap-2 px-3 py-2 transition-colors select-none",
         className,
       )}
+      {...props}
     >
       <Wrench
         className={cn(
@@ -116,11 +117,7 @@ function Name({ children, className }: NameProps) {
   );
 }
 
-interface StatusBadgeProps {
-  className?: string;
-}
-
-function StatusBadge({ className }: StatusBadgeProps) {
+function StatusBadge({ className, ...props }: React.ComponentProps<"span">) {
   const {
     state: { displayState, statusLabel },
   } = useContext(ToolCallContext);
@@ -136,6 +133,7 @@ function StatusBadge({ className }: StatusBadgeProps) {
         "group-data-[tool-call-state=error]:text-negative",
         className,
       )}
+      {...props}
     >
       {displayState === "running" ? (
         <span
@@ -150,16 +148,11 @@ function StatusBadge({ className }: StatusBadgeProps) {
   );
 }
 
-interface ArgsProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function Args({ children, className }: ArgsProps) {
+function Args({ children, className, ...props }: React.ComponentProps<"div">) {
   if (!children) return null;
 
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Arguments</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}
@@ -168,12 +161,7 @@ function Args({ children, className }: ArgsProps) {
   );
 }
 
-interface ResponseProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function Response({ children, className }: ResponseProps) {
+function Response({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
   } = useContext(ToolCallContext);
@@ -181,7 +169,7 @@ function Response({ children, className }: ResponseProps) {
   if (displayState !== "complete" || !children) return null;
 
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-fg-muted mb-1 block font-mono text-[10px]">Response</span>
       <pre className="bg-sunken text-fg overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}
@@ -190,12 +178,7 @@ function Response({ children, className }: ResponseProps) {
   );
 }
 
-interface ErrorProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function Error({ children, className }: ErrorProps) {
+function Error({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
   } = useContext(ToolCallContext);
@@ -203,7 +186,7 @@ function Error({ children, className }: ErrorProps) {
   if (displayState !== "error") return null;
 
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-negative mb-1 block font-mono text-[10px]">Error</span>
       <pre className="bg-negative/10 text-negative overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}
@@ -212,17 +195,17 @@ function Error({ children, className }: ErrorProps) {
   );
 }
 
-interface ApprovalActionsProps {
+type ApprovalActionsProps = {
   approveLabel?: string;
   denyLabel?: string;
-  className?: string;
-}
+};
 
 function ApprovalActions({
   approveLabel = "Approve",
   denyLabel = "Deny",
   className,
-}: ApprovalActionsProps) {
+  ...props
+}: ApprovalActionsProps & React.ComponentProps<"div">) {
   const {
     state: { displayState },
     actions: { approve, deny },
@@ -231,7 +214,7 @@ function ApprovalActions({
   if (displayState !== "pending-approval") return null;
 
   return (
-    <div className={cn("flex gap-2", className)}>
+    <div className={cn("flex gap-2", className)} {...props}>
       <Button variant="primary" size="sm" onClick={approve}>
         {approveLabel}
       </Button>
@@ -242,12 +225,7 @@ function ApprovalActions({
   );
 }
 
-interface DeniedNoticeProps {
-  children: ReactNode;
-  className?: string;
-}
-
-function DeniedNotice({ children, className }: DeniedNoticeProps) {
+function DeniedNotice({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
   } = useContext(ToolCallContext);
@@ -255,7 +233,7 @@ function DeniedNotice({ children, className }: DeniedNoticeProps) {
   if (displayState !== "denied") return null;
 
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       <span className="text-info mb-1 block font-mono text-[10px]">Declined</span>
       <pre className="bg-info/10 text-info overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap">
         {children}

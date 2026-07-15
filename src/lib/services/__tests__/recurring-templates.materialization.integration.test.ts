@@ -13,14 +13,8 @@ import {
 import { createTransaction, listTransactions } from "@/lib/repositories/transactions";
 import { runScheduledMaterialization } from "@/lib/services/recurring-templates";
 
-// Unlike recurring-templates.test.ts (which mocks every repository), this
-// suite runs `runScheduledMaterialization` against a real in-memory
-// better-sqlite3 DB migrated from `drizzle/`, so it actually exercises the
-// `transactions_recurring_template_due_unique` partial index created by
-// infra-01. That's the one behavior a fully-mocked `runBatch` can't verify:
-// that a genuine DB unique-constraint violation is shaped the way
-// `isDuplicateOccurrenceError` expects (a `SQLITE_CONSTRAINT_UNIQUE` code
-// surfacing through `runBatch`'s `InternalError` cause chain).
+// Unlike recurring-templates.test.ts (fully mocked), this runs against a real in-memory DB
+// so it can verify a genuine unique-constraint violation is shaped how isDuplicateOccurrenceError expects.
 beforeAll(async () => {
   await setupTestDB();
 });
@@ -45,10 +39,8 @@ describe("runScheduledMaterialization (real DB, unique-index enforcement)", () =
       user_id: "user_1",
     });
 
-    // Simulate an occurrence already materialized by a prior/overlapping run
-    // that never got to advance the template's next_due_date (the exact race
-    // `isDuplicateOccurrenceError` exists to handle) — a real transaction row
-    // already occupies the (recurring_template_id, date) the unique index guards.
+    // Simulates the exact race isDuplicateOccurrenceError exists to handle: a row already
+    // occupies the (recurring_template_id, date) the unique index guards.
     await createTransaction({
       id: "txn_prior",
       amount: 1000,
