@@ -16,6 +16,15 @@ vi.mock("@tanstack/ai", () => ({
     () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
   ),
   toolDefinition: vi.fn((def: any) => def),
+  convertMessagesToModelMessages: vi.fn((messages: any) => messages),
+  modelMessageToUIMessage: vi.fn((message: any) => ({
+    id: "um_1",
+    role: "user",
+    parts: [{ type: "text", content: message?.content ?? "" }],
+  })),
+  modelMessagesToUIMessages: vi.fn(() => [
+    { id: "am_1", role: "assistant", parts: [{ type: "text", content: "reply" }] },
+  ]),
 }));
 vi.mock("@tanstack/ai-openai", () => ({
   createOpenaiChat: vi.fn(() => ({})),
@@ -30,17 +39,36 @@ vi.mock("@/lib/api/http", async () => {
     checkRateLimit: vi.fn(),
   };
 });
+vi.mock("@/lib/services/chat", () => ({
+  getOrCreateSession: vi.fn(),
+  appendMessage: vi.fn(),
+}));
 
-import { chat } from "@tanstack/ai";
+import { chat, modelMessagesToUIMessages, type ChatMiddleware } from "@tanstack/ai";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
-import { RateLimitedError, UnauthorizedError } from "@/lib/errors";
+import { getOrCreateSession, appendMessage } from "@/lib/services/chat";
+import { NotFoundError, RateLimitedError, UnauthorizedError } from "@/lib/errors";
 import * as RouteMod from "@/routes/api/chat";
 
 const Route = RouteMod.Route as any;
+const SESSION_ID = "11111111-1111-4111-8111-111111111111";
+
+function makeRequest(body: Record<string, unknown> = {}) {
+  return new Request("http://localhost/api/chat", {
+    method: "POST",
+    body: JSON.stringify({
+      messages: [{ role: "user", content: "hi" }],
+      forwardedProps: { model_id: "gpt-5.4-mini", session_id: SESSION_ID },
+      ...body,
+    }),
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getOrCreateSession).mockResolvedValue({ id: SESSION_ID } as any);
+  vi.mocked(appendMessage).mockResolvedValue({} as any);
 });
 
 describe("POST /api/chat", () => {
@@ -59,12 +87,7 @@ describe("POST /api/chat", () => {
       ),
     );
 
-    const res = await Route.server.handlers.POST({
-      request: new Request("http://localhost/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ messages: [], forwardedProps: { model_id: "gpt-5.4-mini" } }),
-      }),
-    });
+    const res = await Route.server.handlers.POST({ request: makeRequest() });
 
     expect(res.status).toBe(401);
     expect(chat).not.toHaveBeenCalled();
@@ -75,12 +98,7 @@ describe("POST /api/chat", () => {
     vi.mocked(requireUser).mockResolvedValueOnce("user-123");
     vi.mocked(checkRateLimit).mockResolvedValueOnce(undefined);
 
-    const res = await Route.server.handlers.POST({
-      request: new Request("http://localhost/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ messages: [], forwardedProps: { model_id: "gpt-5.4-mini" } }),
-      }),
-    });
+    const res = await Route.server.handlers.POST({ request: makeRequest() });
 
     expect(res.status).toBe(200);
     expect(chat).toHaveBeenCalledTimes(1);
@@ -107,12 +125,7 @@ describe("POST /api/chat", () => {
       ),
     );
 
-    const res = await Route.server.handlers.POST({
-      request: new Request("http://localhost/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ messages: [], forwardedProps: { model_id: "gpt-5.4-mini" } }),
-      }),
-    });
+    const res = await Route.server.handlers.POST({ request: makeRequest() });
 
     expect(res.status).toBe(429);
     expect(chat).not.toHaveBeenCalled();
@@ -123,21 +136,88 @@ describe("POST /api/chat", () => {
     vi.mocked(requireUser).mockResolvedValueOnce("user-a").mockResolvedValueOnce("user-b");
     vi.mocked(checkRateLimit).mockResolvedValue(undefined);
 
-    const makeRequest = () =>
-      Route.server.handlers.POST({
-        request: new Request("http://localhost/api/chat", {
-          method: "POST",
-          body: JSON.stringify({ messages: [], forwardedProps: { model_id: "gpt-5.4-mini" } }),
-        }),
-      });
-
-    const resA = await makeRequest();
-    const resB = await makeRequest();
+    const resA = await Route.server.handlers.POST({ request: makeRequest() });
+    const resB = await Route.server.handlers.POST({ request: makeRequest() });
 
     expect(resA.status).toBe(200);
     expect(resB.status).toBe(200);
     expect(checkRateLimit).toHaveBeenNthCalledWith(1, env.CHAT_RATE_LIMITER, "user-a");
     expect(checkRateLimit).toHaveBeenNthCalledWith(2, env.CHAT_RATE_LIMITER, "user-b");
     expect(chat).toHaveBeenCalledTimes(2);
+  });
+
+  describe("persistence", () => {
+    beforeEach(() => {
+      vi.mocked(requireUser).mockResolvedValue("user-123");
+      vi.mocked(checkRateLimit).mockResolvedValue(undefined);
+    });
+
+    it("creates or reuses the session for the given session_id, scoped to the caller", async () => {
+      await Route.server.handlers.POST({ request: makeRequest() });
+
+      expect(getOrCreateSession).toHaveBeenCalledWith(
+        "user-123",
+        SESSION_ID,
+        expect.arrayContaining([expect.objectContaining({ type: "text", content: "hi" })]),
+      );
+    });
+
+    it("persists the user's message before streaming the reply", async () => {
+      await Route.server.handlers.POST({ request: makeRequest() });
+
+      expect(appendMessage).toHaveBeenCalledWith(
+        "user-123",
+        SESSION_ID,
+        "user",
+        expect.arrayContaining([expect.objectContaining({ type: "text", content: "hi" })]),
+      );
+      const userCallOrder = vi.mocked(appendMessage).mock.invocationCallOrder[0];
+      const chatCallOrder = vi.mocked(chat).mock.invocationCallOrder[0];
+      expect(userCallOrder).toBeLessThan(chatCallOrder);
+    });
+
+    it("returns 404 (not a distinct 403) when the session_id belongs to a different user", async () => {
+      const notFound = new NotFoundError("chat_session", SESSION_ID);
+      vi.mocked(getOrCreateSession).mockRejectedValueOnce(notFound);
+      vi.mocked(toErrorResponse).mockReturnValueOnce(
+        new Response(JSON.stringify({ error: { name: "NotFoundError", status: 404 } }), {
+          status: 404,
+        }),
+      );
+
+      const res = await Route.server.handlers.POST({ request: makeRequest() });
+
+      expect(res.status).toBe(404);
+      expect(toErrorResponse).toHaveBeenCalledWith(notFound);
+      expect(chat).not.toHaveBeenCalled();
+      expect(appendMessage).not.toHaveBeenCalled();
+    });
+
+    it("persists the assistant's message only once the stream fully completes (onFinish)", async () => {
+      await Route.server.handlers.POST({ request: makeRequest() });
+
+      const call = vi.mocked(chat).mock.calls[0][0] as any;
+      const middleware = call.middleware[0] as ChatMiddleware;
+      expect(vi.mocked(appendMessage).mock.calls).toHaveLength(1); // user message only, so far
+
+      await middleware.onFinish!(
+        { messages: [{ role: "user", content: "hi" }], messageCount: 0 } as any,
+        {} as any,
+      );
+
+      expect(modelMessagesToUIMessages).toHaveBeenCalled();
+      expect(appendMessage).toHaveBeenCalledWith("user-123", SESSION_ID, "assistant", [
+        { type: "text", content: "reply" },
+      ]);
+    });
+
+    it("never persists an assistant message if onFinish is never invoked (error or abort)", async () => {
+      await Route.server.handlers.POST({ request: makeRequest() });
+
+      // Simulates a mocked stream that errors/aborts: only onError/onAbort would fire,
+      // never onFinish, so appendMessage should only have the user message call.
+      expect(vi.mocked(appendMessage).mock.calls).toHaveLength(1);
+      expect(vi.mocked(appendMessage).mock.calls[0][2]).toBe("user");
+    });
   });
 });

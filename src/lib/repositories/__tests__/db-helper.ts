@@ -46,6 +46,8 @@ export function resetTestDB() {
   testDB.db.run(sql`DELETE FROM transactions`);
   testDB.db.run(sql`DELETE FROM recurring_templates`);
   testDB.db.run(sql`DELETE FROM categories`);
+  testDB.db.run(sql`DELETE FROM chat_messages`);
+  testDB.db.run(sql`DELETE FROM chat_sessions`);
   testDB.db.run(sql`DELETE FROM users`);
 }
 
