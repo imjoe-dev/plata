@@ -6,14 +6,25 @@ vi.mock("@tanstack/ai-react", async () => {
   const actual = await vi.importActual<typeof import("@tanstack/ai-react")>("@tanstack/ai-react");
   return {
     ...actual,
-    useChat: vi.fn((options: any) => ({
-      messages: [],
-      sendMessage: vi.fn(),
-      isLoading: false,
-      error: undefined,
-      addToolApprovalResponse: vi.fn(),
-      __options: options,
-    })),
+    useChat: vi.fn(
+      (_options: Parameters<typeof actual.useChat>[0]): ReturnType<typeof actual.useChat> => ({
+        messages: [],
+        sendMessage: vi.fn(),
+        append: vi.fn(),
+        addToolResult: vi.fn(),
+        addToolApprovalResponse: vi.fn(),
+        reload: vi.fn(),
+        stop: vi.fn(),
+        isLoading: false,
+        error: undefined,
+        status: "ready",
+        isSubscribed: false,
+        connectionStatus: "disconnected",
+        sessionGenerating: false,
+        setMessages: vi.fn(),
+        clear: vi.fn(),
+      }),
+    ),
   };
 });
 
@@ -35,44 +46,50 @@ describe("plataChatOptions", () => {
 });
 
 describe("usePlataChat sendMessage", () => {
-  it("passes forwardedProps as a stable, mutable ref object to useChat", () => {
-    const { result } = renderHook(() => usePlataChat());
-    const options = vi.mocked(useChat).mock.calls.at(-1)![0] as any;
-    expect(options.forwardedProps).toEqual({ model_id: "gpt-5.4-mini" });
-    void result;
+  it("forwards the model_id prop to useChat", () => {
+    renderHook(() => usePlataChat());
+
+    expect(useChat).toHaveBeenCalledWith(
+      expect.objectContaining({ forwardedProps: { model_id: "gpt-5.4-mini" } }),
+    );
   });
 
-  it("mutates the same forwardedProps object's session_id in place before sending, rather than replacing it", () => {
+  // This only proves usePlataChat itself doesn't replace forwardedPropsRef.current with a new
+  // object — it cannot and does not verify the actual external risk (that the real ChatClient
+  // reads forwardedProps fresh by reference on each send, rather than cloning it once at
+  // construction). useChat is fully mocked here, so that upstream contract stays unverified;
+  // see the "unwritten contract" comment on forwardedPropsRef in use-plata-chat.ts.
+  it("makes a session_id set mid-tick visible on the object useChat already holds, with no re-render", () => {
     const { result } = renderHook(() => usePlataChat());
-    const options = vi.mocked(useChat).mock.calls.at(-1)![0] as any;
-    const forwardedPropsRef = options.forwardedProps;
+    const lastCall = vi.mocked(useChat).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const [options] = lastCall!;
+    const forwardedProps = options.forwardedProps as { model_id: string; session_id?: string };
 
     void result.current.sendMessage("Categorize my Uber rides", "sess_new");
 
-    // Same object reference, mutated — this is what makes the update visible immediately,
-    // even if sendMessage is called in the same synchronous tick as minting the session id,
-    // with no React re-render in between.
-    expect(options.forwardedProps).toBe(forwardedPropsRef);
-    expect(forwardedPropsRef.session_id).toBe("sess_new");
-    expect(forwardedPropsRef.model_id).toBe("gpt-5.4-mini");
+    expect(forwardedProps.session_id).toBe("sess_new");
+    expect(forwardedProps.model_id).toBe("gpt-5.4-mini");
   });
 
   it("calls the underlying single-argument sendMessage with just the content", () => {
     const { result } = renderHook(() => usePlataChat());
-    const underlyingChat = vi.mocked(useChat).mock.results.at(-1)!.value;
+    const lastResult = vi.mocked(useChat).mock.results.at(-1)!.value;
 
     void result.current.sendMessage("Hi", "sess_1");
 
-    expect(underlyingChat.sendMessage).toHaveBeenCalledWith("Hi");
-    expect(underlyingChat.sendMessage).toHaveBeenCalledTimes(1);
+    expect(lastResult.sendMessage).toHaveBeenCalledWith("Hi");
+    expect(lastResult.sendMessage).toHaveBeenCalledTimes(1);
   });
 
   it("does not touch session_id when no sessionId is passed", () => {
     const { result } = renderHook(() => usePlataChat());
-    const options = vi.mocked(useChat).mock.calls.at(-1)![0] as any;
+    const lastCall = vi.mocked(useChat).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const [options] = lastCall!;
 
     void result.current.sendMessage("Hi");
 
-    expect(options.forwardedProps.session_id).toBeUndefined();
+    expect((options.forwardedProps as { session_id?: string }).session_id).toBeUndefined();
   });
 });
