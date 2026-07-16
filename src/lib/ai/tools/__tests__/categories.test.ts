@@ -1,4 +1,12 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
+
+// categories.ts imports the category service, which reaches the D1 client
+// (src/db/index.ts) — a static top-level `import { env } from "cloudflare:workers"`
+// that only resolves inside the Workers runtime. Every test that transitively
+// touches it mocks it, per this repo's convention (see src/lib/api/__tests__/http.test.ts).
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
 import {
   CategoryRow,
