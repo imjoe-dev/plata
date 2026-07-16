@@ -23,6 +23,14 @@ function ProtectedLayout() {
           <Sidebar.Brand />
           <Sidebar.NewChat />
           <Sidebar.History />
+          <Sidebar.Account.Root>
+            <Sidebar.Account.Avatar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Sidebar.Account.Name />
+              <Sidebar.Account.Email />
+            </div>
+            <Sidebar.Account.SignOut />
+          </Sidebar.Account.Root>
         </Sidebar.Root>
         <main className="min-w-0 flex-1">
           <Outlet />
