@@ -103,7 +103,7 @@ describe("pauseRecurringTemplateHandler", () => {
 });
 
 describe("allClientTools", () => {
-  it("contains 17 client tools", () => {
-    expect(allClientTools).toHaveLength(17);
+  it("contains 12 client tools (transactions execute server-side, no client tools registered)", () => {
+    expect(allClientTools).toHaveLength(12);
   });
 });

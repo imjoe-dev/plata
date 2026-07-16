@@ -1,12 +1,23 @@
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
 
+import { checkRateLimit } from "@/lib/api/http";
+import { toDollars } from "@/lib/currency";
 import {
   Transaction,
   TransactionListQuery,
   TransactionPatch,
   nullishAsAbsent,
 } from "@/lib/schemas/transactions";
+import {
+  createTransaction,
+  deleteTransaction,
+  getTransaction,
+  listTransactions,
+  updateTransaction,
+} from "@/lib/services/transactions";
+
+import type { ToolContext } from "./context";
 
 export const TransactionRow = z.object({
   id: z.string(),
@@ -120,4 +131,85 @@ export const transactionToolDefs = [
   getTransactionDef,
   updateTransactionDef,
   deleteTransactionDef,
+] as const;
+
+type DateFields = { date: Date; created_at: Date; updated_at: Date; deleted_at: Date | null };
+
+/**
+ * Rows from the service layer carry `Date` objects for date-like columns (Drizzle's
+ * `timestamp_ms` mode). REST responses stringified this for free via `JSON.stringify`;
+ * server tools skip that HTTP hop, so we stringify explicitly to match `TransactionRow`'s
+ * (and the client's previous) `string` fields.
+ */
+function serializeTransactionDates<T extends DateFields>(
+  row: T,
+): Omit<T, keyof DateFields> & {
+  date: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+} {
+  return {
+    ...row,
+    date: row.date.toISOString(),
+    created_at: row.created_at.toISOString(),
+    updated_at: row.updated_at.toISOString(),
+    deleted_at: row.deleted_at ? row.deleted_at.toISOString() : null,
+  };
+}
+
+export const transactionServerTools = [
+  listTransactionsDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    const page = input.page || 1;
+    const limit = input.limit || 20;
+    const filters = {
+      type: input.type || undefined,
+      categoryId: input.categoryId || undefined,
+      from: input.from ? new Date(input.from) : undefined,
+      to: input.to ? new Date(input.to) : undefined,
+    };
+    const { rows, total } = await listTransactions(userId, filters, { page, limit });
+    return {
+      transactions: rows.map((row) => toDollars(serializeTransactionDates(row))),
+      page,
+      limit,
+      total,
+      hasMore: page * limit < total,
+    };
+  }),
+
+  createTransactionDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    // Dynamic import so tools that never mutate never touch `cloudflare:workers`.
+    const { env } = await import("cloudflare:workers");
+    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+    const payload = Transaction.parse(input);
+    const row = await createTransaction(userId, payload);
+    return toDollars(serializeTransactionDates(row));
+  }),
+
+  getTransactionDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    const row = await getTransaction(userId, input.id);
+    return toDollars(serializeTransactionDates(row));
+  }),
+
+  updateTransactionDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    const { env } = await import("cloudflare:workers");
+    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+    const { id, ...rest } = input;
+    const patch = TransactionPatch.parse(rest);
+    const row = await updateTransaction(userId, id, patch);
+    return toDollars(serializeTransactionDates(row));
+  }),
+
+  deleteTransactionDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    const { env } = await import("cloudflare:workers");
+    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+    const row = await deleteTransaction(userId, input.id);
+    return toDollars(serializeTransactionDates(row));
+  }),
 ] as const;

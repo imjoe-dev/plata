@@ -21,8 +21,8 @@ import { useChat } from "@tanstack/ai-react";
 import { plataChatOptions, usePlataChat } from "@/hooks/use-plata-chat";
 
 describe("plataChatOptions", () => {
-  it("registers all 17 client tools", () => {
-    expect(plataChatOptions.tools).toHaveLength(17);
+  it("registers all 12 client tools (transactions execute server-side, no client tools registered)", () => {
+    expect(plataChatOptions.tools).toHaveLength(12);
   });
 
   it("forwards the model_id prop", () => {
