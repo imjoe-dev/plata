@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/functions";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { ChatProvider } from "@/contexts/chat-context";
+import { Sidebar } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/_protected")({
   component: ProtectedLayout,
@@ -17,7 +18,16 @@ export const Route = createFileRoute("/_protected")({
 function ProtectedLayout() {
   return (
     <ChatProvider>
-      <Outlet />
+      <div className="flex h-screen">
+        <Sidebar.Root>
+          <Sidebar.Brand />
+          <Sidebar.NewChat />
+          <Sidebar.History />
+        </Sidebar.Root>
+        <main className="min-w-0 flex-1">
+          <Outlet />
+        </main>
+      </div>
     </ChatProvider>
   );
 }
