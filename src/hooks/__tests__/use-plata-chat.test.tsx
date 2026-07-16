@@ -21,8 +21,8 @@ import { useChat } from "@tanstack/ai-react";
 import { plataChatOptions, usePlataChat } from "@/hooks/use-plata-chat";
 
 describe("plataChatOptions", () => {
-  it("registers zero client tools (categories, transactions, and recurring templates all execute server-side)", () => {
-    expect(plataChatOptions.tools).toHaveLength(0);
+  it("configures no client-side tool set (categories, transactions, and recurring templates all execute server-side)", () => {
+    expect(plataChatOptions.tools).toBeUndefined();
   });
 
   it("forwards the model_id prop", () => {

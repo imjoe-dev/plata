@@ -34,39 +34,3 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
 export function apiGet<T>(path: string, query?: Query): Promise<T> {
   return request<T>("GET", path, undefined, query);
 }
-
-export async function apiGetWithMeta<T>(
-  path: string,
-  query?: Query,
-): Promise<{ data: T; meta: unknown }> {
-  const url = path + buildQuery(query);
-  const init: RequestInit = {
-    method: "GET",
-    headers: { "content-type": "application/json" },
-  };
-  const res = await fetch(url, init);
-  const json = (await res.json()) as unknown;
-  if (!res.ok) {
-    const message =
-      typeof json === "object" && json !== null && "message" in json
-        ? String((json as { message: unknown }).message)
-        : `Request failed with status ${res.status}`;
-    throw new Error(message);
-  }
-  return {
-    data: (json as { data: T }).data,
-    meta: (json as { data: T; meta: unknown }).meta,
-  };
-}
-
-export function apiPost<T>(path: string, body: unknown): Promise<T> {
-  return request<T>("POST", path, body);
-}
-
-export function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  return request<T>("PATCH", path, body);
-}
-
-export function apiDelete<T>(path: string): Promise<T> {
-  return request<T>("DELETE", path);
-}

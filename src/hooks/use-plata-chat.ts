@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, startTransition } from "react";
 import { createChatClientOptions, fetchServerSentEvents, useChat } from "@tanstack/ai-react";
 import type { UIMessage } from "@tanstack/ai-react";
 
-import { allClientTools } from "@/lib/ai/tools/client";
-
 function useBufferedMessages(raw: UIMessage[]) {
   const [buffered, setBuffered] = useState(raw);
   const latestRef = useRef(raw);
@@ -28,7 +26,6 @@ function useBufferedMessages(raw: UIMessage[]) {
 export const plataChatOptions = createChatClientOptions({
   connection: fetchServerSentEvents("/api/chat"),
   forwardedProps: { model_id: "gpt-5.4-mini" },
-  tools: allClientTools,
 });
 
 export function usePlataChat() {
