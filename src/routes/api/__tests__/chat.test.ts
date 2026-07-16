@@ -109,6 +109,16 @@ describe("POST /api/chat", () => {
     expect((call.systemPrompts as string[])[0]).toContain("Identity & Mandate");
   });
 
+  it("passes the authenticated user's id as per-request tool context", async () => {
+    vi.mocked(requireUser).mockResolvedValueOnce("user-123");
+    vi.mocked(checkRateLimit).mockResolvedValueOnce(undefined);
+
+    await Route.server.handlers.POST({ request: makeRequest() });
+
+    const call = vi.mocked(chat).mock.calls[0][0] as any;
+    expect(call.context).toEqual({ userId: "user-123" });
+  });
+
   it("returns 429 and never calls chat() when the user's rate limit is exceeded", async () => {
     vi.mocked(requireUser).mockResolvedValueOnce("user-123");
     vi.mocked(checkRateLimit).mockRejectedValueOnce(new RateLimitedError());
