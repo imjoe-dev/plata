@@ -19,6 +19,28 @@ describe("Sidebar.NewChat", () => {
   });
 });
 
+describe("Sidebar.HistoryItem", () => {
+  it("renders as the supplied link, with aria-current set when active", () => {
+    const { getByRole } = render(
+      <Sidebar.HistoryItem.Root isActive render={<a href="#test" />}>
+        <Sidebar.HistoryItem.Title>Categorize my Uber rides</Sidebar.HistoryItem.Title>
+      </Sidebar.HistoryItem.Root>,
+    );
+
+    expect(getByRole("link", { current: "page" })).toBeDefined();
+  });
+
+  it("has no aria-current when not the active row", () => {
+    const { getByRole } = render(
+      <Sidebar.HistoryItem.Root isActive={false} render={<a href="#test" />}>
+        <Sidebar.HistoryItem.Title>Categorize my Uber rides</Sidebar.HistoryItem.Title>
+      </Sidebar.HistoryItem.Root>,
+    );
+
+    expect(getByRole("link").getAttribute("aria-current")).toBeNull();
+  });
+});
+
 describe("Sidebar.Account", () => {
   const user = { name: "Jose Ariza", email: "jose@example.com", image: null };
 

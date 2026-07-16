@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { LogOut, Plus } from "lucide-react";
+import { useRender } from "@base-ui/react/use-render";
+import { LogOut, MessageSquare, Plus } from "lucide-react";
 import { createContext, useContext } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,6 +54,51 @@ function History({ className, children, ...props }: React.ComponentProps<"div">)
       {children}
     </div>
   );
+}
+
+type HistoryItemRootProps = useRender.ComponentProps<"a"> & {
+  isActive: boolean;
+};
+
+// A real anchor gets role="link" and Enter-key activation from the browser for free — unlike
+// Base UI's Button (always role="button", even via render), useRender carries no button-specific
+// ARIA, so whatever real link element `render` supplies keeps its native link semantics.
+function HistoryItemRoot({
+  isActive,
+  className,
+  children,
+  render,
+  ...props
+}: HistoryItemRootProps) {
+  return useRender({
+    defaultTagName: "a",
+    render,
+    props: {
+      ...props,
+      // useRender merges left-to-right with the `render` element's own props winning for
+      // anything but className/style/handlers — a `render` element that sets its own
+      // `aria-current` would override this. Not a live issue (no consumer does that yet),
+      // but worth knowing since hosting a caller-supplied link is this component's whole job.
+      "aria-current": isActive ? "page" : undefined,
+      className: cn(
+        "text-fg-muted hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex cursor-pointer items-center gap-2 border-l-2 border-transparent py-1.5 pr-4 pl-[14px] text-sm transition-colors select-none focus-visible:outline-none",
+        isActive && "text-fg-strong bg-raised border-accent font-medium",
+        className,
+      ),
+      children: (
+        <>
+          <MessageSquare
+            className={cn("size-4 shrink-0", isActive ? "text-accent" : "text-fg-faint")}
+          />
+          {children}
+        </>
+      ),
+    },
+  });
+}
+
+function HistoryItemTitle({ className, ...props }: React.ComponentProps<"span">) {
+  return <span className={cn("min-w-0 flex-1 truncate", className)} {...props} />;
 }
 
 interface SidebarAccountUser {
@@ -162,6 +208,10 @@ export const Sidebar = {
   Brand,
   NewChat,
   History,
+  HistoryItem: {
+    Root: HistoryItemRoot,
+    Title: HistoryItemTitle,
+  },
   Account: {
     Root: AccountRoot,
     Avatar: AccountAvatar,
