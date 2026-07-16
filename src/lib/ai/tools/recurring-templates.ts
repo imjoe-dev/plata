@@ -1,11 +1,26 @@
-import { toolDefinition } from "@tanstack/ai";
+import { toolDefinition, type ToolExecutionContext } from "@tanstack/ai";
+import { env } from "cloudflare:workers";
 import { z } from "zod";
 
+import { checkRateLimit } from "@/lib/api/http";
+import { toDollars } from "@/lib/currency";
 import {
   RecurringTemplate,
   RecurringTemplateListQuery,
   RecurringTemplatePatch,
 } from "@/lib/schemas/recurring-templates";
+import {
+  activateTemplate,
+  createRecurringTemplate,
+  deleteRecurringTemplate,
+  getRecurringTemplate,
+  listRecurringTemplates,
+  pauseTemplate,
+  updateRecurringTemplate,
+} from "@/lib/services/recurring-templates";
+import type { recurring_templates } from "@/db/schema";
+
+import type { ToolContext } from "./context";
 
 export const RecurringTemplateRow = z.object({
   id: z.string(),
@@ -115,12 +130,100 @@ export const pauseRecurringTemplateDef = toolDefinition({
   needsApproval: true,
 });
 
-export const recurringTemplateToolDefs = [
-  listRecurringTemplatesDef,
-  createRecurringTemplateDef,
-  getRecurringTemplateDef,
-  updateRecurringTemplateDef,
-  deleteRecurringTemplateDef,
-  activateRecurringTemplateDef,
-  pauseRecurringTemplateDef,
+type RecurringTemplateDbRow = typeof recurring_templates.$inferSelect;
+
+/**
+ * The service layer returns the raw D1 row — date columns as `Date` objects (Drizzle's
+ * `timestamp_ms` mode) and `amount` in cents. The tool's output schema is JSON-friendly:
+ * ISO date strings and dollars. Serialize dates first, then convert cents to dollars via
+ * `toDollars` (shared with the REST-era client handlers this replaces).
+ */
+function serializeTemplateRow(row: RecurringTemplateDbRow): RecurringTemplateRow {
+  return toDollars({
+    ...row,
+    next_due_date: row.next_due_date?.toISOString() ?? null,
+    last_insertion_date: row.last_insertion_date?.toISOString() ?? null,
+    start_date: row.start_date?.toISOString() ?? null,
+    end_date: row.end_date?.toISOString() ?? null,
+    created_at: row.created_at.toISOString(),
+    updated_at: row.updated_at.toISOString(),
+    deleted_at: row.deleted_at?.toISOString() ?? null,
+  });
+}
+
+export async function listRecurringTemplatesServerHandler(
+  input: z.input<typeof ListRecurringTemplatesInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow[]> {
+  const rows = await listRecurringTemplates(ctx.context.userId, { status: input.status });
+  return rows.map(serializeTemplateRow);
+}
+
+export async function createRecurringTemplateServerHandler(
+  input: z.input<typeof CreateRecurringTemplateInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  // Re-parse through the storage schema: the tool input keeps dollars/ISO-string dates for the
+  // LLM's benefit, but the service expects cents and Date objects (mirrors what the now-removed
+  // REST route did via `parseBody(RecurringTemplate, request)`).
+  const payload = RecurringTemplate.parse(input);
+  const row = await createRecurringTemplate(ctx.context.userId, payload);
+  return serializeTemplateRow(row);
+}
+
+export async function getRecurringTemplateServerHandler(
+  input: z.input<typeof IdInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  const row = await getRecurringTemplate(ctx.context.userId, input.id);
+  return serializeTemplateRow(row);
+}
+
+export async function updateRecurringTemplateServerHandler(
+  input: z.input<typeof UpdateRecurringTemplateInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const { id, ...rest } = input;
+  const patch = RecurringTemplatePatch.parse(rest);
+  const row = await updateRecurringTemplate(ctx.context.userId, id, patch);
+  return serializeTemplateRow(row);
+}
+
+export async function deleteRecurringTemplateServerHandler(
+  input: z.input<typeof IdInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const row = await deleteRecurringTemplate(ctx.context.userId, input.id);
+  return serializeTemplateRow(row);
+}
+
+export async function activateRecurringTemplateServerHandler(
+  input: z.input<typeof IdInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const row = await activateTemplate(ctx.context.userId, input.id);
+  return serializeTemplateRow(row);
+}
+
+export async function pauseRecurringTemplateServerHandler(
+  input: z.input<typeof IdInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const row = await pauseTemplate(ctx.context.userId, input.id);
+  return serializeTemplateRow(row);
+}
+
+export const recurringTemplateServerTools = [
+  listRecurringTemplatesDef.server<ToolContext>(listRecurringTemplatesServerHandler),
+  createRecurringTemplateDef.server<ToolContext>(createRecurringTemplateServerHandler),
+  getRecurringTemplateDef.server<ToolContext>(getRecurringTemplateServerHandler),
+  updateRecurringTemplateDef.server<ToolContext>(updateRecurringTemplateServerHandler),
+  deleteRecurringTemplateDef.server<ToolContext>(deleteRecurringTemplateServerHandler),
+  activateRecurringTemplateDef.server<ToolContext>(activateRecurringTemplateServerHandler),
+  pauseRecurringTemplateDef.server<ToolContext>(pauseRecurringTemplateServerHandler),
 ] as const;

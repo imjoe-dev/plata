@@ -18,7 +18,7 @@ vi.mock("@tanstack/ai", () => ({
   toolDefinition: vi.fn((def: any) => ({
     ...def,
     server: (execute: any) => ({ ...def, execute }),
-    client: (execute: any) => ({ ...def, execute }),
+    client: (execute?: any) => ({ ...def, execute }),
   })),
   convertMessagesToModelMessages: vi.fn((messages: any) => messages),
   modelMessageToUIMessage: vi.fn((message: any) => ({

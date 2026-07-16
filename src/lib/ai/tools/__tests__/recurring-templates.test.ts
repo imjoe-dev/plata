@@ -1,4 +1,10 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
+
+// Importing this module now pulls in the `.server()` handlers alongside the tool defs, which
+// transitively reach `cloudflare:workers` via the service/repository/db chain. Nothing here
+// reads an env property at module load time, so an empty stub is enough to make the module
+// loadable — this file only asserts against the raw tool-def schemas below.
+vi.mock("cloudflare:workers", () => ({ env: {} }));
 
 import {
   RecurringTemplateRow,

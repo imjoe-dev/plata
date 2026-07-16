@@ -125,14 +125,6 @@ export const deleteTransactionDef = toolDefinition({
   needsApproval: true,
 });
 
-export const transactionToolDefs = [
-  listTransactionsDef,
-  createTransactionDef,
-  getTransactionDef,
-  updateTransactionDef,
-  deleteTransactionDef,
-] as const;
-
 type DateFields = { date: Date; created_at: Date; updated_at: Date; deleted_at: Date | null };
 
 /**
