@@ -38,10 +38,8 @@ export const ListTransactionsInput = z.object({
   to: nullishAsAbsent(z.string().optional()).meta({
     description: "ISO date string, inclusive upper bound.",
   }),
-  type: TransactionListQuery.shape.type?.meta({ description: "Filter by expense or income." }),
-  categoryId: TransactionListQuery.shape.categoryId?.meta({
-    description: "Filter by category id.",
-  }),
+  type: TransactionListQuery.shape.type,
+  categoryId: TransactionListQuery.shape.categoryId,
   page: nullishAsAbsent(z.number().int().positive().optional()).meta({
     description: "Page number to retrieve, 1-based. Defaults to 1.",
   }),
@@ -58,26 +56,20 @@ export const ListTransactionsOutput = z.object({
   hasMore: z.boolean(),
 });
 
-export const CreateTransactionInput = Transaction.omit({ amount: true, source: true }).extend({
+export const CreateTransactionInput = z.object({
+  ...Transaction.shape,
   amount: AmountInput,
   source: z
     .enum(["manual", "chat", "csv_import"])
     .default("chat")
     .meta({ description: "Origin of the transaction. Defaults to 'chat' for AI-created rows." }),
-  currency: Transaction.shape.currency.meta({ description: "ISO 4217 currency code, e.g. USD." }),
-  type: Transaction.shape.type.meta({ description: "Transaction type: expense or income." }),
-  description: Transaction.shape.description.meta({ description: "Human-readable description." }),
   date: z.string().meta({ description: "ISO date string." }),
-  categoryId: Transaction.shape.categoryId?.meta({ description: "Optional category id." }),
-  recurringTemplateId: Transaction.shape.recurringTemplateId?.meta({
-    description: "Optional recurring template id.",
-  }),
-  notes: Transaction.shape.notes?.meta({ description: "Optional free-form notes." }),
 });
 
 export const IdInput = z.object({ id: z.string().meta({ description: "Transaction id." }) });
 
-export const UpdateTransactionInput = TransactionPatch.omit({ amount: true, date: true }).extend({
+export const UpdateTransactionInput = z.object({
+  ...TransactionPatch.shape,
   id: z.string().meta({ description: "Transaction id." }),
   amount: AmountInput.optional(),
   date: z.string().optional().meta({ description: "ISO date string." }),

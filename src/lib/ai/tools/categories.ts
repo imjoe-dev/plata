@@ -18,23 +18,15 @@ export type CategoryRow = z.infer<typeof CategoryRow>;
 
 export const ListCategoriesInput = z.object({});
 
-export const CreateCategoryInput = Category.extend({
-  name: Category.shape.name.meta({ description: "Category name." }),
-  type: Category.shape.type.meta({ description: "Category type: expense, income, or both." }),
-  color: Category.shape.color.meta({ description: "Optional color, e.g. a hex code." }),
-  icon: Category.shape.icon.meta({ description: "Optional icon name." }),
-});
+export const CreateCategoryInput = Category;
 
 export const IdInput = z.object({
   id: z.string().meta({ description: "Category id." }),
 });
 
-export const UpdateCategoryInput = CategoryPatch.extend({
+export const UpdateCategoryInput = z.object({
+  ...CategoryPatch.shape,
   id: z.string().meta({ description: "Category id." }),
-  name: CategoryPatch.shape.name?.meta({ description: "New category name." }),
-  type: CategoryPatch.shape.type?.meta({ description: "New category type." }),
-  color: CategoryPatch.shape.color?.meta({ description: "New color." }),
-  icon: CategoryPatch.shape.icon?.meta({ description: "New icon." }),
 });
 
 export const listCategoriesDef = toolDefinition({

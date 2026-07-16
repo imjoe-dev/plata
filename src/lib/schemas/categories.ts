@@ -1,10 +1,12 @@
 import { z } from "zod";
 
 export const Category = z.object({
-  name: z.string().min(1),
-  type: z.enum(["expense", "income", "both"]),
-  color: z.string().nullable().optional(),
-  icon: z.string().nullable().optional(),
+  name: z.string().min(1).meta({ description: "Category name." }),
+  type: z
+    .enum(["expense", "income", "both"])
+    .meta({ description: "Category type: expense, income, or both." }),
+  color: z.string().nullable().optional().meta({ description: "Optional color, e.g. a hex code." }),
+  icon: z.string().nullable().optional().meta({ description: "Optional icon name." }),
 });
 
 export type Category = z.infer<typeof Category>;

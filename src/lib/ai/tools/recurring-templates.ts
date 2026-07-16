@@ -35,38 +35,23 @@ const AmountInput = z
   .meta({ description: "Amount in major currency units, e.g. 12.50 for $12.50." });
 
 export const ListRecurringTemplatesInput = z.object({
-  status: RecurringTemplateListQuery.shape.status?.meta({
-    description: "Filter by status: active, paused, completed, or failed.",
-  }),
+  status: RecurringTemplateListQuery.shape.status,
 });
 
-export const CreateRecurringTemplateInput = RecurringTemplate.omit({ amount: true }).extend({
+export const CreateRecurringTemplateInput = z.object({
+  ...RecurringTemplate.shape,
   amount: AmountInput,
-  currency: RecurringTemplate.shape.currency.meta({ description: "ISO 4217 currency code." }),
-  type: RecurringTemplate.shape.type.meta({ description: "expense or income." }),
-  description: RecurringTemplate.shape.description.meta({
-    description: "Human-readable description.",
-  }),
-  categoryId: RecurringTemplate.shape.categoryId?.meta({ description: "Optional category id." }),
-  cadence: RecurringTemplate.shape.cadence.meta({
-    description: "How often the template recurs.",
-  }),
   nextDueDate: z.string().nullable().optional().meta({
     description: "Optional ISO date for the next due date.",
   }),
-  status: RecurringTemplate.shape.status.meta({ description: "Template status." }),
   startDate: z.string().nullable().optional().meta({ description: "Optional ISO start date." }),
   endDate: z.string().nullable().optional().meta({ description: "Optional ISO end date." }),
 });
 
 export const IdInput = z.object({ id: z.string().meta({ description: "Recurring template id." }) });
 
-export const UpdateRecurringTemplateInput = RecurringTemplatePatch.omit({
-  amount: true,
-  nextDueDate: true,
-  startDate: true,
-  endDate: true,
-}).extend({
+export const UpdateRecurringTemplateInput = z.object({
+  ...RecurringTemplatePatch.shape,
   id: z.string().meta({ description: "Recurring template id." }),
   amount: AmountInput.optional(),
   nextDueDate: z.string().nullable().optional().meta({

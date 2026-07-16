@@ -4,21 +4,34 @@ import { dollarsToCentsSchema } from "@/lib/currency";
 
 export const Transaction = z.object({
   amount: dollarsToCentsSchema,
-  currency: z.string().length(3).default("USD"),
-  type: z.enum(["expense", "income"]),
-  description: z.string().min(1),
+  currency: z
+    .string()
+    .length(3)
+    .default("USD")
+    .meta({ description: "ISO 4217 currency code, e.g. USD." }),
+  type: z.enum(["expense", "income"]).meta({ description: "Transaction type: expense or income." }),
+  description: z.string().min(1).meta({ description: "Human-readable description." }),
   date: z.coerce.date(),
-  categoryId: z.string().nullable().optional(),
-  recurringTemplateId: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional().meta({ description: "Optional category id." }),
+  recurringTemplateId: z
+    .string()
+    .nullable()
+    .optional()
+    .meta({ description: "Optional recurring template id." }),
   source: z.enum(["manual", "chat", "csv_import"]),
-  notes: z.string().nullable().optional(),
+  notes: z.string().nullable().optional().meta({ description: "Optional free-form notes." }),
 });
 
 export type Transaction = z.infer<typeof Transaction>;
 
-export const TransactionPatch = Transaction.omit({ currency: true })
-  .partial()
-  .extend({ currency: z.string().length(3).optional() });
+export const TransactionPatch = z.object({
+  ...Transaction.partial().shape,
+  currency: z
+    .string()
+    .length(3)
+    .optional()
+    .meta({ description: "ISO 4217 currency code, e.g. USD." }),
+});
 
 export type TransactionPatch = z.infer<typeof TransactionPatch>;
 
@@ -40,8 +53,12 @@ export function nullishAsAbsent<S extends z.ZodTypeAny>(
 export const TransactionListQuery = z.object({
   from: nullishAsAbsent(z.coerce.date().optional()),
   to: nullishAsAbsent(z.coerce.date().optional()),
-  type: nullishAsAbsent(z.enum(["expense", "income"]).optional()),
-  categoryId: nullishAsAbsent(z.string().optional()),
+  type: nullishAsAbsent(z.enum(["expense", "income"]).optional()).meta({
+    description: "Filter by expense or income.",
+  }),
+  categoryId: nullishAsAbsent(z.string().optional()).meta({
+    description: "Filter by category id.",
+  }),
   // Genuinely optional: defaults (page=1, limit=20) are applied by the route handler, not here.
   page: nullishAsAbsent(z.coerce.number().int().positive().optional()),
   limit: nullishAsAbsent(z.coerce.number().int().min(1).max(100).optional()),
