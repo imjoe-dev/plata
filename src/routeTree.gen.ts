@@ -15,9 +15,7 @@ import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiTransactionsIndexRouteImport } from './routes/api/transactions/index'
 import { Route as ApiRecurringTemplatesIndexRouteImport } from './routes/api/recurring-templates/index'
-import { Route as ApiCategoriesIndexRouteImport } from './routes/api/categories/index'
 import { Route as ApiTransactionsIdRouteImport } from './routes/api/transactions/$id'
-import { Route as ApiCategoriesIdRouteImport } from './routes/api/categories/$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProtectedChatSessionIdRouteImport } from './routes/_protected/chat.$sessionId'
 import { Route as ApiRecurringTemplatesIdIndexRouteImport } from './routes/api/recurring-templates/$id/index'
@@ -55,19 +53,9 @@ const ApiRecurringTemplatesIndexRoute =
     path: '/api/recurring-templates/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiCategoriesIndexRoute = ApiCategoriesIndexRouteImport.update({
-  id: '/api/categories/',
-  path: '/api/categories/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiTransactionsIdRoute = ApiTransactionsIdRouteImport.update({
   id: '/api/transactions/$id',
   path: '/api/transactions/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCategoriesIdRoute = ApiCategoriesIdRouteImport.update({
-  id: '/api/categories/$id',
-  path: '/api/categories/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -111,9 +99,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRouteWithChildren
   '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
-  '/api/categories/': typeof ApiCategoriesIndexRoute
   '/api/recurring-templates/': typeof ApiRecurringTemplatesIndexRoute
   '/api/transactions/': typeof ApiTransactionsIndexRoute
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
@@ -127,9 +113,7 @@ export interface FileRoutesByTo {
   '/': typeof ProtectedIndexRoute
   '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
-  '/api/categories': typeof ApiCategoriesIndexRoute
   '/api/recurring-templates': typeof ApiRecurringTemplatesIndexRoute
   '/api/transactions': typeof ApiTransactionsIndexRoute
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
@@ -145,9 +129,7 @@ export interface FileRoutesById {
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/categories/$id': typeof ApiCategoriesIdRoute
   '/api/transactions/$id': typeof ApiTransactionsIdRoute
-  '/api/categories/': typeof ApiCategoriesIndexRoute
   '/api/recurring-templates/': typeof ApiRecurringTemplatesIndexRoute
   '/api/transactions/': typeof ApiTransactionsIndexRoute
   '/api/recurring-templates/$id/activate': typeof ApiRecurringTemplatesIdActivateRoute
@@ -163,9 +145,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/chat/$sessionId'
     | '/api/auth/$'
-    | '/api/categories/$id'
     | '/api/transactions/$id'
-    | '/api/categories/'
     | '/api/recurring-templates/'
     | '/api/transactions/'
     | '/api/recurring-templates/$id/activate'
@@ -179,9 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/chat/$sessionId'
     | '/api/auth/$'
-    | '/api/categories/$id'
     | '/api/transactions/$id'
-    | '/api/categories'
     | '/api/recurring-templates'
     | '/api/transactions'
     | '/api/recurring-templates/$id/activate'
@@ -196,9 +174,7 @@ export interface FileRouteTypes {
     | '/_protected/'
     | '/_protected/chat/$sessionId'
     | '/api/auth/$'
-    | '/api/categories/$id'
     | '/api/transactions/$id'
-    | '/api/categories/'
     | '/api/recurring-templates/'
     | '/api/transactions/'
     | '/api/recurring-templates/$id/activate'
@@ -212,9 +188,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ApiChatRoute: typeof ApiChatRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiCategoriesIdRoute: typeof ApiCategoriesIdRoute
   ApiTransactionsIdRoute: typeof ApiTransactionsIdRoute
-  ApiCategoriesIndexRoute: typeof ApiCategoriesIndexRoute
   ApiRecurringTemplatesIndexRoute: typeof ApiRecurringTemplatesIndexRoute
   ApiTransactionsIndexRoute: typeof ApiTransactionsIndexRoute
   ApiRecurringTemplatesIdActivateRoute: typeof ApiRecurringTemplatesIdActivateRoute
@@ -266,25 +240,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRecurringTemplatesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/categories/': {
-      id: '/api/categories/'
-      path: '/api/categories'
-      fullPath: '/api/categories/'
-      preLoaderRoute: typeof ApiCategoriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/transactions/$id': {
       id: '/api/transactions/$id'
       path: '/api/transactions/$id'
       fullPath: '/api/transactions/$id'
       preLoaderRoute: typeof ApiTransactionsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/categories/$id': {
-      id: '/api/categories/$id'
-      path: '/api/categories/$id'
-      fullPath: '/api/categories/$id'
-      preLoaderRoute: typeof ApiCategoriesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -362,9 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiChatRoute: ApiChatRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiCategoriesIdRoute: ApiCategoriesIdRoute,
   ApiTransactionsIdRoute: ApiTransactionsIdRoute,
-  ApiCategoriesIndexRoute: ApiCategoriesIndexRoute,
   ApiRecurringTemplatesIndexRoute: ApiRecurringTemplatesIndexRoute,
   ApiTransactionsIndexRoute: ApiTransactionsIndexRoute,
   ApiRecurringTemplatesIdActivateRoute: ApiRecurringTemplatesIdActivateRoute,

@@ -15,7 +15,11 @@ vi.mock("@tanstack/ai", () => ({
   toServerSentEventsResponse: vi.fn(
     () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
   ),
-  toolDefinition: vi.fn((def: any) => def),
+  toolDefinition: vi.fn((def: any) => ({
+    ...def,
+    server: (execute: any) => ({ ...def, execute }),
+    client: (execute: any) => ({ ...def, execute }),
+  })),
   convertMessagesToModelMessages: vi.fn((messages: any) => messages),
   modelMessageToUIMessage: vi.fn((message: any) => ({
     id: "um_1",

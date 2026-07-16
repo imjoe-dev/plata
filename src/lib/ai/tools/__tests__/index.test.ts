@@ -1,4 +1,11 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
+
+// index.ts pulls in the category service (and, transitively, the D1 client at
+// src/db/index.ts), which statically imports `cloudflare:workers` — only
+// resolvable inside the Workers runtime. Mock it per this repo's convention.
+vi.mock("cloudflare:workers", () => ({
+  env: { MUTATION_RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: true }) } },
+}));
 
 import { allToolDefinitions } from "@/lib/ai/tools/index";
 
