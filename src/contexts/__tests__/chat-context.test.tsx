@@ -23,6 +23,7 @@ vi.mock("@/lib/ai/fetch", () => ({
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { usePlataChat } from "@/hooks/use-plata-chat";
+import { mockPlataChat } from "@/hooks/__tests__/mock-plata-chat";
 import { toastManager } from "@/components/ui/toast-manager";
 import { ChatProvider, useChatContext } from "@/contexts/chat-context";
 
@@ -37,24 +38,7 @@ function Consumer() {
 type MockParams = { sessionId?: string };
 
 function mockChat(overrides: Partial<ReturnType<typeof usePlataChat>> = {}) {
-  vi.mocked(usePlataChat).mockReturnValue({
-    messages: [],
-    sendMessage: vi.fn(),
-    append: vi.fn(),
-    addToolResult: vi.fn(),
-    addToolApprovalResponse: vi.fn(),
-    reload: vi.fn(),
-    stop: vi.fn(),
-    isLoading: false,
-    error: undefined,
-    status: "ready",
-    isSubscribed: false,
-    connectionStatus: "disconnected",
-    sessionGenerating: false,
-    setMessages: vi.fn(),
-    clear: vi.fn(),
-    ...overrides,
-  });
+  vi.mocked(usePlataChat).mockReturnValue(mockPlataChat(overrides));
 }
 
 // useQuery's real return type is a large discriminated union; narrowed to what ChatProvider reads.

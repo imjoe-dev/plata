@@ -1,10 +1,7 @@
 import { cn } from "@/lib/utils";
-import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Plus } from "lucide-react";
 import { createContext, useContext } from "react";
 
-import { useChatContext } from "@/contexts/chat-context";
-import { authClient } from "@/lib/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -29,15 +26,11 @@ function Brand({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function NewChat({ className, ...props }: React.ComponentProps<"button">) {
-  const { resetChat } = useChatContext();
-  const navigate = useNavigate();
+type NewChatProps = React.ComponentProps<"button"> & {
+  onNewChat: () => void;
+};
 
-  function handleClick() {
-    resetChat();
-    void navigate({ to: "/" });
-  }
-
+function NewChat({ onNewChat, className, ...props }: NewChatProps) {
   return (
     <button
       type="button"
@@ -46,7 +39,7 @@ function NewChat({ className, ...props }: React.ComponentProps<"button">) {
         className,
       )}
       {...props}
-      onClick={handleClick}
+      onClick={onNewChat}
     >
       <Plus className="text-fg-faint size-4 shrink-0" />
       New Chat
@@ -62,10 +55,14 @@ function History({ className, children, ...props }: React.ComponentProps<"div">)
   );
 }
 
-type Session = NonNullable<ReturnType<typeof authClient.useSession>["data"]>;
+interface SidebarAccountUser {
+  name: string;
+  email: string;
+  image?: string | null;
+}
 
 interface AccountContextValue {
-  user: Session["user"];
+  user: SidebarAccountUser;
   signOut: () => void;
 }
 
@@ -87,24 +84,14 @@ function getInitials(name: string): string {
   return initials || "?";
 }
 
-function AccountRoot({ className, children, ...props }: React.ComponentProps<"div">) {
-  const { data } = authClient.useSession();
-  const navigate = useNavigate();
+type AccountRootProps = React.ComponentProps<"div"> & {
+  user: SidebarAccountUser;
+  onSignOut: () => void;
+};
 
-  function signOut() {
-    void authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          void navigate({ to: "/login" });
-        },
-      },
-    });
-  }
-
-  if (!data) return null;
-
+function AccountRoot({ user, onSignOut, className, children, ...props }: AccountRootProps) {
   return (
-    <AccountContext.Provider value={{ user: data.user, signOut }}>
+    <AccountContext.Provider value={{ user, signOut: onSignOut }}>
       <div
         className={cn(
           "border-hairline mt-auto flex items-center gap-2.5 border-t px-4 py-2.5",
