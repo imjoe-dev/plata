@@ -49,6 +49,13 @@ src/
 - Toast notifications surface auth and other errors globally
 - All UI components follow a rigorous, dark-themed, zero-radius design system (see `components.md`)
 
+## Coding Conventions
+
+- **React Compiler is active project-wide** (`vite.config.ts`, `babel-plugin-react-compiler`). Don't add manual `useMemo`, `useCallback`, or `React.memo` — the compiler memoizes automatically.
+- **Use the `React.*` global namespace for types** (`React.ReactNode`, `React.ComponentProps<...>`, etc.) instead of importing them from `"react"`. This works in type position with no import and no `tsconfig` change — only _value_ access to an unimported `React` (e.g. calling `React.useState` without importing) requires `allowUmdGlobalAccess`, which this project doesn't set and doesn't need for this pattern.
+- **Component props pattern**: type a component's props as `React.ComponentProps<Element | Primitive> & CustomProps` (e.g. `Collapsible.Root.Props & { displayState: ... }`, or `React.ComponentProps<"div"> & { approveLabel?: string }`). Destructure the custom props plus `className` out, and spread the rest onto the underlying element/primitive. See `src/components/ui/tool-call.tsx` for a worked example across several sub-components.
+- **Prefer `function name() {}` declarations over arrow functions** for anything bound to a name and called by that name (components, hooks, module-level helpers, local helpers inside a component/hook body). Arrow functions stay for actual callbacks — passed inline as an argument (`.map((x) => ...)`, `onClick={() => ...}`, `useEffect(() => {...}, [deps])`) — and for object-literal property values (route handler configs, mock factories, context defaults), which aren't declarations and are a separate style call.
+
 ## Agent skills
 
 ### Issue tracker

@@ -8,7 +8,7 @@ import { toastManager } from "./toast-manager";
 function ToastDemo({ variant }: Variant) {
   const count = useRef(0);
 
-  const addToast = () => {
+  function addToast() {
     count.current += 1;
     toastManager.add({
       title: `Toast #${count.current}`,
@@ -20,7 +20,7 @@ function ToastDemo({ variant }: Variant) {
         },
       },
     });
-  };
+  }
 
   return (
     <div>

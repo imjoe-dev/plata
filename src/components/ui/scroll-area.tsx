@@ -28,7 +28,7 @@ function Thumb({ className, ...props }: Base.Thumb.Props) {
       className={cn(
         "relative flex-1 rounded-none",
         "bg-fg-muted opacity-0 transition-opacity duration-300",
-        "group-data-[hovering]:opacity-100 group-data-[scrolling]:opacity-100",
+        "group-data-hovering:opacity-100 group-data-scrolling:opacity-100",
         "data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-1",
         className,
       )}

@@ -9,12 +9,18 @@ type CategoryInsert = typeof categories.$inferInsert;
 
 const categoryRepo = createSoftDeleteRepo(categories);
 
-export const createCategory = (input: CategoryInsert) => categoryRepo.create(input);
-export const getCategoryById = (userId: string, id: string) => categoryRepo.getById(userId, id);
-export const updateCategory = (userId: string, id: string, patch: Partial<CategoryInsert>) =>
-  categoryRepo.update(userId, id, patch);
-export const softDeleteCategory = (userId: string, id: string) =>
-  categoryRepo.softDelete(userId, id);
+export function createCategory(input: CategoryInsert) {
+  return categoryRepo.create(input);
+}
+export function getCategoryById(userId: string, id: string) {
+  return categoryRepo.getById(userId, id);
+}
+export function updateCategory(userId: string, id: string, patch: Partial<CategoryInsert>) {
+  return categoryRepo.update(userId, id, patch);
+}
+export function softDeleteCategory(userId: string, id: string) {
+  return categoryRepo.softDelete(userId, id);
+}
 
 export async function listCategories(userId: string): Promise<CategoryRow[]> {
   return getDB()

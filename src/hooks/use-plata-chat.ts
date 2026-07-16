@@ -46,10 +46,10 @@ export function usePlataChat() {
 
   const messages = useBufferedMessages(chat.messages);
 
-  const sendMessage = (content: string, sessionId?: string) => {
+  function sendMessage(content: string, sessionId?: string) {
     if (sessionId) forwardedPropsRef.current.session_id = sessionId;
     return chat.sendMessage(content);
-  };
+  }
 
   return { ...chat, messages, sendMessage };
 }

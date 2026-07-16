@@ -17,13 +17,18 @@ export type ListFilters = {
 
 const transactionRepo = createSoftDeleteRepo(transactions);
 
-export const createTransaction = (input: TransactionInsert) => transactionRepo.create(input);
-export const getTransactionById = (userId: string, id: string) =>
-  transactionRepo.getById(userId, id);
-export const updateTransaction = (userId: string, id: string, patch: Partial<TransactionInsert>) =>
-  transactionRepo.update(userId, id, patch);
-export const softDeleteTransaction = (userId: string, id: string) =>
-  transactionRepo.softDelete(userId, id);
+export function createTransaction(input: TransactionInsert) {
+  return transactionRepo.create(input);
+}
+export function getTransactionById(userId: string, id: string) {
+  return transactionRepo.getById(userId, id);
+}
+export function updateTransaction(userId: string, id: string, patch: Partial<TransactionInsert>) {
+  return transactionRepo.update(userId, id, patch);
+}
+export function softDeleteTransaction(userId: string, id: string) {
+  return transactionRepo.softDelete(userId, id);
+}
 
 export async function listTransactions(
   userId: string,

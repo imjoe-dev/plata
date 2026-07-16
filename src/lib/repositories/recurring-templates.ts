@@ -11,17 +11,22 @@ type Status = "active" | "paused" | "completed" | "failed";
 
 const recurringTemplateRepo = createSoftDeleteRepo(recurring_templates);
 
-export const createRecurringTemplate = (input: TemplateInsert) =>
-  recurringTemplateRepo.create(input);
-export const getRecurringTemplateById = (userId: string, id: string) =>
-  recurringTemplateRepo.getById(userId, id);
-export const updateRecurringTemplate = (
+export function createRecurringTemplate(input: TemplateInsert) {
+  return recurringTemplateRepo.create(input);
+}
+export function getRecurringTemplateById(userId: string, id: string) {
+  return recurringTemplateRepo.getById(userId, id);
+}
+export function updateRecurringTemplate(
   userId: string,
   id: string,
   patch: Partial<TemplateInsert>,
-) => recurringTemplateRepo.update(userId, id, patch);
-export const softDeleteRecurringTemplate = (userId: string, id: string) =>
-  recurringTemplateRepo.softDelete(userId, id);
+) {
+  return recurringTemplateRepo.update(userId, id, patch);
+}
+export function softDeleteRecurringTemplate(userId: string, id: string) {
+  return recurringTemplateRepo.softDelete(userId, id);
+}
 
 export async function listRecurringTemplates(
   userId: string,

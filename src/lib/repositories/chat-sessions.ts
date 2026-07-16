@@ -5,6 +5,9 @@ type ChatSessionInsert = typeof chat_sessions.$inferInsert;
 
 const chatSessionRepo = createSoftDeleteRepo(chat_sessions);
 
-export const createChatSession = (input: ChatSessionInsert) => chatSessionRepo.create(input);
-export const getChatSessionById = (userId: string, id: string) =>
-  chatSessionRepo.getById(userId, id);
+export function createChatSession(input: ChatSessionInsert) {
+  return chatSessionRepo.create(input);
+}
+export function getChatSessionById(userId: string, id: string) {
+  return chatSessionRepo.getById(userId, id);
+}

@@ -137,11 +137,12 @@ function Toolbar({ className }: { className?: string }) {
   const { editor } = usePromptInputContext();
   if (!editor) return null;
 
-  const btn = (isActive: boolean) =>
-    cn(
+  function btn(isActive: boolean) {
+    return cn(
       "duration-fast text-fg-muted hover:text-fg hover:bg-sunken inline-flex size-7 items-center justify-center text-xs transition-colors ease-out",
       isActive && "text-accent bg-sunken",
     );
+  }
 
   const icon = "size-3.5";
 
@@ -269,7 +270,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "border-hairline bg-sunken min-h-[120px] w-full animate-pulse border px-3 py-2",
+        "border-hairline bg-sunken min-h-30 w-full animate-pulse border px-3 py-2",
         className,
       )}
       {...props}

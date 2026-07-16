@@ -55,19 +55,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, messagesQuery.isError]);
 
-  const startNewChat = (text: string, newSessionId: string) => {
+  function startNewChat(text: string, newSessionId: string) {
     loadedSessionIdRef.current = newSessionId;
     void chat.sendMessage(text, newSessionId);
-  };
+  }
 
-  const sendMessage = (text: string, currentSessionId: string) => {
+  function sendMessage(text: string, currentSessionId: string) {
     void chat.sendMessage(text, currentSessionId);
-  };
+  }
 
-  const resetChat = () => {
+  function resetChat() {
     chat.setMessages([]);
     loadedSessionIdRef.current = undefined;
-  };
+  }
 
   const value: ChatContextValue = {
     messages: chat.messages,
