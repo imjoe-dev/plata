@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 
-// index.ts pulls in the category service (and, transitively, the D1 client at
+// index.ts pulls in the category/transaction services (and, transitively, the D1 client at
 // src/db/index.ts), which statically imports `cloudflare:workers` — only
 // resolvable inside the Workers runtime. Mock it per this repo's convention.
 vi.mock("cloudflare:workers", () => ({
