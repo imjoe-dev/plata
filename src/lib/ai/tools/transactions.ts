@@ -1,4 +1,5 @@
 import { toolDefinition } from "@tanstack/ai";
+import { env } from "cloudflare:workers";
 import { z } from "zod";
 
 import { checkRateLimit } from "@/lib/api/http";
@@ -173,8 +174,6 @@ export const transactionServerTools = [
 
   createTransactionDef.server<ToolContext>(async (input, ctx) => {
     const { userId } = ctx.context;
-    // Dynamic import so tools that never mutate never touch `cloudflare:workers`.
-    const { env } = await import("cloudflare:workers");
     await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
     const payload = Transaction.parse(input);
     const row = await createTransaction(userId, payload);
@@ -189,7 +188,6 @@ export const transactionServerTools = [
 
   updateTransactionDef.server<ToolContext>(async (input, ctx) => {
     const { userId } = ctx.context;
-    const { env } = await import("cloudflare:workers");
     await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
     const { id, ...rest } = input;
     const patch = TransactionPatch.parse(rest);
@@ -199,7 +197,6 @@ export const transactionServerTools = [
 
   deleteTransactionDef.server<ToolContext>(async (input, ctx) => {
     const { userId } = ctx.context;
-    const { env } = await import("cloudflare:workers");
     await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
     const row = await deleteTransaction(userId, input.id);
     return toDollars(serializeTransactionDates(row));
