@@ -3,7 +3,6 @@ import {
   chatParamsFromRequestBody,
   convertMessagesToModelMessages,
   modelMessageToUIMessage,
-  modelMessagesToUIMessages,
   toServerSentEventsResponse,
   type ChatMiddleware,
 } from "@tanstack/ai";
@@ -51,9 +50,11 @@ export const Route = createFileRoute("/api/chat")({
 
           const persistAssistantMessage: ChatMiddleware = {
             name: "persist-assistant-message",
-            onFinish: async (ctx) => {
-              const newTurn = ctx.messages.slice(ctx.messageCount);
-              const [assistantMessage] = modelMessagesToUIMessages(newTurn);
+            onFinish: async (_ctx, info) => {
+              const assistantMessage = modelMessageToUIMessage({
+                role: "assistant",
+                content: info.content,
+              });
               await appendMessage(userId, session_id, "assistant", assistantMessage.parts);
             },
           };
