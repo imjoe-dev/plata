@@ -1,4 +1,10 @@
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
+
+// `allToolDefinitions` now includes the recurring-templates `.server()` tools, whose module
+// reaches `cloudflare:workers` via the service/repository/db chain. Nothing here reads an env
+// property at module load time, so an empty stub is enough — this file only asserts on tool
+// metadata (names, count), never invokes a handler.
+vi.mock("cloudflare:workers", () => ({ env: {} }));
 
 import { allToolDefinitions } from "@/lib/ai/tools/index";
 

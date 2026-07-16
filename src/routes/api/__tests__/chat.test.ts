@@ -15,7 +15,11 @@ vi.mock("@tanstack/ai", () => ({
   toServerSentEventsResponse: vi.fn(
     () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
   ),
-  toolDefinition: vi.fn((def: any) => def),
+  toolDefinition: vi.fn((def: any) => ({
+    ...def,
+    server: (execute: any) => ({ ...def, execute }),
+    client: (execute?: any) => ({ ...def, execute }),
+  })),
   convertMessagesToModelMessages: vi.fn((messages: any) => messages),
   modelMessageToUIMessage: vi.fn((message: any) => ({
     id: "um_1",
@@ -107,6 +111,16 @@ describe("POST /api/chat", () => {
     expect(call.tools).toHaveLength(17);
     expect(call.systemPrompts).toEqual([expect.any(String)]);
     expect((call.systemPrompts as string[])[0]).toContain("Identity & Mandate");
+  });
+
+  it("passes the authenticated user's id as per-request tool context", async () => {
+    vi.mocked(requireUser).mockResolvedValueOnce("user-123");
+    vi.mocked(checkRateLimit).mockResolvedValueOnce(undefined);
+
+    await Route.server.handlers.POST({ request: makeRequest() });
+
+    const call = vi.mocked(chat).mock.calls[0][0] as any;
+    expect(call.context).toEqual({ userId: "user-123" });
   });
 
   it("returns 429 and never calls chat() when the user's rate limit is exceeded", async () => {
