@@ -12,8 +12,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 
-import { allToolDefinitions } from "@/lib/ai/tools/index";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
+import type { ToolContext } from "@/lib/ai/tools/context";
+import { allToolDefinitions } from "@/lib/ai/tools/index";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { appendMessage, getOrCreateSession } from "@/lib/services/chat";
 
@@ -63,6 +64,7 @@ export const Route = createFileRoute("/api/chat")({
             tools: [...allToolDefinitions],
             systemPrompts: [SYSTEM_PROMPT],
             middleware: [persistAssistantMessage],
+            context: { userId } satisfies ToolContext,
           });
 
           return toServerSentEventsResponse(stream);
