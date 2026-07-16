@@ -54,10 +54,7 @@ describe("usePlataChat sendMessage", () => {
     );
   });
 
-  // This only proves usePlataChat itself doesn't replace forwardedPropsRef.current with a new
-  // object — it cannot and does not verify the actual external risk (that the real ChatClient
-  // reads forwardedProps fresh by reference on each send, rather than cloning it once at
-  // construction). useChat is fully mocked here, so that upstream contract stays unverified;
+  // Can't verify the real ChatClient reads forwardedProps by reference (useChat is mocked here) —
   // see the "unwritten contract" comment on forwardedPropsRef in use-plata-chat.ts.
   it("makes a session_id set mid-tick visible on the object useChat already holds, with no re-render", () => {
     const { result } = renderHook(() => usePlataChat());

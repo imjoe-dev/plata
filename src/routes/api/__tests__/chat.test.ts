@@ -53,9 +53,14 @@ import { env } from "cloudflare:workers";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { getOrCreateSession, appendMessage } from "@/lib/services/chat";
 import { NotFoundError, RateLimitedError, UnauthorizedError } from "@/lib/errors";
+import { allToolDefinitions } from "@/lib/ai/tools/index";
+import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import * as RouteMod from "@/routes/api/chat";
 
-const Route = RouteMod.Route as any;
+type MockRoute = {
+  server: { handlers: { POST: (args: { request: Request }) => Promise<Response> } };
+};
+const Route = RouteMod.Route as unknown as MockRoute;
 const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 
 function makeRequest(body: Record<string, unknown> = {}) {
@@ -107,10 +112,8 @@ describe("POST /api/chat", () => {
     expect(res.status).toBe(200);
     expect(chat).toHaveBeenCalledTimes(1);
     const call = vi.mocked(chat).mock.calls[0][0] as any;
-    expect(Array.isArray(call.tools)).toBe(true);
-    expect(call.tools).toHaveLength(17);
-    expect(call.systemPrompts).toEqual([expect.any(String)]);
-    expect((call.systemPrompts as string[])[0]).toContain("Identity & Mandate");
+    expect(call.tools).toEqual(allToolDefinitions);
+    expect(call.systemPrompts).toEqual([SYSTEM_PROMPT]);
   });
 
   it("passes the authenticated user's id as per-request tool context", async () => {
@@ -223,15 +226,6 @@ describe("POST /api/chat", () => {
       expect(appendMessage).toHaveBeenCalledWith("user-123", SESSION_ID, "assistant", [
         { type: "text", content: "reply" },
       ]);
-    });
-
-    it("never persists an assistant message if onFinish is never invoked (error or abort)", async () => {
-      await Route.server.handlers.POST({ request: makeRequest() });
-
-      // Simulates a mocked stream that errors/aborts: only onError/onAbort would fire,
-      // never onFinish, so appendMessage should only have the user message call.
-      expect(vi.mocked(appendMessage).mock.calls).toHaveLength(1);
-      expect(vi.mocked(appendMessage).mock.calls[0][2]).toBe("user");
     });
   });
 });

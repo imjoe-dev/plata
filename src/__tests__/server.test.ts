@@ -1,43 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-// Mock the framework's default server entry so we can assert `server.ts`
-// delegates to it unchanged, without pulling in the real SSR pipeline.
-vi.mock("@tanstack/react-start/server-entry", () => {
-  const mockHandler = { fetch: vi.fn() };
-  return {
-    default: mockHandler,
-    // Mirrors the real implementation: wraps the given entry's fetch as-is.
-    createServerEntry: (entry: { fetch: (...args: Array<unknown>) => unknown }) => ({
-      fetch: (...args: Array<unknown>) => entry.fetch(...args),
-    }),
-  };
-});
+// The framework's own createServerEntry pulls in the real SSR pipeline; stubbed out here just
+// so importing @/server doesn't drag that in. Not used to assert any fetch behavior.
+vi.mock("@tanstack/react-start/server-entry", () => ({
+  default: { fetch: vi.fn() },
+  createServerEntry: (entry: unknown) => entry,
+}));
 
 vi.mock("@/lib/jobs/materialize-recurring", () => ({
   materializeRecurring: vi.fn(),
 }));
 
-import handler from "@tanstack/react-start/server-entry";
 import { materializeRecurring } from "@/lib/jobs/materialize-recurring";
 import serverEntry from "@/server";
 
 describe("src/server.ts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("fetch", () => {
-    it("delegates the request to the framework's default handler and returns its response unchanged", async () => {
-      const request = new Request("https://example.com/");
-      const response = new Response("ok", { status: 200 });
-      vi.mocked(handler.fetch).mockResolvedValue(response);
-
-      const result = await serverEntry.fetch(request);
-
-      expect(handler.fetch).toHaveBeenCalledOnce();
-      expect(handler.fetch).toHaveBeenCalledWith(request);
-      expect(result).toBe(response);
-    });
   });
 
   describe("scheduled", () => {

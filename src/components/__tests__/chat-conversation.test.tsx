@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UIMessage } from "@tanstack/ai-react";
+import type { ToolCallPart } from "@tanstack/ai-client";
+import type { ToolCall as ToolCallComponent } from "@/components/ui/tool-call";
 
 vi.mock("@/components/ui/toast-manager", () => ({
   toastManager: { add: vi.fn() },
@@ -29,14 +32,36 @@ vi.mock("@/components/ui/chat-messages", () => ({
 }));
 vi.mock("@/components/ui/tool-call", () => ({
   ToolCall: {
-    Root: ({ children }: any) => <div>{children}</div>,
-    Name: ({ children }: any) => <div>{children}</div>,
-    Content: ({ children }: any) => <div>{children}</div>,
-    Args: ({ children }: any) => <div>{children}</div>,
+    Root: ({
+      children,
+      onApprove,
+      onDeny,
+    }: React.ComponentProps<typeof ToolCallComponent.Root>) => (
+      <div>
+        <button onClick={onApprove}>approve</button>
+        <button onClick={onDeny}>deny</button>
+        {children}
+      </div>
+    ),
+    Name: ({ children }: React.ComponentProps<typeof ToolCallComponent.Name>) => (
+      <div>{children}</div>
+    ),
+    Content: ({ children }: React.ComponentProps<typeof ToolCallComponent.Content>) => (
+      <div>{children}</div>
+    ),
+    Args: ({ children }: React.ComponentProps<typeof ToolCallComponent.Args>) => (
+      <div>{children}</div>
+    ),
     ApprovalActions: () => <div />,
-    Response: ({ children }: any) => <div>{children}</div>,
-    DeniedNotice: ({ children }: any) => <div>{children}</div>,
-    Error: ({ children }: any) => <div>{children}</div>,
+    Response: ({ children }: React.ComponentProps<typeof ToolCallComponent.Response>) => (
+      <div>{children}</div>
+    ),
+    DeniedNotice: ({ children }: React.ComponentProps<typeof ToolCallComponent.DeniedNotice>) => (
+      <div>{children}</div>
+    ),
+    Error: ({ children }: React.ComponentProps<typeof ToolCallComponent.Error>) => (
+      <div>{children}</div>
+    ),
   },
 }));
 
@@ -81,5 +106,62 @@ describe("ChatConversation error toast", () => {
     const { rerender } = render(<ChatConversation {...props} />);
     rerender(<ChatConversation {...props} />);
     expect(toastManager.add).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ChatConversation message rendering", () => {
+  it("joins a user message's text parts with no separator", () => {
+    const message = {
+      id: "m1",
+      role: "user",
+      parts: [
+        { type: "text", content: "Hello " },
+        { type: "text", content: "world" },
+      ],
+    } as UIMessage;
+
+    render(<ChatConversation {...baseProps({ messages: [message] })} />);
+
+    expect(screen.getByText("Hello world")).toBeDefined();
+  });
+});
+
+describe("ChatConversation tool-call approval", () => {
+  function toolCallMessage(): UIMessage {
+    const part: ToolCallPart = {
+      type: "tool-call",
+      id: "tc_1",
+      name: "categorizeTransaction",
+      arguments: "{}",
+      state: "approval-requested",
+      approval: { id: "appr_1", needsApproval: true },
+    };
+    return { id: "m1", role: "assistant", parts: [part] } as UIMessage;
+  }
+
+  it("sends the approval id with approved: true when the user approves", () => {
+    const addToolApprovalResponse = vi.fn();
+    render(
+      <ChatConversation
+        {...baseProps({ addToolApprovalResponse, messages: [toolCallMessage()] })}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("approve"));
+
+    expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_1", approved: true });
+  });
+
+  it("sends the approval id with approved: false when the user denies", () => {
+    const addToolApprovalResponse = vi.fn();
+    render(
+      <ChatConversation
+        {...baseProps({ addToolApprovalResponse, messages: [toolCallMessage()] })}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("deny"));
+
+    expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_1", approved: false });
   });
 });

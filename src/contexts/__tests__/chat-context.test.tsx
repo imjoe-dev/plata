@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UIMessage } from "@tanstack/ai-react";
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: vi.fn(),
@@ -32,31 +33,43 @@ function Consumer() {
   return null;
 }
 
+// useParams' real type is generic over the app's route tree; narrowed to what ChatProvider reads.
+type MockParams = { sessionId?: string };
+
 function mockChat(overrides: Partial<ReturnType<typeof usePlataChat>> = {}) {
   vi.mocked(usePlataChat).mockReturnValue({
     messages: [],
     sendMessage: vi.fn(),
-    setMessages: vi.fn(),
+    append: vi.fn(),
+    addToolResult: vi.fn(),
+    addToolApprovalResponse: vi.fn(),
+    reload: vi.fn(),
+    stop: vi.fn(),
     isLoading: false,
     error: undefined,
-    addToolApprovalResponse: vi.fn(),
+    status: "ready",
+    isSubscribed: false,
+    connectionStatus: "disconnected",
+    sessionGenerating: false,
+    setMessages: vi.fn(),
+    clear: vi.fn(),
     ...overrides,
-  } as any);
+  });
 }
 
-function mockQuery(overrides: Partial<ReturnType<typeof useQuery>> = {}) {
-  vi.mocked(useQuery).mockReturnValue({
-    data: undefined,
-    isError: false,
-    ...overrides,
-  } as any);
+// useQuery's real return type is a large discriminated union; narrowed to what ChatProvider reads.
+type MockQueryResult = { data: UIMessage[] | undefined; isError: boolean };
+
+function mockQuery(overrides: Partial<MockQueryResult> = {}) {
+  const result: MockQueryResult = { data: undefined, isError: false, ...overrides };
+  vi.mocked(useQuery).mockReturnValue(result as ReturnType<typeof useQuery>);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   capturedContext = undefined;
   vi.mocked(useNavigate).mockReturnValue(vi.fn());
-  vi.mocked(useParams).mockReturnValue({} as any);
+  vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
   mockQuery();
 });
 
@@ -66,7 +79,7 @@ afterEach(() => {
 
 describe("ChatProvider hydration query", () => {
   it("does not query when no sessionId is present (on /)", () => {
-    vi.mocked(useParams).mockReturnValue({} as any);
+    vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
     mockChat();
     render(
       <ChatProvider>
@@ -74,12 +87,16 @@ describe("ChatProvider hydration query", () => {
       </ChatProvider>,
     );
 
-    const call = vi.mocked(useQuery).mock.calls[0][0] as any;
-    expect(call.enabled).toBe(false);
+    const lastCall = vi.mocked(useQuery).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const [options] = lastCall!;
+    expect(options.enabled).toBe(false);
   });
 
   it("enables the query for a sessionId that hasn't been loaded yet", () => {
-    vi.mocked(useParams).mockReturnValue({ sessionId: "sess_1" } as any);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
     mockChat();
     render(
       <ChatProvider>
@@ -87,16 +104,20 @@ describe("ChatProvider hydration query", () => {
       </ChatProvider>,
     );
 
-    const call = vi.mocked(useQuery).mock.calls[0][0] as any;
-    expect(call.queryKey).toEqual(["chat-session-messages", "sess_1"]);
-    expect(call.enabled).toBe(true);
+    const lastCall = vi.mocked(useQuery).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const [options] = lastCall!;
+    expect(options.queryKey).toEqual(["chat-session-messages", "sess_1"]);
+    expect(options.enabled).toBe(true);
   });
 
   it("hydrates messages via setMessages when the query resolves", () => {
     const setMessages = vi.fn();
-    vi.mocked(useParams).mockReturnValue({ sessionId: "sess_1" } as any);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
     mockChat({ setMessages });
-    mockQuery({ data: [{ id: "m1", role: "user", parts: [] }] as any });
+    mockQuery({ data: [{ id: "m1", role: "user", parts: [] } as UIMessage] });
 
     render(
       <ChatProvider>
@@ -110,7 +131,9 @@ describe("ChatProvider hydration query", () => {
   it("shows a toast and redirects to / when the session fetch fails", () => {
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
-    vi.mocked(useParams).mockReturnValue({ sessionId: "sess_1" } as any);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
     mockChat();
     mockQuery({ isError: true });
 
@@ -130,7 +153,7 @@ describe("ChatProvider hydration query", () => {
   it("does not query or error-redirect when there's no sessionId at all", () => {
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
-    vi.mocked(useParams).mockReturnValue({} as any);
+    vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
     mockChat();
     mockQuery({ isError: true }); // even if the (disabled) query object reports an error
 
@@ -162,7 +185,7 @@ describe("ChatProvider actions", () => {
 
   it("marks a session started via startNewChat as already loaded, skipping its GET hydration", () => {
     mockChat();
-    vi.mocked(useParams).mockReturnValue({} as any);
+    vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
     const { rerender } = render(
       <ChatProvider>
         <Consumer />
@@ -170,40 +193,58 @@ describe("ChatProvider actions", () => {
     );
 
     capturedContext!.startNewChat("Hi", "new_sess");
-    vi.mocked(useParams).mockReturnValue({ sessionId: "new_sess" } as any);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "new_sess",
+    } as MockParams as ReturnType<typeof useParams>);
     rerender(
       <ChatProvider>
         <Consumer />
       </ChatProvider>,
     );
 
-    const lastCall = vi.mocked(useQuery).mock.calls.at(-1)![0] as any;
-    expect(lastCall.enabled).toBe(false);
+    const lastCall = vi.mocked(useQuery).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const [options] = lastCall!;
+    expect(options.enabled).toBe(false);
   });
 
   it("preserves an in-flight message across the index-to-chat.$sessionId route swap, since ChatProvider itself never unmounts", () => {
-    // Proves the same ChatProvider instance survives a route change, so an in-flight message
-    // isn't dropped when the matched child swaps from `/` to chat.$sessionId.
-    let messages: any[] = [];
+    let messages: UIMessage[] = [];
     const sendMessage = vi.fn((content: string) => {
-      messages = [...messages, { id: `m${messages.length}`, role: "user", parts: [{ content }] }];
+      messages = [
+        ...messages,
+        {
+          id: `m${messages.length}`,
+          role: "user",
+          parts: [{ type: "text", content }],
+        } as UIMessage,
+      ];
+      return Promise.resolve();
     });
     vi.mocked(usePlataChat).mockImplementation(
-      () =>
-        ({
-          get messages() {
-            return messages;
-          },
-          sendMessage,
-          setMessages: vi.fn((next: any[]) => {
-            messages = next;
-          }),
-          isLoading: false,
-          error: undefined,
-          addToolApprovalResponse: vi.fn(),
-        }) as any,
+      (): ReturnType<typeof usePlataChat> => ({
+        get messages() {
+          return messages;
+        },
+        sendMessage,
+        append: vi.fn(),
+        addToolResult: vi.fn(),
+        addToolApprovalResponse: vi.fn(),
+        reload: vi.fn(),
+        stop: vi.fn(),
+        isLoading: false,
+        error: undefined,
+        status: "ready",
+        isSubscribed: false,
+        connectionStatus: "disconnected",
+        sessionGenerating: false,
+        setMessages: vi.fn((next: UIMessage[]) => {
+          messages = next;
+        }),
+        clear: vi.fn(),
+      }),
     );
-    vi.mocked(useParams).mockReturnValue({} as any);
+    vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
 
     const { rerender } = render(
       <ChatProvider>
@@ -213,8 +254,9 @@ describe("ChatProvider actions", () => {
 
     capturedContext!.startNewChat("Categorize my Uber rides", "new_sess");
 
-    // The route swap to /chat/new_sess: same ChatProvider, matched child's params change.
-    vi.mocked(useParams).mockReturnValue({ sessionId: "new_sess" } as any);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "new_sess",
+    } as MockParams as ReturnType<typeof useParams>);
     rerender(
       <ChatProvider>
         <Consumer />
@@ -222,7 +264,10 @@ describe("ChatProvider actions", () => {
     );
 
     expect(capturedContext!.messages).toHaveLength(1);
-    expect((capturedContext!.messages[0].parts[0] as any).content).toBe("Categorize my Uber rides");
+    const [firstPart] = capturedContext!.messages[0].parts;
+    expect(firstPart.type === "text" ? firstPart.content : undefined).toBe(
+      "Categorize my Uber rides",
+    );
   });
 
   it("sendMessage sends against the given (already-hydrated) session id", () => {
