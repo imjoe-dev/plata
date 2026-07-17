@@ -36,7 +36,7 @@ function NewChat({ onNewChat, className, ...props }: NewChatProps) {
     <button
       type="button"
       className={cn(
-        "text-fg-muted hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex cursor-pointer items-center gap-2 px-4 py-1.5 text-sm transition-colors select-none focus-visible:outline-none",
+        "text-fg-muted hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex cursor-pointer items-center gap-2 px-4 py-1.5 text-sm font-medium transition-colors select-none focus-visible:outline-none",
         className,
       )}
       {...props}
@@ -50,7 +50,10 @@ function NewChat({ onNewChat, className, ...props }: NewChatProps) {
 
 function History({ className, children, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("flex-1 overflow-y-auto", className)} {...props}>
+    <div
+      className={cn("border-hairline mt-1 flex-1 overflow-y-auto border-t pt-2", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -78,7 +81,7 @@ function HistoryItemRoot({
       // non-className/handler props left-to-right) — not a live issue with any consumer yet.
       "aria-current": isActive ? "page" : undefined,
       className: cn(
-        "text-fg-muted hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex cursor-pointer items-center gap-2 border-l-2 border-transparent py-1.5 pr-4 pl-[14px] text-sm transition-colors select-none focus-visible:outline-none",
+        "text-fg-muted hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex cursor-pointer items-center gap-2 border-l-2 border-transparent py-1.5 pr-4 pl-[14px] text-[13px] transition-colors select-none focus-visible:outline-none",
         isActive && "text-fg-strong bg-raised border-accent font-medium",
         className,
       ),
