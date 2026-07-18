@@ -10,11 +10,20 @@ vi.mock("@tanstack/react-router", () => ({
   }),
   redirect: vi.fn(),
   Outlet: () => null,
+  // Resolves the route pattern to a plain href so History items render as real anchors.
+  Link: ({ to, params, ...props }: any) => {
+    let href: string = to;
+    for (const [key, value] of Object.entries(params ?? {})) {
+      href = href.replace(`$${key}`, String(value));
+    }
+    return <a href={href} {...props} />;
+  },
   useNavigate: vi.fn(),
   useParams: vi.fn(),
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: vi.fn(),
+  useInfiniteQuery: vi.fn(),
 }));
 vi.mock("@/hooks/use-plata-chat", () => ({
   usePlataChat: vi.fn(),
@@ -39,9 +48,11 @@ vi.mock("@/lib/auth/client", async () => {
 });
 
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { usePlataChat } from "@/hooks/use-plata-chat";
 import { mockPlataChat } from "@/hooks/__tests__/mock-plata-chat";
+import { apiGet } from "@/lib/ai/fetch";
+import { toastManager } from "@/components/ui/toast-manager";
 import { authClient } from "@/lib/auth/client";
 import * as RouteMod from "@/routes/_protected/route";
 
@@ -62,6 +73,36 @@ function mockSession(user: Partial<MockUser> = {}) {
   vi.mocked(Route.useRouteContext).mockReturnValue({
     session: { user: { name: "Jose Ariza", email: "jose@example.com", image: null, ...user } },
   });
+}
+
+// useInfiniteQuery's real return type is a large discriminated union; narrowed to what
+// useChatSessions reads. `updated_at` arrives as an ISO string over the wire.
+type MockSessionItem = { id: string; title: string; updated_at: string };
+type MockSessionsPage = { items: MockSessionItem[]; next_cursor: string | null };
+type MockSessionsResult = {
+  data: { pages: MockSessionsPage[]; pageParams: unknown[] } | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  hasNextPage: boolean;
+  fetchNextPage: () => void;
+};
+
+function mockChatSessions(overrides: Partial<MockSessionsResult> = {}) {
+  const result: MockSessionsResult = {
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    hasNextPage: false,
+    fetchNextPage: vi.fn(),
+    ...overrides,
+  };
+  vi.mocked(useInfiniteQuery).mockReturnValue(
+    result as unknown as ReturnType<typeof useInfiniteQuery>,
+  );
+}
+
+function sessionsPage(items: MockSessionItem[]): MockSessionsResult["data"] {
+  return { pages: [{ items, next_cursor: null }], pageParams: [null] };
 }
 
 // authClient.signOut()'s real (generic) signature resists Parameters<> extraction;
@@ -86,6 +127,7 @@ beforeEach(() => {
   } as ReturnType<typeof useQuery>);
   mockChat();
   mockSession();
+  mockChatSessions();
 });
 
 afterEach(() => {
@@ -130,5 +172,96 @@ describe("ProtectedLayout account footer wiring", () => {
 
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith({ to: "/login" });
+  });
+});
+
+describe("ProtectedLayout History", () => {
+  const items: MockSessionItem[] = [
+    { id: "sess_2", title: "Set up a monthly rent reminder", updated_at: "2026-07-17T10:00:00Z" },
+    { id: "sess_1", title: "Categorize my Uber rides", updated_at: "2026-07-16T09:00:00Z" },
+  ];
+
+  it("renders the first page of Chat Sessions as links, newest Activity first", () => {
+    mockChatSessions({ data: sessionsPage(items) });
+
+    const { getAllByRole } = render(<ProtectedLayout />);
+    const links = getAllByRole("link");
+
+    expect(links).toHaveLength(2);
+    expect(links[0].getAttribute("href")).toBe("/chat/sess_2");
+    expect(links[0].textContent).toContain("Set up a monthly rent reminder");
+    expect(links[1].getAttribute("href")).toBe("/chat/sess_1");
+    expect(links[1].textContent).toContain("Categorize my Uber rides");
+  });
+
+  it("highlights the open session, derived from the route's sessionId param", () => {
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
+    mockChatSessions({ data: sessionsPage(items) });
+
+    const { getByRole } = render(<ProtectedLayout />);
+
+    const active = getByRole("link", { current: "page" });
+    expect(active.getAttribute("href")).toBe("/chat/sess_1");
+  });
+
+  it("highlights nothing on the index (new chat) route", () => {
+    mockChatSessions({ data: sessionsPage(items) });
+
+    const { getAllByRole, queryByRole } = render(<ProtectedLayout />);
+
+    expect(getAllByRole("link")).toHaveLength(2);
+    expect(queryByRole("link", { current: "page" })).toBeNull();
+  });
+
+  it("shows 'No chats yet' for an account with no Chat Sessions", () => {
+    mockChatSessions({ data: sessionsPage([]) });
+
+    const { getByText, queryAllByRole } = render(<ProtectedLayout />);
+
+    expect(getByText("No chats yet")).toBeDefined();
+    expect(queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("shows a quiet inline notice on fetch failure, without a toast", () => {
+    mockChatSessions({ isError: true });
+
+    const { getByText, queryAllByRole } = render(<ProtectedLayout />);
+
+    expect(getByText("Couldn't load history")).toBeDefined();
+    expect(queryAllByRole("link")).toHaveLength(0);
+    expect(toastManager.add).not.toHaveBeenCalled();
+  });
+
+  it("renders nothing while loading — no skeleton, no status text", () => {
+    mockChatSessions({ isLoading: true });
+
+    const { queryAllByRole, queryByText } = render(<ProtectedLayout />);
+
+    expect(queryAllByRole("link")).toHaveLength(0);
+    expect(queryByText("No chats yet")).toBeNull();
+    expect(queryByText("Couldn't load history")).toBeNull();
+  });
+
+  it("wires the query to the sessions endpoint: stable key, cursor pass-through, next_cursor continuation", () => {
+    render(<ProtectedLayout />);
+
+    const lastCall = vi.mocked(useInfiniteQuery).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    // useInfiniteQuery's options are heavily generic; narrowed to the fields the hook sets.
+    const options = lastCall![0] as unknown as {
+      queryKey: unknown;
+      queryFn: (ctx: { pageParam: unknown }) => unknown;
+      getNextPageParam: (lastPage: MockSessionsPage) => string | null;
+    };
+
+    expect(options.queryKey).toEqual(["chat-sessions"]);
+
+    void options.queryFn({ pageParam: "cursor_abc" });
+    expect(apiGet).toHaveBeenCalledWith("/api/chat/sessions", { cursor: "cursor_abc" });
+
+    expect(options.getNextPageParam({ items: [], next_cursor: "cursor_def" })).toBe("cursor_def");
+    expect(options.getNextPageParam({ items: [], next_cursor: null })).toBeNull();
   });
 });

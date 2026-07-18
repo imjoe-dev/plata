@@ -1,7 +1,15 @@
 import { getSession } from "@/lib/auth/functions";
-import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+  useNavigate,
+  useParams,
+} from "@tanstack/react-router";
 import { ChatProvider, useChatContext } from "@/contexts/chat-context";
 import { authClient } from "@/lib/auth/client";
+import { useChatSessions, type ChatSessionItem } from "@/hooks/use-chat-sessions";
 import { Sidebar } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/_protected")({
@@ -51,15 +59,53 @@ function useProtectedLayoutActions() {
   return { session, handleNewChat, handleSignOut };
 }
 
+type HistoryContentProps = {
+  sessions: ChatSessionItem[];
+  isLoading: boolean;
+  isError: boolean;
+  activeSessionId: string | undefined;
+};
+
+// History's states, resolved here so the sidebar primitives stay purely presentational:
+// error > loading (nothing — no skeleton, no layout shift) > empty > items.
+function HistoryContent({ sessions, isLoading, isError, activeSessionId }: HistoryContentProps) {
+  if (isError) return <Sidebar.HistoryStatus>{"Couldn't load history"}</Sidebar.HistoryStatus>;
+  if (isLoading) return null;
+  if (sessions.length === 0) return <Sidebar.HistoryStatus>No chats yet</Sidebar.HistoryStatus>;
+
+  return (
+    <>
+      {sessions.map((session) => (
+        <Sidebar.HistoryItem.Root
+          key={session.id}
+          isActive={session.id === activeSessionId}
+          render={<Link to="/chat/$sessionId" params={{ sessionId: session.id }} />}
+        >
+          <Sidebar.HistoryItem.Title>{session.title}</Sidebar.HistoryItem.Title>
+        </Sidebar.HistoryItem.Root>
+      ))}
+    </>
+  );
+}
+
 function ProtectedLayoutContent() {
   const { session, handleNewChat, handleSignOut } = useProtectedLayoutActions();
+  const { sessions, isLoading, isError } = useChatSessions();
+  const activeSessionId = useParams({ strict: false })?.sessionId;
 
   return (
     <div className="flex h-screen">
       <Sidebar.Root>
         <Sidebar.Brand />
         <Sidebar.NewChat onNewChat={handleNewChat} />
-        <Sidebar.History />
+        <Sidebar.History>
+          <HistoryContent
+            sessions={sessions}
+            isLoading={isLoading}
+            isError={isError}
+            activeSessionId={activeSessionId}
+          />
+        </Sidebar.History>
         <Sidebar.Account.Root user={session.user} onSignOut={handleSignOut}>
           <Sidebar.Account.Avatar />
           <div className="flex min-w-0 flex-1 flex-col">

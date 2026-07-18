@@ -59,6 +59,14 @@ function History({ className, children, ...props }: React.ComponentProps<"div">)
   );
 }
 
+// Quiet inline line for History's empty and error states ("No chats yet",
+// "Couldn't load history") — deliberately not a toast and not a skeleton.
+function HistoryStatus({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p className={cn("text-fg-faint px-4 py-1.5 text-[13px] select-none", className)} {...props} />
+  );
+}
+
 type HistoryItemRootProps = useRender.ComponentProps<"a"> & {
   isActive: boolean;
 };
@@ -208,6 +216,7 @@ export const Sidebar = {
   Brand,
   NewChat,
   History,
+  HistoryStatus,
   HistoryItem: {
     Root: HistoryItemRoot,
     Title: HistoryItemTitle,
