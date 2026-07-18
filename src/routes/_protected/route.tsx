@@ -64,11 +64,21 @@ type HistoryContentProps = {
   isLoading: boolean;
   isError: boolean;
   activeSessionId: string | undefined;
+  hasNextPage: boolean;
+  onShowMore: () => void;
 };
 
 // History's states, resolved here so the sidebar primitives stay purely presentational:
-// error > loading (nothing — no skeleton, no layout shift) > empty > items.
-function HistoryContent({ sessions, isLoading, isError, activeSessionId }: HistoryContentProps) {
+// error > loading (nothing — no skeleton, no layout shift) > empty > items
+// (+ "Show more" while another page exists).
+function HistoryContent({
+  sessions,
+  isLoading,
+  isError,
+  activeSessionId,
+  hasNextPage,
+  onShowMore,
+}: HistoryContentProps) {
   if (isError) return <Sidebar.HistoryStatus>{"Couldn't load history"}</Sidebar.HistoryStatus>;
   if (isLoading) return null;
   if (sessions.length === 0) return <Sidebar.HistoryStatus>No chats yet</Sidebar.HistoryStatus>;
@@ -84,14 +94,19 @@ function HistoryContent({ sessions, isLoading, isError, activeSessionId }: Histo
           <Sidebar.HistoryItem.Title>{session.title}</Sidebar.HistoryItem.Title>
         </Sidebar.HistoryItem.Root>
       ))}
+      {hasNextPage ? <Sidebar.HistoryShowMore onShowMore={onShowMore} /> : null}
     </>
   );
 }
 
 function ProtectedLayoutContent() {
   const { session, handleNewChat, handleSignOut } = useProtectedLayoutActions();
-  const { sessions, isLoading, isError } = useChatSessions();
+  const { sessions, isLoading, isError, hasNextPage, fetchNextPage } = useChatSessions();
   const activeSessionId = useParams({ strict: false })?.sessionId;
+
+  function handleShowMore() {
+    void fetchNextPage();
+  }
 
   return (
     <div className="flex h-screen">
@@ -104,6 +119,8 @@ function ProtectedLayoutContent() {
             isLoading={isLoading}
             isError={isError}
             activeSessionId={activeSessionId}
+            hasNextPage={hasNextPage}
+            onShowMore={handleShowMore}
           />
         </Sidebar.History>
         <Sidebar.Account.Root user={session.user} onSignOut={handleSignOut}>

@@ -69,6 +69,38 @@ export const WithHistory: StoryObj<typeof Sidebar.Root> = {
   },
 };
 
+// A long History with more pages to load: "Show more" as a quiet trailing row. In the app,
+// the layout renders it only while the sessions query reports a next page, so it disappears
+// on its own once History is exhausted.
+export const HistoryWithShowMore: StoryObj<typeof Sidebar.Root> = {
+  render() {
+    return (
+      <div className="flex h-[600px]">
+        <Sidebar.Root>
+          <Sidebar.Brand />
+          <Sidebar.NewChat onNewChat={() => {}} />
+          <Sidebar.History>
+            <Sidebar.HistoryItem.Root isActive render={<a href="#categorize-uber" />}>
+              <Sidebar.HistoryItem.Title>Categorize my Uber rides</Sidebar.HistoryItem.Title>
+            </Sidebar.HistoryItem.Root>
+            <Sidebar.HistoryItem.Root isActive={false} render={<a href="#rent-reminder" />}>
+              <Sidebar.HistoryItem.Title>Set up a monthly rent reminder</Sidebar.HistoryItem.Title>
+            </Sidebar.HistoryItem.Root>
+            <Sidebar.HistoryItem.Root isActive={false} render={<a href="#overspend-review" />}>
+              <Sidebar.HistoryItem.Title>
+                Review last month&apos;s spending by category and find where I overspent
+              </Sidebar.HistoryItem.Title>
+            </Sidebar.HistoryItem.Root>
+            <Sidebar.HistoryShowMore onShowMore={() => {}} />
+          </Sidebar.History>
+          <AccountFooter />
+        </Sidebar.Root>
+        <div className="bg-sunken flex-1" />
+      </div>
+    );
+  },
+};
+
 // A fresh account: quiet "No chats yet" line instead of a blank pane.
 export const EmptyHistory: StoryObj<typeof Sidebar.Root> = {
   render() {

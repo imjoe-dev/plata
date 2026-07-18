@@ -24,6 +24,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@tanstack/react-query", () => ({
   useQuery: vi.fn(),
   useInfiniteQuery: vi.fn(),
+  useQueryClient: vi.fn(),
 }));
 vi.mock("@/hooks/use-plata-chat", () => ({
   usePlataChat: vi.fn(),
@@ -48,7 +49,7 @@ vi.mock("@/lib/auth/client", async () => {
 });
 
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePlataChat } from "@/hooks/use-plata-chat";
 import { mockPlataChat } from "@/hooks/__tests__/mock-plata-chat";
 import { apiGet } from "@/lib/ai/fetch";
@@ -125,6 +126,10 @@ beforeEach(() => {
     data: undefined,
     isError: false,
   } as ReturnType<typeof useQuery>);
+  // ChatProvider (rendered by the layout) reads the query client for freshness invalidation.
+  vi.mocked(useQueryClient).mockReturnValue({
+    invalidateQueries: vi.fn(),
+  } as unknown as ReturnType<typeof useQueryClient>);
   mockChat();
   mockSession();
   mockChatSessions();
@@ -242,6 +247,27 @@ describe("ProtectedLayout History", () => {
     expect(queryAllByRole("link")).toHaveLength(0);
     expect(queryByText("No chats yet")).toBeNull();
     expect(queryByText("Couldn't load history")).toBeNull();
+  });
+
+  it("shows 'Show more' while another page exists and fetches the next page on click", () => {
+    const fetchNextPage = vi.fn();
+    mockChatSessions({ data: sessionsPage(items), hasNextPage: true, fetchNextPage });
+
+    const { getByRole } = render(<ProtectedLayout />);
+    const showMore = getByRole("button", { name: "Show more" });
+
+    expect(fetchNextPage).not.toHaveBeenCalled();
+    fireEvent.click(showMore);
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides 'Show more' once History is exhausted", () => {
+    mockChatSessions({ data: sessionsPage(items), hasNextPage: false });
+
+    const { getAllByRole, queryByRole } = render(<ProtectedLayout />);
+
+    expect(getAllByRole("link")).toHaveLength(2); // items still render
+    expect(queryByRole("button", { name: "Show more" })).toBeNull();
   });
 
   it("wires the query to the sessions endpoint: stable key, cursor pass-through, next_cursor continuation", () => {

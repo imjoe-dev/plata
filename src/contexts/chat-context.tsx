@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
 
@@ -30,8 +30,10 @@ export function useChatContext(): ChatContextValue {
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const chat = usePlataChat();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const sessionId = useParams({ strict: false })?.sessionId;
   const loadedSessionIdRef = useRef<string | undefined>(undefined);
+  const wasLoadingRef = useRef(false);
 
   const messagesQuery = useQuery({
     queryKey: ["chat-session-messages", sessionId],
@@ -54,6 +56,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // navigate isn't listed: TanStack Router's useNavigate() returns a stable reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, messagesQuery.isError]);
+
+  // History freshness: when a send completes (loading → idle) the session row and its
+  // Activity bump are committed server-side, so invalidate the sidebar's History query.
+  // The previous value is tracked in a ref so this fires only on the actual transition —
+  // never on mount, at send start, or on unrelated re-renders.
+  useEffect(() => {
+    if (wasLoadingRef.current && !chat.isLoading) {
+      void queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+    }
+    wasLoadingRef.current = chat.isLoading;
+    // queryClient isn't listed: useQueryClient() returns a stable reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat.isLoading]);
 
   function startNewChat(text: string, newSessionId: string) {
     loadedSessionIdRef.current = newSessionId;
