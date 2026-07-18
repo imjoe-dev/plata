@@ -80,8 +80,8 @@ export async function appendMessage(
   return message;
 }
 
-export type ChatSessionListItem = { id: string; title: string; updated_at: Date };
-export type ChatSessionList = { items: ChatSessionListItem[]; next_cursor: string | null };
+export type ChatSessionSummary = { id: string; title: string; updated_at: Date };
+export type HistoryPage = { items: ChatSessionSummary[]; next_cursor: string | null };
 
 // The cursor is opaque to clients by design: base64 of `<updated_at_ms>:<id>`.
 // The encoding can change server-side without a contract break.
@@ -111,7 +111,7 @@ function decodeCursor(cursor: string): ChatSessionCursor {
 export async function listSessions(
   userId: string,
   opts: { cursor?: string; limit?: number } = {},
-): Promise<ChatSessionList> {
+): Promise<HistoryPage> {
   const limit = Math.min(opts.limit ?? LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX);
   const cursor = opts.cursor === undefined ? undefined : decodeCursor(opts.cursor);
 

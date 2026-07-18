@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { ChatProvider, useChatContext } from "@/contexts/chat-context";
 import { authClient } from "@/lib/auth/client";
-import { useChatSessions, type ChatSessionItem } from "@/hooks/use-chat-sessions";
+import { useChatSessions } from "@/hooks/use-chat-sessions";
 import { Sidebar } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/_protected")({
@@ -59,54 +59,16 @@ function useProtectedLayoutActions() {
   return { session, handleNewChat, handleSignOut };
 }
 
-type HistoryContentProps = {
-  sessions: ChatSessionItem[];
-  isLoading: boolean;
-  isError: boolean;
-  activeSessionId: string | undefined;
-  hasNextPage: boolean;
-  onShowMore: () => void;
-};
-
-// History's states, resolved here so the sidebar primitives stay purely presentational:
-// error > loading (nothing — no skeleton, no layout shift) > empty > items
-// (+ "Show more" while another page exists).
-function HistoryContent({
-  sessions,
-  isLoading,
-  isError,
-  activeSessionId,
-  hasNextPage,
-  onShowMore,
-}: HistoryContentProps) {
-  if (isError) return <Sidebar.HistoryStatus>{"Couldn't load history"}</Sidebar.HistoryStatus>;
-  if (isLoading) return null;
-  if (sessions.length === 0) return <Sidebar.HistoryStatus>No chats yet</Sidebar.HistoryStatus>;
-
-  return (
-    <>
-      {sessions.map((session) => (
-        <Sidebar.HistoryItem.Root
-          key={session.id}
-          isActive={session.id === activeSessionId}
-          render={<Link to="/chat/$sessionId" params={{ sessionId: session.id }} />}
-        >
-          <Sidebar.HistoryItem.Title>{session.title}</Sidebar.HistoryItem.Title>
-        </Sidebar.HistoryItem.Root>
-      ))}
-      {hasNextPage ? <Sidebar.HistoryShowMore onShowMore={onShowMore} /> : null}
-    </>
-  );
-}
-
 function ProtectedLayoutContent() {
   const { session, handleNewChat, handleSignOut } = useProtectedLayoutActions();
-  const { sessions, isLoading, isError, hasNextPage, fetchNextPage } = useChatSessions();
+  const history = useChatSessions();
   const activeSessionId = useParams({ strict: false })?.sessionId;
 
-  function handleShowMore() {
-    void fetchNextPage();
-  }
+  // History's states, resolved here so the sidebar primitives stay purely presentational:
+  // error > loading (nothing — no skeleton, no layout shift) > empty > items
+  // (+ "Show more" while another page exists).
+  const showHistoryError = history.isError;
+  const showHistoryEmpty = !history.isError && !history.isLoading && history.sessions.length === 0;
 
   return (
     <div className="flex h-screen">
@@ -114,14 +76,22 @@ function ProtectedLayoutContent() {
         <Sidebar.Brand />
         <Sidebar.NewChat onNewChat={handleNewChat} />
         <Sidebar.History>
-          <HistoryContent
-            sessions={sessions}
-            isLoading={isLoading}
-            isError={isError}
-            activeSessionId={activeSessionId}
-            hasNextPage={hasNextPage}
-            onShowMore={handleShowMore}
-          />
+          {showHistoryError ? (
+            <Sidebar.HistoryStatus>{"Couldn't load history"}</Sidebar.HistoryStatus>
+          ) : null}
+          {showHistoryEmpty ? <Sidebar.HistoryStatus>No chats yet</Sidebar.HistoryStatus> : null}
+          {history.sessions.map((chatSession) => (
+            <Sidebar.HistoryItem.Root
+              key={chatSession.id}
+              isActive={chatSession.id === activeSessionId}
+              render={<Link to="/chat/$sessionId" params={{ sessionId: chatSession.id }} />}
+            >
+              <Sidebar.HistoryItem.Title>{chatSession.title}</Sidebar.HistoryItem.Title>
+            </Sidebar.HistoryItem.Root>
+          ))}
+          {history.hasNextPage ? (
+            <Sidebar.HistoryShowMore onShowMore={() => void history.fetchNextPage()} />
+          ) : null}
         </Sidebar.History>
         <Sidebar.Account.Root user={session.user} onSignOut={handleSignOut}>
           <Sidebar.Account.Avatar />

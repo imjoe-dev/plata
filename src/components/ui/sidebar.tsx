@@ -79,7 +79,7 @@ function HistoryShowMore({ onShowMore, className, ...props }: HistoryShowMorePro
     <button
       type="button"
       className={cn(
-        "text-fg-faint hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex w-full cursor-pointer items-center px-4 py-1.5 text-[13px] transition-colors select-none focus-visible:outline-none",
+        "text-fg-faint hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex w-full cursor-pointer items-center px-4 py-1.5 text-[13px] transition-colors ease-out select-none focus-visible:outline-none",
         className,
       )}
       {...props}

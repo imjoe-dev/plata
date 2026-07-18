@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
 
 import { usePlataChat } from "@/hooks/use-plata-chat";
+import { CHAT_SESSIONS_QUERY_KEY } from "@/hooks/use-chat-sessions";
 import { apiGet } from "@/lib/ai/fetch";
 import { toastManager } from "@/components/ui/toast-manager";
 
@@ -60,10 +61,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // History freshness: when a send completes (loading → idle) the session row and its
   // Activity bump are committed server-side, so invalidate the sidebar's History query.
   // The previous value is tracked in a ref so this fires only on the actual transition —
-  // never on mount, at send start, or on unrelated re-renders.
+  // never on mount, at send start, or on unrelated re-renders. Deliberately fires on
+  // errored sends too: the user message (and its bump) may have been persisted before
+  // the stream failed, so a refetch is the safe read of what actually committed.
   useEffect(() => {
     if (wasLoadingRef.current && !chat.isLoading) {
-      void queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
+      void queryClient.invalidateQueries({ queryKey: CHAT_SESSIONS_QUERY_KEY });
     }
     wasLoadingRef.current = chat.isLoading;
     // queryClient isn't listed: useQueryClient() returns a stable reference.

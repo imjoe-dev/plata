@@ -9,24 +9,25 @@ export interface ChatSessionItem {
   updated_at: string;
 }
 
-interface ChatSessionsPage {
+interface HistoryPage {
   items: ChatSessionItem[];
   next_cursor: string | null;
 }
 
+/** Shared with the chat provider, whose freshness invalidation must target this exact key. */
+export const CHAT_SESSIONS_QUERY_KEY = ["chat-sessions"] as const;
+
 /**
  * The user's Chat Session History: pages of `GET /api/chat/sessions`, newest Activity
- * first, keyed `["chat-sessions"]` (the key the chat provider will invalidate for
- * freshness). The cursor is opaque — passed back verbatim as the `cursor` query param.
+ * first. The cursor is opaque — passed back verbatim as the `cursor` query param.
  * `hasNextPage`/`fetchNextPage` are exposed for the "Show more" control (issue #31).
  */
 export function useChatSessions() {
   const query = useInfiniteQuery({
-    queryKey: ["chat-sessions"],
-    queryFn: ({ pageParam }) =>
-      apiGet<ChatSessionsPage>("/api/chat/sessions", { cursor: pageParam }),
+    queryKey: CHAT_SESSIONS_QUERY_KEY,
+    queryFn: ({ pageParam }) => apiGet<HistoryPage>("/api/chat/sessions", { cursor: pageParam }),
     initialPageParam: null as string | null,
-    getNextPageParam: (lastPage: ChatSessionsPage) => lastPage.next_cursor,
+    getNextPageParam: (lastPage: HistoryPage) => lastPage.next_cursor,
   });
 
   return {
