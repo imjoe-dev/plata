@@ -59,6 +59,37 @@ function History({ className, children, ...props }: React.ComponentProps<"div">)
   );
 }
 
+// Quiet inline line for History's empty and error states ("No chats yet",
+// "Couldn't load history") — deliberately not a toast and not a skeleton.
+function HistoryStatus({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p className={cn("text-fg-faint px-4 py-1.5 text-[13px] select-none", className)} {...props} />
+  );
+}
+
+type HistoryShowMoreProps = React.ComponentProps<"button"> & {
+  onShowMore: () => void;
+};
+
+// Quiet trailing row that loads the next page of History. Purely presentational:
+// the layout renders it only while another page exists, so it disappears on its
+// own once History is exhausted.
+function HistoryShowMore({ onShowMore, className, ...props }: HistoryShowMoreProps) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "text-fg-faint hover:text-fg hover:bg-raised focus-visible:text-fg focus-visible:bg-raised duration-fast flex w-full cursor-pointer items-center px-4 py-1.5 text-[13px] transition-colors ease-out select-none focus-visible:outline-none",
+        className,
+      )}
+      {...props}
+      onClick={onShowMore}
+    >
+      Show more
+    </button>
+  );
+}
+
 type HistoryItemRootProps = useRender.ComponentProps<"a"> & {
   isActive: boolean;
 };
@@ -208,6 +239,8 @@ export const Sidebar = {
   Brand,
   NewChat,
   History,
+  HistoryStatus,
+  HistoryShowMore,
   HistoryItem: {
     Root: HistoryItemRoot,
     Title: HistoryItemTitle,

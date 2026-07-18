@@ -9,6 +9,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQuery: vi.fn(),
+  useQueryClient: vi.fn(),
 }));
 vi.mock("@/hooks/use-plata-chat", () => ({
   usePlataChat: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock("@/lib/ai/fetch", () => ({
 }));
 
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePlataChat } from "@/hooks/use-plata-chat";
 import { mockPlataChat } from "@/hooks/__tests__/mock-plata-chat";
 import { toastManager } from "@/components/ui/toast-manager";
@@ -49,12 +50,22 @@ function mockQuery(overrides: Partial<MockQueryResult> = {}) {
   vi.mocked(useQuery).mockReturnValue(result as ReturnType<typeof useQuery>);
 }
 
+// The query client's real type is the full QueryClient class; narrowed to what ChatProvider calls.
+function mockQueryClient() {
+  const invalidateQueries = vi.fn();
+  vi.mocked(useQueryClient).mockReturnValue({
+    invalidateQueries,
+  } as unknown as ReturnType<typeof useQueryClient>);
+  return invalidateQueries;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   capturedContext = undefined;
   vi.mocked(useNavigate).mockReturnValue(vi.fn());
   vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
   mockQuery();
+  mockQueryClient();
 });
 
 afterEach(() => {
@@ -280,5 +291,71 @@ describe("ChatProvider actions", () => {
     capturedContext!.resetChat();
 
     expect(setMessages).toHaveBeenCalledWith([]);
+  });
+});
+
+describe("ChatProvider History freshness", () => {
+  it("invalidates History (the chat-sessions query) when a send completes — loading to idle", () => {
+    const invalidateQueries = mockQueryClient();
+    mockChat({ isLoading: true });
+    const { rerender } = render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    mockChat({ isLoading: false });
+    rerender(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["chat-sessions"] });
+  });
+
+  it("does not invalidate History on mount or at send start — idle to loading", () => {
+    const invalidateQueries = mockQueryClient();
+    mockChat({ isLoading: false });
+    const { rerender } = render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    // Mount (idle): no invalidation.
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    // Send starts (idle → loading): still no invalidation — the session row isn't committed yet.
+    mockChat({ isLoading: true });
+    rerender(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(invalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it("does not invalidate History on re-renders while a send is still streaming", () => {
+    const invalidateQueries = mockQueryClient();
+    mockChat({ isLoading: true });
+    const { rerender } = render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    mockChat({ isLoading: true });
+    rerender(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(invalidateQueries).not.toHaveBeenCalled();
   });
 });
