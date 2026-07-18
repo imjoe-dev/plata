@@ -31,6 +31,20 @@
   --color-caution-bg: oklch(0.82 0.15 78 / 0.1);
   --color-info-bg: oklch(0.74 0.13 235 / 0.1);
 
+  /* ── Colors: chart series (categorical identity — pie slices).
+     Slot ORDER is the colorblind-safety mechanism, not cosmetic: this ordering
+     passes adjacent-pair CVD ΔE ≥ 8 and normal-vision ΔE ≥ 15 on --color-base
+     (validated 2026-07-18). Never cycle past 8 — fold into `series-other`. ── */
+  --color-series-1: #3987e5;
+  --color-series-2: #008300;
+  --color-series-3: #d55181;
+  --color-series-4: #c98500;
+  --color-series-5: #199e70;
+  --color-series-6: #d95926;
+  --color-series-7: #9085e9;
+  --color-series-8: #e66767;
+  --color-series-other: oklch(0.45 0.005 240);
+
   /* ── Typography ── */
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
