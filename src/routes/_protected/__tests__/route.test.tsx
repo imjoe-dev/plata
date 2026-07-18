@@ -3,7 +3,11 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("@tanstack/react-router", () => ({
-  createFileRoute: (path: string) => (opts: any) => ({ id: path, options: opts }),
+  createFileRoute: (path: string) => (opts: any) => ({
+    id: path,
+    options: opts,
+    useRouteContext: vi.fn(),
+  }),
   redirect: vi.fn(),
   Outlet: () => null,
   useNavigate: vi.fn(),
@@ -29,7 +33,6 @@ vi.mock("@/lib/auth/client", async () => {
   return {
     authClient: {
       ...actual.authClient,
-      useSession: vi.fn(),
       signOut: vi.fn(),
     },
   };
@@ -51,18 +54,14 @@ function mockChat(overrides: Partial<ReturnType<typeof usePlataChat>> = {}) {
   vi.mocked(usePlataChat).mockReturnValue(mockPlataChat(overrides));
 }
 
-// authClient.useSession()'s real return type carries Better Auth's full session/user shape;
-// narrowed here to just the fields ProtectedLayoutContent actually reads.
+// beforeLoad's session (fetched server-side via getSession()) reaches the component through
+// route context; narrowed here to just the fields ProtectedLayoutContent actually reads.
 type MockUser = { name: string; email: string; image: string | null };
 
 function mockSession(user: Partial<MockUser> = {}) {
-  vi.mocked(authClient.useSession).mockReturnValue({
-    data: {
-      user: { name: "Jose Ariza", email: "jose@example.com", image: null, ...user },
-    },
-    error: null,
-    isPending: false,
-  } as unknown as ReturnType<typeof authClient.useSession>);
+  vi.mocked(Route.useRouteContext).mockReturnValue({
+    session: { user: { name: "Jose Ariza", email: "jose@example.com", image: null, ...user } },
+  });
 }
 
 // authClient.signOut()'s real (generic) signature resists Parameters<> extraction;
@@ -119,18 +118,6 @@ describe("ProtectedLayout account footer wiring", () => {
 
     expect(getByText("Jose Ariza")).toBeDefined();
     expect(getByText("jose@example.com")).toBeDefined();
-  });
-
-  it("does not render the account footer while the session is still resolving", () => {
-    vi.mocked(authClient.useSession).mockReturnValue({
-      data: undefined,
-      error: null,
-      isPending: true,
-    } as unknown as ReturnType<typeof authClient.useSession>);
-
-    const { queryByRole } = render(<ProtectedLayout />);
-
-    expect(queryByRole("button", { name: "Sign out" })).toBeNull();
   });
 
   it("signs out and redirects to the login route when clicked", () => {
