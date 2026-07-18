@@ -1,0 +1,1 @@
+CREATE INDEX `chat_sessions_user_id_updated_at_idx` ON `chat_sessions` (`user_id`,`updated_at`);

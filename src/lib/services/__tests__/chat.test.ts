@@ -5,6 +5,8 @@ import { NotFoundError } from "@/lib/errors";
 vi.mock("@/lib/repositories/chat-sessions", () => ({
   createChatSession: vi.fn(),
   getChatSessionById: vi.fn(),
+  listChatSessions: vi.fn(),
+  touchChatSession: vi.fn(),
 }));
 vi.mock("@/lib/repositories/chat-messages", () => ({
   createChatMessage: vi.fn(),

@@ -210,7 +210,11 @@ export const chat_sessions = sqliteTable(
       .notNull(),
     deleted_at: integer("deleted_at", { mode: "timestamp_ms" }),
   },
-  (table) => [index("chat_sessions_user_id_idx").on(table.user_id)],
+  (table) => [
+    index("chat_sessions_user_id_idx").on(table.user_id),
+    // Serves the History list query: sessions by user, ordered by most recent Activity.
+    index("chat_sessions_user_id_updated_at_idx").on(table.user_id, table.updated_at),
+  ],
 );
 
 export const chat_messages = sqliteTable(
