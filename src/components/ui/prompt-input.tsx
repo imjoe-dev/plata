@@ -1,13 +1,23 @@
 import { cn } from "@/lib/utils";
-import Placeholder from "@tiptap/extension-placeholder";
+import Blockquote from "@tiptap/extension-blockquote";
+import Bold from "@tiptap/extension-bold";
+import Document from "@tiptap/extension-document";
+import HardBreak from "@tiptap/extension-hard-break";
+import Heading from "@tiptap/extension-heading";
+import HorizontalRule from "@tiptap/extension-horizontal-rule";
+import Italic from "@tiptap/extension-italic";
+import { BulletList, ListItem, OrderedList } from "@tiptap/extension-list";
+import Paragraph from "@tiptap/extension-paragraph";
+import Strike from "@tiptap/extension-strike";
+import Text from "@tiptap/extension-text";
+import { Placeholder, UndoRedo } from "@tiptap/extensions";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import {
-  Bold,
+  BoldIcon,
   Heading1,
   Heading2,
   Heading3,
-  Italic,
+  ItalicIcon,
   List,
   ListOrdered,
   Minus,
@@ -52,10 +62,20 @@ function Root({
   const [isControlled] = useState(() => value !== undefined);
 
   const extensions = [
-    StarterKit.configure({
-      codeBlock: false,
-      heading: { levels: [1, 2, 3] },
-    }),
+    Document,
+    Paragraph,
+    Text,
+    HardBreak,
+    UndoRedo,
+    Bold,
+    Italic,
+    Strike,
+    Heading.configure({ levels: [1, 2, 3] }),
+    BulletList,
+    OrderedList,
+    ListItem,
+    Blockquote,
+    HorizontalRule,
     Placeholder.configure({ placeholder }),
   ];
 
@@ -159,7 +179,7 @@ function Toolbar({ className }: { className?: string }) {
         className={btn(editor.isActive("bold"))}
         aria-label="Bold"
       >
-        <Bold className={icon} />
+        <BoldIcon className={icon} />
       </button>
       <button
         type="button"
@@ -167,7 +187,7 @@ function Toolbar({ className }: { className?: string }) {
         className={btn(editor.isActive("italic"))}
         aria-label="Italic"
       >
-        <Italic className={icon} />
+        <ItalicIcon className={icon} />
       </button>
       <button
         type="button"
