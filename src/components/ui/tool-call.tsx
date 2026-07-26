@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ChevronDown, Wrench } from "lucide-react";
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
 import { Button } from "@/components/ui/button";
 
 export type ToolCallDisplayState = "running" | "pending-approval" | "complete" | "denied" | "error";
@@ -125,7 +125,7 @@ function Name({ children, className, ...props }: Collapsible.Trigger.Props) {
 function StatusBadge({ className, ...props }: React.ComponentProps<"span">) {
   const {
     state: { displayState, statusLabel },
-  } = useContext(ToolCallContext);
+  } = use(ToolCallContext);
 
   if (!statusLabel) return null;
 
@@ -169,7 +169,7 @@ function Args({ children, className, ...props }: React.ComponentProps<"div">) {
 function Response({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
-  } = useContext(ToolCallContext);
+  } = use(ToolCallContext);
 
   if (displayState !== "complete" || !children) return null;
 
@@ -186,7 +186,7 @@ function Response({ children, className, ...props }: React.ComponentProps<"div">
 function Error({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
-  } = useContext(ToolCallContext);
+  } = use(ToolCallContext);
 
   if (displayState !== "error") return null;
 
@@ -221,7 +221,7 @@ function ApprovalActions({
   const {
     state: { displayState },
     actions: { approve, deny, approveForSession },
-  } = useContext(ToolCallContext);
+  } = use(ToolCallContext);
 
   if (displayState !== "pending-approval") return null;
 
@@ -245,7 +245,7 @@ function ApprovalActions({
 function DeniedNotice({ children, className, ...props }: React.ComponentProps<"div">) {
   const {
     state: { displayState },
-  } = useContext(ToolCallContext);
+  } = use(ToolCallContext);
 
   if (displayState !== "denied") return null;
 

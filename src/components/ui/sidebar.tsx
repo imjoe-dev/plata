@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useRender } from "@base-ui/react/use-render";
 import { LogOut, MessageSquare, Plus } from "lucide-react";
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -146,7 +146,7 @@ interface AccountContextValue {
 const AccountContext = createContext<AccountContextValue | null>(null);
 
 function useAccountContext(): AccountContextValue {
-  const ctx = useContext(AccountContext);
+  const ctx = use(AccountContext);
   if (!ctx) throw new Error("Sidebar.Account.* must be used within Sidebar.Account.Root");
   return ctx;
 }

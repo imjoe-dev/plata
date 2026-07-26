@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, use, useState } from "react";
 import type { ToolCallPart } from "@tanstack/ai-client";
 
 import { useChatContext } from "@/contexts/chat-context";
@@ -28,7 +28,7 @@ interface ToolApprovalContextValue {
 const ToolApprovalContext = createContext<ToolApprovalContextValue | null>(null);
 
 export function useToolApproval(): ToolApprovalContextValue {
-  const ctx = useContext(ToolApprovalContext);
+  const ctx = use(ToolApprovalContext);
   if (!ctx) throw new Error("useToolApproval must be used within a ToolApprovalProvider");
   return ctx;
 }

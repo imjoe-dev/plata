@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, use, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
@@ -26,7 +26,7 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function useChatContext(): ChatContextValue {
-  const ctx = useContext(ChatContext);
+  const ctx = use(ChatContext);
   if (!ctx) throw new Error("useChatContext must be used within a ChatProvider");
   return ctx;
 }
