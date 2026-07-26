@@ -26,9 +26,6 @@ vi.mock("@tanstack/ai", () => ({
     role: "user",
     parts: [{ type: "text", content: message?.content ?? "" }],
   })),
-  modelMessagesToUIMessages: vi.fn(() => [
-    { id: "am_1", role: "assistant", parts: [{ type: "text", content: "reply" }] },
-  ]),
 }));
 vi.mock("@tanstack/ai-openai", () => ({
   createOpenaiChat: vi.fn(() => ({})),
@@ -48,7 +45,7 @@ vi.mock("@/lib/services/chat", () => ({
   appendMessage: vi.fn(),
 }));
 
-import { chat, modelMessagesToUIMessages, type ChatMiddleware } from "@tanstack/ai";
+import { chat, type ChatMiddleware } from "@tanstack/ai";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { getOrCreateSession, appendMessage } from "@/lib/services/chat";
@@ -237,12 +234,13 @@ describe("POST /api/chat", () => {
       const middleware = call.middleware[0] as ChatMiddleware;
       expect(vi.mocked(appendMessage).mock.calls).toHaveLength(1); // user message only, so far
 
+      // The generated turn never lands in ctx.messages, so the reply has to be built from
+      // FinishInfo.content — the ctx below deliberately carries no assistant message.
       await middleware.onFinish!(
         { messages: [{ role: "user", content: "hi" }], messageCount: 0 } as any,
-        {} as any,
+        { finishReason: "stop", duration: 12, content: "reply" },
       );
 
-      expect(modelMessagesToUIMessages).toHaveBeenCalled();
       expect(appendMessage).toHaveBeenCalledWith("user-123", SESSION_ID, "assistant", [
         { type: "text", content: "reply" },
       ]);
