@@ -8,15 +8,13 @@ export const Route = createFileRoute("/_protected/chat/$sessionId")({
 });
 
 function ChatSessionPage() {
-  const { messages, error, addToolApprovalResponse, sessionId, submit } = useChatContext();
+  const { messages, error, submit } = useChatContext();
 
   return (
     <ChatConversation
       messages={messages}
       error={error}
       onSubmit={submit}
-      addToolApprovalResponse={addToolApprovalResponse}
-      sessionId={sessionId}
       messagesClassName="px-4 py-4"
     />
   );

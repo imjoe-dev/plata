@@ -8,6 +8,7 @@ import {
   useParams,
 } from "@tanstack/react-router";
 import { ChatProvider, useChatContext } from "@/contexts/chat-context";
+import { ToolApprovalProvider } from "@/contexts/tool-approval-context";
 import { authClient } from "@/lib/auth/client";
 import { useChatSessions } from "@/hooks/use-chat-sessions";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -29,7 +30,9 @@ export const Route = createFileRoute("/_protected")({
 function ProtectedLayout() {
   return (
     <ChatProvider>
-      <ProtectedLayoutContent />
+      <ToolApprovalProvider>
+        <ProtectedLayoutContent />
+      </ToolApprovalProvider>
     </ChatProvider>
   );
 }

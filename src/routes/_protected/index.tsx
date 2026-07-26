@@ -10,8 +10,7 @@ export const Route = createFileRoute("/_protected/")({
 });
 
 function HomePage() {
-  const { messages, error, addToolApprovalResponse, sessionId, submit, resetChat } =
-    useChatContext();
+  const { messages, error, submit, resetChat } = useChatContext();
 
   // Landing on `/` always means a fresh chat — including via browser Back from an existing
   // conversation, since only the layout (not this route) persists across navigation.
@@ -34,13 +33,5 @@ function HomePage() {
     );
   }
 
-  return (
-    <ChatConversation
-      messages={messages}
-      error={error}
-      onSubmit={submit}
-      addToolApprovalResponse={addToolApprovalResponse}
-      sessionId={sessionId}
-    />
-  );
+  return <ChatConversation messages={messages} error={error} onSubmit={submit} />;
 }
