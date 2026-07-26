@@ -1,14 +1,10 @@
 import { z } from "zod";
 
-import { dollarsToCentsSchema } from "@/lib/currency";
+import { currencySchema, dollarsToCentsSchema } from "@/lib/currency";
 
 export const Transaction = z.object({
   amount: dollarsToCentsSchema,
-  currency: z
-    .string()
-    .length(3)
-    .default("USD")
-    .meta({ description: "ISO 4217 currency code, e.g. USD." }),
+  currency: currencySchema.default("USD"),
   type: z.enum(["expense", "income"]).meta({ description: "Transaction type: expense or income." }),
   description: z.string().min(1).meta({ description: "Human-readable description." }),
   date: z.coerce.date(),
@@ -26,11 +22,7 @@ export type Transaction = z.infer<typeof Transaction>;
 
 export const TransactionPatch = z.object({
   ...Transaction.partial().shape,
-  currency: z
-    .string()
-    .length(3)
-    .optional()
-    .meta({ description: "ISO 4217 currency code, e.g. USD." }),
+  currency: currencySchema.optional(),
 });
 
 export type TransactionPatch = z.infer<typeof TransactionPatch>;

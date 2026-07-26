@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { dollarsToCentsSchema, toDollars } from "@/lib/currency";
+import { currencySchema, dollarsToCentsSchema, toDollars } from "@/lib/currency";
 
 describe("dollarsToCentsSchema", () => {
   it("converts dollars to cents", () => {
@@ -11,6 +11,19 @@ describe("dollarsToCentsSchema", () => {
   it("rejects non-positive amounts", () => {
     expect(dollarsToCentsSchema.safeParse(0).success).toBe(false);
     expect(dollarsToCentsSchema.safeParse(-5).success).toBe(false);
+  });
+});
+
+describe("currencySchema", () => {
+  it("accepts USD and COP", () => {
+    expect(currencySchema.parse("USD")).toBe("USD");
+    expect(currencySchema.parse("COP")).toBe("COP");
+  });
+
+  it("rejects any other currency code", () => {
+    expect(currencySchema.safeParse("EUR").success).toBe(false);
+    expect(currencySchema.safeParse("usd").success).toBe(false);
+    expect(currencySchema.safeParse("").success).toBe(false);
   });
 });
 

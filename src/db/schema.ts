@@ -1,6 +1,8 @@
 import { relations, sql } from "drizzle-orm";
 import { sqliteTable, text, integer, index, unique, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+import { CURRENCY_VALUES } from "@/lib/currency";
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -114,7 +116,9 @@ export const transactions = sqliteTable(
   {
     id: text("id").primaryKey(),
     amount: integer("amount").notNull(),
-    currency: text("currency").notNull().default("USD"),
+    currency: text("currency", { enum: [...CURRENCY_VALUES] })
+      .notNull()
+      .default("USD"),
     type: text("type", { enum: ["expense", "income"] }).notNull(),
     description: text("description").notNull(),
     date: integer("date", { mode: "timestamp_ms" }).notNull(),
@@ -156,7 +160,9 @@ export const recurring_templates = sqliteTable(
   {
     id: text("id").primaryKey(),
     amount: integer("amount").notNull(),
-    currency: text("currency").notNull().default("USD"),
+    currency: text("currency", { enum: [...CURRENCY_VALUES] })
+      .notNull()
+      .default("USD"),
     type: text("type", { enum: ["expense", "income"] }).notNull(),
     description: text("description").notNull(),
     category_id: text("category_id").references(() => categories.id, {

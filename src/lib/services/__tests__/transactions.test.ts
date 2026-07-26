@@ -39,7 +39,7 @@ import {
 
 const validInput = {
   amount: 1234,
-  currency: "USD",
+  currency: "USD" as const,
   type: "expense" as const,
   description: "Lunch",
   date: new Date("2026-07-01"),

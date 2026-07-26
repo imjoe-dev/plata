@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { z } from "zod";
 
 import { checkRateLimit } from "@/lib/api/http";
-import { toDollars } from "@/lib/currency";
+import { currencySchema, toDollars } from "@/lib/currency";
 import {
   RecurringTemplate,
   RecurringTemplateListQuery,
@@ -28,7 +28,7 @@ export const RecurringTemplateRow = z.object({
   amount: z
     .number()
     .meta({ description: "Amount in major currency units, e.g. 12.50 for $12.50." }),
-  currency: z.string(),
+  currency: currencySchema,
   type: z.enum(["expense", "income"]),
   description: z.string(),
   category_id: z.string().nullable(),

@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { dollarsToCentsSchema } from "@/lib/currency";
+import { currencySchema, dollarsToCentsSchema } from "@/lib/currency";
 
 export const RecurringTemplate = z.object({
   amount: dollarsToCentsSchema,
-  currency: z.string().length(3).default("USD").meta({ description: "ISO 4217 currency code." }),
+  currency: currencySchema.default("USD"),
   type: z.enum(["expense", "income"]).meta({ description: "expense or income." }),
   description: z.string().min(1).meta({ description: "Human-readable description." }),
   categoryId: z.string().nullable().optional().meta({ description: "Optional category id." }),
@@ -23,7 +23,7 @@ export type RecurringTemplate = z.infer<typeof RecurringTemplate>;
 
 export const RecurringTemplatePatch = z.object({
   ...RecurringTemplate.partial().shape,
-  currency: z.string().length(3).optional().meta({ description: "ISO 4217 currency code." }),
+  currency: currencySchema.optional(),
 });
 
 export type RecurringTemplatePatch = z.infer<typeof RecurringTemplatePatch>;

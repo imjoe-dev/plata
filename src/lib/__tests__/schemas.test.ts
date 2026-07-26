@@ -44,6 +44,23 @@ describe("Transaction schema", () => {
       }),
     ).toThrow();
   });
+
+  it("rejects an unsupported currency", () => {
+    expect(() =>
+      Transaction.parse({
+        amount: 5,
+        currency: "EUR",
+        type: "expense",
+        description: "x",
+        date: new Date(),
+        source: "manual",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an unsupported currency on patch", () => {
+    expect(() => TransactionPatch.parse({ currency: "EUR" })).toThrow();
+  });
 });
 
 describe("RecurringTemplate schema", () => {
@@ -69,6 +86,23 @@ describe("RecurringTemplate schema", () => {
         status: "active",
       }),
     ).toThrow();
+  });
+
+  it("rejects an unsupported currency", () => {
+    expect(() =>
+      RecurringTemplate.parse({
+        amount: 10,
+        currency: "EUR",
+        type: "income",
+        description: "x",
+        cadence: "monthly",
+        status: "active",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an unsupported currency on patch", () => {
+    expect(() => RecurringTemplatePatch.parse({ currency: "EUR" })).toThrow();
   });
 });
 

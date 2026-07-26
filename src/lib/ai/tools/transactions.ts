@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { z } from "zod";
 
 import { checkRateLimit } from "@/lib/api/http";
-import { toDollars } from "@/lib/currency";
+import { currencySchema, toDollars } from "@/lib/currency";
 import {
   Transaction,
   TransactionListQuery,
@@ -24,7 +24,7 @@ import type { ToolContext } from "./context";
 export const TransactionRow = z.object({
   id: z.string(),
   amount: z.number().meta({ description: "Amount in major currency units, e.g. 9.99 for $9.99." }),
-  currency: z.string(),
+  currency: currencySchema,
   type: z.enum(["expense", "income"]),
   description: z.string(),
   date: z.string(),

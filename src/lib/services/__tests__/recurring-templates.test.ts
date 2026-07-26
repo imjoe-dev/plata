@@ -42,7 +42,7 @@ import {
 
 const validInput = {
   amount: 1500,
-  currency: "USD",
+  currency: "USD" as const,
   type: "expense" as const,
   description: "Rent",
   cadence: "monthly" as const,
