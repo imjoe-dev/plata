@@ -10,8 +10,8 @@ vi.mock("cloudflare:workers", () => ({
 import { allToolDefinitions } from "@/lib/ai/tools/index";
 
 describe("allToolDefinitions", () => {
-  it("contains 19 tools", () => {
-    expect(allToolDefinitions).toHaveLength(19);
+  it("contains 21 tools", () => {
+    expect(allToolDefinitions).toHaveLength(21);
   });
 
   it("has unique names", () => {
@@ -41,6 +41,8 @@ describe("allToolDefinitions", () => {
       "delete_recurring_template",
       "activate_recurring_template",
       "pause_recurring_template",
+      "get_user_preferences",
+      "update_user_preferences",
     ];
     for (const name of expected) expect(names.has(name)).toBe(true);
   });
