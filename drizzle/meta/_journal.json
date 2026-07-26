@@ -36,6 +36,13 @@
       "when": 1785080988979,
       "tag": "0004_low_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785084361080,
+      "tag": "0005_backfill-user-preferences",
+      "breakpoints": true
     }
   ]
 }
