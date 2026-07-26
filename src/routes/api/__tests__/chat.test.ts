@@ -53,7 +53,7 @@ import { env } from "cloudflare:workers";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { getOrCreateSession, appendMessage } from "@/lib/services/chat";
 import { NotFoundError, RateLimitedError, UnauthorizedError } from "@/lib/errors";
-import { allToolDefinitions } from "@/lib/ai/tools/index";
+import { allToolDefinitions, approvedToolDefinitions } from "@/lib/ai/tools/index";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import * as RouteMod from "@/routes/api/chat";
 
@@ -76,7 +76,10 @@ function makeRequest(body: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getOrCreateSession).mockResolvedValue({ id: SESSION_ID } as any);
+  vi.mocked(getOrCreateSession).mockResolvedValue({
+    id: SESSION_ID,
+    mutating_tools_approved: false,
+  } as any);
   vi.mocked(appendMessage).mockResolvedValue({} as any);
 });
 
@@ -114,6 +117,23 @@ describe("POST /api/chat", () => {
     const call = vi.mocked(chat).mock.calls[0][0] as any;
     expect(call.tools).toEqual(allToolDefinitions);
     expect(call.systemPrompts).toEqual([SYSTEM_PROMPT]);
+  });
+
+  it("passes the Session Approval tool array when the Chat Session has granted it", async () => {
+    vi.mocked(requireUser).mockResolvedValueOnce("user-123");
+    vi.mocked(checkRateLimit).mockResolvedValueOnce(undefined);
+    vi.mocked(getOrCreateSession).mockResolvedValueOnce({
+      id: SESSION_ID,
+      mutating_tools_approved: true,
+    } as any);
+
+    await Route.server.handlers.POST({ request: makeRequest() });
+
+    const lastCall = vi.mocked(chat).mock.lastCall;
+    expect(lastCall).toBeDefined();
+    const call = lastCall![0] as any;
+    expect(call.tools).toEqual(approvedToolDefinitions);
+    expect(call.tools).not.toEqual(allToolDefinitions);
   });
 
   it("passes the authenticated user's id as per-request tool context", async () => {

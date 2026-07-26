@@ -15,7 +15,10 @@ vi.mock("cloudflare:workers", () => ({
 import { env } from "cloudflare:workers";
 import { NotFoundError } from "@/lib/errors";
 import * as svc from "@/lib/services/transactions";
-import { transactionServerTools } from "@/lib/ai/tools/transactions";
+import {
+  transactionServerTools,
+  transactionServerToolsApproved,
+} from "@/lib/ai/tools/transactions";
 
 const limitSpy = vi.mocked((env as any).MUTATION_RATE_LIMITER.limit);
 
@@ -54,6 +57,24 @@ function findTool(name: string): any {
 beforeEach(() => {
   vi.clearAllMocks();
   limitSpy.mockResolvedValue({ success: true });
+});
+
+describe("transactionServerToolsApproved (Session Approval variant)", () => {
+  function findApproved(name: string) {
+    const tool = transactionServerToolsApproved.find((t) => t.name === name);
+    if (!tool) throw new Error(`tool ${name} not found`);
+    return tool;
+  }
+
+  it("leaves create/create_transactions/update ungated", () => {
+    expect(findApproved("create_transaction").needsApproval).toBeUndefined();
+    expect(findApproved("create_transactions").needsApproval).toBeUndefined();
+    expect(findApproved("update_transaction").needsApproval).toBeUndefined();
+  });
+
+  it("keeps delete gated even in the Session Approval variant", () => {
+    expect(findApproved("delete_transaction").needsApproval).toBe(true);
+  });
 });
 
 describe("list_transactions server tool", () => {

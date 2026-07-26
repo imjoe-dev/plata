@@ -1,6 +1,6 @@
 import { categoryServerTools } from "./categories";
 import { recurringTemplateServerTools } from "./recurring-templates";
-import { transactionServerTools } from "./transactions";
+import { transactionServerTools, transactionServerToolsApproved } from "./transactions";
 import { userPreferencesServerTools } from "./user-preferences";
 
 export const allToolDefinitions = [
@@ -9,3 +9,21 @@ export const allToolDefinitions = [
   ...recurringTemplateServerTools,
   ...userPreferencesServerTools,
 ] as const;
+
+/**
+ * Session Approval (docs/adr/0006) variant of `allToolDefinitions`: resources that have been
+ * given the Session Approval twin-array treatment substitute their ungated array here. Both
+ * arrays are built once at module scope from already-built per-resource arrays — selecting
+ * between them per request (see the chat route) is just picking a reference, not constructing
+ * tool definitions.
+ */
+export const approvedToolDefinitions = [
+  ...categoryServerTools,
+  ...transactionServerToolsApproved,
+  ...recurringTemplateServerTools,
+  ...userPreferencesServerTools,
+] as const;
+
+export function selectToolDefinitions(sessionApproved: boolean) {
+  return sessionApproved ? approvedToolDefinitions : allToolDefinitions;
+}

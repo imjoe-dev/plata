@@ -1,0 +1,1 @@
+ALTER TABLE `chat_sessions` ADD `mutating_tools_approved` integer DEFAULT false NOT NULL;

@@ -103,22 +103,34 @@ export const listTransactionsDef = toolDefinition({
   outputSchema: ListTransactionsOutput,
 });
 
-export const createTransactionDef = toolDefinition({
+const createTransactionBase = {
   name: "create_transaction",
   description: "Create a new transaction. Amount is in major currency units (e.g. 9.99 for $9.99).",
   inputSchema: CreateTransactionInput,
   outputSchema: TransactionRow,
+} as const;
+
+export const createTransactionDef = toolDefinition({
+  ...createTransactionBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const createTransactionUngatedDef = toolDefinition(createTransactionBase);
 
-export const createTransactionsDef = toolDefinition({
+const createTransactionsBase = {
   name: "create_transactions",
   description:
     "Create 1-20 transactions in one atomic action — either all are created, or none are. Prefer create_transaction for a single transaction. Amount is in major currency units (e.g. 9.99 for $9.99).",
   inputSchema: CreateTransactionsInput,
   outputSchema: z.array(TransactionRow),
+} as const;
+
+export const createTransactionsDef = toolDefinition({
+  ...createTransactionsBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const createTransactionsUngatedDef = toolDefinition(createTransactionsBase);
 
 export const getTransactionDef = toolDefinition({
   name: "get_transaction",
@@ -127,14 +139,21 @@ export const getTransactionDef = toolDefinition({
   outputSchema: TransactionRow,
 });
 
-export const updateTransactionDef = toolDefinition({
+const updateTransactionBase = {
   name: "update_transaction",
   description: "Update an existing transaction by id. Amount is in major currency units.",
   inputSchema: UpdateTransactionInput,
   outputSchema: TransactionRow,
+} as const;
+
+export const updateTransactionDef = toolDefinition({
+  ...updateTransactionBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const updateTransactionUngatedDef = toolDefinition(updateTransactionBase);
 
+// delete_transaction has no ungated variant: deletes always require approval (docs/adr/0006).
 export const deleteTransactionDef = toolDefinition({
   name: "delete_transaction",
   description: "Soft-delete a transaction by id.",
@@ -168,62 +187,101 @@ function serializeTransactionDates<T extends DateFields>(
   };
 }
 
+async function listTransactionsExecute(
+  input: z.input<typeof ListTransactionsInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  const page = input.page || 1;
+  const limit = input.limit || 20;
+  const filters = {
+    type: input.type || undefined,
+    categoryId: input.categoryId || undefined,
+    from: input.from ? new Date(input.from) : undefined,
+    to: input.to ? new Date(input.to) : undefined,
+  };
+  const { rows, total } = await listTransactions(userId, filters, { page, limit });
+  return {
+    transactions: rows.map((row) => toDollars(serializeTransactionDates(row))),
+    page,
+    limit,
+    total,
+    hasMore: page * limit < total,
+  };
+}
+
+async function createTransactionExecute(
+  input: z.input<typeof CreateTransactionInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+  const payload = Transaction.parse(input);
+  const row = await createTransaction(userId, payload);
+  return toDollars(serializeTransactionDates(row));
+}
+
+async function createTransactionsExecute(
+  input: z.input<typeof CreateTransactionsInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+  const payloads = input.transactions.map((t) => Transaction.parse(t));
+  const rows = await createTransactions(userId, payloads);
+  return rows.map((row) => toDollars(serializeTransactionDates(row)));
+}
+
+async function getTransactionExecute(
+  input: z.input<typeof IdInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  const row = await getTransaction(userId, input.id);
+  return toDollars(serializeTransactionDates(row));
+}
+
+async function updateTransactionExecute(
+  input: z.input<typeof UpdateTransactionInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+  const { id, ...rest } = input;
+  const patch = TransactionPatch.parse(rest);
+  const row = await updateTransaction(userId, id, patch);
+  return toDollars(serializeTransactionDates(row));
+}
+
+async function deleteTransactionExecute(
+  input: z.input<typeof IdInput>,
+  ctx: { context: ToolContext },
+) {
+  const { userId } = ctx.context;
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+  const row = await deleteTransaction(userId, input.id);
+  return toDollars(serializeTransactionDates(row));
+}
+
 export const transactionServerTools = [
-  listTransactionsDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    const page = input.page || 1;
-    const limit = input.limit || 20;
-    const filters = {
-      type: input.type || undefined,
-      categoryId: input.categoryId || undefined,
-      from: input.from ? new Date(input.from) : undefined,
-      to: input.to ? new Date(input.to) : undefined,
-    };
-    const { rows, total } = await listTransactions(userId, filters, { page, limit });
-    return {
-      transactions: rows.map((row) => toDollars(serializeTransactionDates(row))),
-      page,
-      limit,
-      total,
-      hasMore: page * limit < total,
-    };
-  }),
+  listTransactionsDef.server<ToolContext>(listTransactionsExecute),
+  createTransactionDef.server<ToolContext>(createTransactionExecute),
+  createTransactionsDef.server<ToolContext>(createTransactionsExecute),
+  getTransactionDef.server<ToolContext>(getTransactionExecute),
+  updateTransactionDef.server<ToolContext>(updateTransactionExecute),
+  deleteTransactionDef.server<ToolContext>(deleteTransactionExecute),
+] as const;
 
-  createTransactionDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
-    const payload = Transaction.parse(input);
-    const row = await createTransaction(userId, payload);
-    return toDollars(serializeTransactionDates(row));
-  }),
-
-  createTransactionsDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
-    const payloads = input.transactions.map((t) => Transaction.parse(t));
-    const rows = await createTransactions(userId, payloads);
-    return rows.map((row) => toDollars(serializeTransactionDates(row)));
-  }),
-
-  getTransactionDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    const row = await getTransaction(userId, input.id);
-    return toDollars(serializeTransactionDates(row));
-  }),
-
-  updateTransactionDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
-    const { id, ...rest } = input;
-    const patch = TransactionPatch.parse(rest);
-    const row = await updateTransaction(userId, id, patch);
-    return toDollars(serializeTransactionDates(row));
-  }),
-
-  deleteTransactionDef.server<ToolContext>(async (input, ctx) => {
-    const { userId } = ctx.context;
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
-    const row = await deleteTransaction(userId, input.id);
-    return toDollars(serializeTransactionDates(row));
-  }),
+/**
+ * Session Approval (docs/adr/0006) variant: create/update tools ungated, delete still gated.
+ * Selected instead of `transactionServerTools` by the chat route when a Chat Session has
+ * granted Session Approval — built once here at module scope, not per request.
+ */
+export const transactionServerToolsApproved = [
+  listTransactionsDef.server<ToolContext>(listTransactionsExecute),
+  createTransactionUngatedDef.server<ToolContext>(createTransactionExecute),
+  createTransactionsUngatedDef.server<ToolContext>(createTransactionsExecute),
+  getTransactionDef.server<ToolContext>(getTransactionExecute),
+  updateTransactionUngatedDef.server<ToolContext>(updateTransactionExecute),
+  deleteTransactionDef.server<ToolContext>(deleteTransactionExecute),
 ] as const;

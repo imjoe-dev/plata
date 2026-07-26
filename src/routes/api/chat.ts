@@ -13,7 +13,7 @@ import { z } from "zod";
 
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import type { ToolContext } from "@/lib/ai/tools/context";
-import { allToolDefinitions } from "@/lib/ai/tools/index";
+import { selectToolDefinitions } from "@/lib/ai/tools/index";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { appendMessage, getOrCreateSession } from "@/lib/services/chat";
 
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/chat")({
           const userMessage = modelMessageToUIMessage(
             normalizedMessages[normalizedMessages.length - 1],
           );
-          await getOrCreateSession(userId, session_id, userMessage.parts);
+          const session = await getOrCreateSession(userId, session_id, userMessage.parts);
           await appendMessage(userId, session_id, "user", userMessage.parts);
 
           const persistAssistantMessage: ChatMiddleware = {
@@ -62,7 +62,7 @@ export const Route = createFileRoute("/api/chat")({
           const stream = chat({
             adapter: adapters[model_id],
             messages,
-            tools: [...allToolDefinitions],
+            tools: [...selectToolDefinitions(session.mutating_tools_approved)],
             systemPrompts: [SYSTEM_PROMPT],
             middleware: [persistAssistantMessage],
             context: { userId } satisfies ToolContext,

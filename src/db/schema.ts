@@ -207,6 +207,12 @@ export const chat_sessions = sqliteTable(
     user_id: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // Session Approval (docs/adr/0006): once true, non-delete Mutating Tools in this
+    // Chat Session skip per-call approval for the rest of the thread. One-way — no
+    // application code ever sets it back to false.
+    mutating_tools_approved: integer("mutating_tools_approved", { mode: "boolean" })
+      .default(false)
+      .notNull(),
     created_at: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

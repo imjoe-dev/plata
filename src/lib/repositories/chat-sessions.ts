@@ -23,6 +23,10 @@ export function touchChatSession(userId: string, id: string) {
   return chatSessionRepo.update(userId, id, { updated_at: new Date() });
 }
 
+export function approveSessionMutations(userId: string, id: string) {
+  return chatSessionRepo.update(userId, id, { mutating_tools_approved: true });
+}
+
 /**
  * Keyset-paginated History listing: `updated_at desc` (most recent Chat Session
  * Activity first) with `id desc` as tie-breaker to make the sort total. Bespoke

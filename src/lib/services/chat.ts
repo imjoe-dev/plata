@@ -1,4 +1,5 @@
 import {
+  approveSessionMutations as repoApproveSessionMutations,
   createChatSession,
   getChatSessionById,
   listChatSessions,
@@ -57,6 +58,13 @@ export async function getOrCreateSession(
     }
     throw cause;
   }
+}
+
+/** Grants Session Approval (docs/adr/0006) on a caller-owned Chat Session. One-way: no revoke. */
+export async function approveSessionMutations(userId: string, sessionId: string) {
+  const row = await repoApproveSessionMutations(userId, sessionId);
+  if (!row) throw new NotFoundError("chat_session", sessionId);
+  return row;
 }
 
 export async function appendMessage(

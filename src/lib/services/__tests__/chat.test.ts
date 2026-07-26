@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { NotFoundError } from "@/lib/errors";
 
 vi.mock("@/lib/repositories/chat-sessions", () => ({
+  approveSessionMutations: vi.fn(),
   createChatSession: vi.fn(),
   getChatSessionById: vi.fn(),
   listChatSessions: vi.fn(),
@@ -15,7 +16,13 @@ vi.mock("@/lib/repositories/chat-messages", () => ({
 
 import * as sessionsRepo from "@/lib/repositories/chat-sessions";
 import * as messagesRepo from "@/lib/repositories/chat-messages";
-import { appendMessage, deriveTitle, getOrCreateSession, listMessages } from "@/lib/services/chat";
+import {
+  appendMessage,
+  approveSessionMutations,
+  deriveTitle,
+  getOrCreateSession,
+  listMessages,
+} from "@/lib/services/chat";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -134,6 +141,24 @@ describe("appendMessage", () => {
     expect(payload.session_id).toBe("sess_1");
     expect(payload.role).toBe("assistant");
     expect(JSON.parse(payload.content as string)).toEqual(parts);
+  });
+});
+
+describe("approveSessionMutations", () => {
+  it("throws NotFoundError when the session isn't owned by the caller", async () => {
+    vi.mocked(sessionsRepo.approveSessionMutations).mockResolvedValueOnce(null);
+
+    await expect(approveSessionMutations("user_1", "sess_1")).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("returns the now-approved session on success", async () => {
+    const approved = { id: "sess_1", user_id: "user_1", mutating_tools_approved: true } as any;
+    vi.mocked(sessionsRepo.approveSessionMutations).mockResolvedValueOnce(approved);
+
+    const result = await approveSessionMutations("user_1", "sess_1");
+
+    expect(result).toBe(approved);
+    expect(sessionsRepo.approveSessionMutations).toHaveBeenCalledWith("user_1", "sess_1");
   });
 });
 

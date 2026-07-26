@@ -17,6 +17,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ProtectedChatSessionIdRouteImport } from './routes/_protected/chat.$sessionId'
 import { Route as ApiChatSessionsIndexRouteImport } from './routes/api/chat/sessions/index'
 import { Route as ApiChatSessionsSessionIdMessagesRouteImport } from './routes/api/chat/sessions/$sessionId/messages'
+import { Route as ApiChatSessionsSessionIdApproveMutationsRouteImport } from './routes/api/chat/sessions/$sessionId/approve-mutations'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -58,6 +59,12 @@ const ApiChatSessionsSessionIdMessagesRoute =
     path: '/sessions/$sessionId/messages',
     getParentRoute: () => ApiChatRoute,
   } as any)
+const ApiChatSessionsSessionIdApproveMutationsRoute =
+  ApiChatSessionsSessionIdApproveMutationsRouteImport.update({
+    id: '/sessions/$sessionId/approve-mutations',
+    path: '/sessions/$sessionId/approve-mutations',
+    getParentRoute: () => ApiChatRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ProtectedIndexRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/sessions/': typeof ApiChatSessionsIndexRoute
+  '/api/chat/sessions/$sessionId/approve-mutations': typeof ApiChatSessionsSessionIdApproveMutationsRoute
   '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRoutesByTo {
@@ -75,6 +83,7 @@ export interface FileRoutesByTo {
   '/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/sessions': typeof ApiChatSessionsIndexRoute
+  '/api/chat/sessions/$sessionId/approve-mutations': typeof ApiChatSessionsSessionIdApproveMutationsRoute
   '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRoutesById {
@@ -86,6 +95,7 @@ export interface FileRoutesById {
   '/_protected/chat/$sessionId': typeof ProtectedChatSessionIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/chat/sessions/': typeof ApiChatSessionsIndexRoute
+  '/api/chat/sessions/$sessionId/approve-mutations': typeof ApiChatSessionsSessionIdApproveMutationsRoute
   '/api/chat/sessions/$sessionId/messages': typeof ApiChatSessionsSessionIdMessagesRoute
 }
 export interface FileRouteTypes {
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/chat/$sessionId'
     | '/api/auth/$'
     | '/api/chat/sessions/'
+    | '/api/chat/sessions/$sessionId/approve-mutations'
     | '/api/chat/sessions/$sessionId/messages'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/chat/$sessionId'
     | '/api/auth/$'
     | '/api/chat/sessions'
+    | '/api/chat/sessions/$sessionId/approve-mutations'
     | '/api/chat/sessions/$sessionId/messages'
   id:
     | '__root__'
@@ -116,6 +128,7 @@ export interface FileRouteTypes {
     | '/_protected/chat/$sessionId'
     | '/api/auth/$'
     | '/api/chat/sessions/'
+    | '/api/chat/sessions/$sessionId/approve-mutations'
     | '/api/chat/sessions/$sessionId/messages'
   fileRoutesById: FileRoutesById
 }
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatSessionsSessionIdMessagesRouteImport
       parentRoute: typeof ApiChatRoute
     }
+    '/api/chat/sessions/$sessionId/approve-mutations': {
+      id: '/api/chat/sessions/$sessionId/approve-mutations'
+      path: '/sessions/$sessionId/approve-mutations'
+      fullPath: '/api/chat/sessions/$sessionId/approve-mutations'
+      preLoaderRoute: typeof ApiChatSessionsSessionIdApproveMutationsRouteImport
+      parentRoute: typeof ApiChatRoute
+    }
   }
 }
 
@@ -203,11 +223,14 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 
 interface ApiChatRouteChildren {
   ApiChatSessionsIndexRoute: typeof ApiChatSessionsIndexRoute
+  ApiChatSessionsSessionIdApproveMutationsRoute: typeof ApiChatSessionsSessionIdApproveMutationsRoute
   ApiChatSessionsSessionIdMessagesRoute: typeof ApiChatSessionsSessionIdMessagesRoute
 }
 
 const ApiChatRouteChildren: ApiChatRouteChildren = {
   ApiChatSessionsIndexRoute: ApiChatSessionsIndexRoute,
+  ApiChatSessionsSessionIdApproveMutationsRoute:
+    ApiChatSessionsSessionIdApproveMutationsRoute,
   ApiChatSessionsSessionIdMessagesRoute: ApiChatSessionsSessionIdMessagesRoute,
 }
 

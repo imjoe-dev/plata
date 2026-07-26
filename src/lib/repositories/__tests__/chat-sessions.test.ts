@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 
 import { setupTestDB, resetTestDB, seedUser, closeTestDB } from "./db-helper";
-import { createChatSession, getChatSessionById } from "@/lib/repositories/chat-sessions";
+import {
+  approveSessionMutations,
+  createChatSession,
+  getChatSessionById,
+} from "@/lib/repositories/chat-sessions";
 
 beforeAll(async () => {
   await setupTestDB();
@@ -38,5 +42,32 @@ describe("chat_sessions repository", () => {
     await expect(
       createChatSession({ id: "sess_1", title: "Second", user_id: "user_2" }),
     ).rejects.toThrow(/chat_sessions\.id/i);
+  });
+
+  it("defaults a new session's Session Approval flag to false", async () => {
+    const created = await createChatSession({ id: "sess_1", title: "Hello", user_id: "user_1" });
+    expect(created.mutating_tools_approved).toBe(false);
+  });
+
+  describe("approveSessionMutations", () => {
+    it("sets the Session Approval flag on a session owned by the caller", async () => {
+      await createChatSession({ id: "sess_1", title: "Hello", user_id: "user_1" });
+
+      const approved = await approveSessionMutations("user_1", "sess_1");
+
+      expect(approved?.mutating_tools_approved).toBe(true);
+      const reread = await getChatSessionById("user_1", "sess_1");
+      expect(reread?.mutating_tools_approved).toBe(true);
+    });
+
+    it("returns null and leaves the flag untouched for a session owned by a different user", async () => {
+      await createChatSession({ id: "sess_1", title: "Hello", user_id: "user_1" });
+
+      const result = await approveSessionMutations("user_2", "sess_1");
+
+      expect(result).toBeNull();
+      const reread = await getChatSessionById("user_1", "sess_1");
+      expect(reread?.mutating_tools_approved).toBe(false);
+    });
   });
 });

@@ -8,11 +8,14 @@ vi.mock("cloudflare:workers", () => ({
 import {
   TransactionRow,
   createTransactionDef,
+  createTransactionUngatedDef,
   createTransactionsDef,
+  createTransactionsUngatedDef,
   deleteTransactionDef,
   getTransactionDef,
   listTransactionsDef,
   updateTransactionDef,
+  updateTransactionUngatedDef,
 } from "@/lib/ai/tools/transactions";
 
 describe("transactions tool definitions", () => {
@@ -188,6 +191,17 @@ describe("transactions tool definitions", () => {
   it("read-only tools (list, get) have no needsApproval field", () => {
     expect(listTransactionsDef.needsApproval).toBeUndefined();
     expect(getTransactionDef.needsApproval).toBeUndefined();
+  });
+
+  it("Session Approval variants of create/create_transactions/update have no needsApproval field, under the same tool name", () => {
+    expect(createTransactionUngatedDef.needsApproval).toBeUndefined();
+    expect(createTransactionUngatedDef.name).toBe(createTransactionDef.name);
+
+    expect(createTransactionsUngatedDef.needsApproval).toBeUndefined();
+    expect(createTransactionsUngatedDef.name).toBe(createTransactionsDef.name);
+
+    expect(updateTransactionUngatedDef.needsApproval).toBeUndefined();
+    expect(updateTransactionUngatedDef.name).toBe(updateTransactionDef.name);
   });
 
   it("list_transactions output schema returns a paginated result object", () => {
