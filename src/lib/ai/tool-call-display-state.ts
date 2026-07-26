@@ -43,3 +43,8 @@ const TOOL_CALL_STATUS_LABELS: Record<ToolCallDisplayState, string | undefined> 
 export function getToolCallStatusLabel(displayState: ToolCallDisplayState): string | undefined {
   return TOOL_CALL_STATUS_LABELS[displayState];
 }
+
+/** Delete tools (docs/adr/0006) are never covered by Session Approval — identified by name. */
+export function isDeleteTool(name: string): boolean {
+  return name.startsWith("delete_");
+}

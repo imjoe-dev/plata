@@ -23,6 +23,7 @@ function ChatSessionPage() {
       error={error}
       onSubmit={handleSubmit}
       addToolApprovalResponse={addToolApprovalResponse}
+      sessionId={sessionId}
       messagesClassName="px-4 py-4"
     />
   );

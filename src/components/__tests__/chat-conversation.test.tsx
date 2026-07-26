@@ -8,6 +8,9 @@ import type { ToolCall as ToolCallComponent } from "@/components/ui/tool-call";
 vi.mock("@/components/ui/toast-manager", () => ({
   toastManager: { add: vi.fn() },
 }));
+vi.mock("@/lib/ai/fetch", () => ({
+  apiPost: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("@/components/ui/prompt-input", () => ({
   PromptInput: {
     Root: ({ children }: any) => <div>{children}</div>,
@@ -36,10 +39,12 @@ vi.mock("@/components/ui/tool-call", () => ({
       children,
       onApprove,
       onDeny,
+      onApproveForSession,
     }: React.ComponentProps<typeof ToolCallComponent.Root>) => (
       <div>
         <button onClick={onApprove}>approve</button>
         <button onClick={onDeny}>deny</button>
+        {onApproveForSession && <button onClick={onApproveForSession}>approve for session</button>}
         {children}
       </div>
     ),
@@ -66,6 +71,7 @@ vi.mock("@/components/ui/tool-call", () => ({
 }));
 
 import { toastManager } from "@/components/ui/toast-manager";
+import { apiPost } from "@/lib/ai/fetch";
 import { ChatConversation } from "@/components/chat-conversation";
 
 beforeEach(() => {
@@ -82,6 +88,7 @@ function baseProps(overrides: Partial<Parameters<typeof ChatConversation>[0]> = 
     error: undefined,
     onSubmit: vi.fn(() => true),
     addToolApprovalResponse: vi.fn(),
+    sessionId: "sess_1",
     ...overrides,
   };
 }
@@ -163,5 +170,91 @@ describe("ChatConversation tool-call approval", () => {
     fireEvent.click(screen.getByText("deny"));
 
     expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_1", approved: false });
+  });
+});
+
+describe("ChatConversation Session Approval (docs/adr/0006)", () => {
+  function toolCallPart(opts: { id?: string; name?: string; approvalId?: string }): ToolCallPart {
+    return {
+      type: "tool-call",
+      id: opts.id ?? "tc",
+      name: opts.name ?? "create_transaction",
+      arguments: "{}",
+      state: "approval-requested",
+      approval: { id: opts.approvalId ?? "appr", needsApproval: true },
+    } as ToolCallPart;
+  }
+
+  it("shows the third action on a non-delete mutating tool call", () => {
+    const message = { id: "m1", role: "assistant", parts: [toolCallPart({})] } as UIMessage;
+    render(<ChatConversation {...baseProps({ messages: [message] })} />);
+
+    expect(screen.getByText("approve for session")).toBeDefined();
+  });
+
+  it("omits the third action entirely on a delete tool call", () => {
+    const part = toolCallPart({ name: "delete_transaction", approvalId: "appr_del" });
+    const message = { id: "m1", role: "assistant", parts: [part] } as UIMessage;
+    render(<ChatConversation {...baseProps({ messages: [message] })} />);
+
+    expect(screen.queryByText("approve for session")).toBeNull();
+  });
+
+  it("approves the clicked call and grants Session Approval on the Chat Session when clicked", () => {
+    const addToolApprovalResponse = vi.fn();
+    const part = toolCallPart({ approvalId: "appr_1" });
+    const message = { id: "m1", role: "assistant", parts: [part] } as UIMessage;
+    render(
+      <ChatConversation
+        {...baseProps({ addToolApprovalResponse, sessionId: "sess_42", messages: [message] })}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("approve for session"));
+
+    expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_1", approved: true });
+    expect(apiPost).toHaveBeenCalledWith("/api/chat/sessions/sess_42/approve-mutations");
+  });
+
+  it("does not double-respond to the just-clicked call once the same-turn bridge re-scans it", () => {
+    const addToolApprovalResponse = vi.fn();
+    const part = toolCallPart({ approvalId: "appr_1" });
+    const message = { id: "m1", role: "assistant", parts: [part] } as UIMessage;
+    render(<ChatConversation {...baseProps({ addToolApprovalResponse, messages: [message] })} />);
+
+    fireEvent.click(screen.getByText("approve for session"));
+
+    expect(addToolApprovalResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("auto-resolves a further non-delete pending call in the same reply once granted", () => {
+    const addToolApprovalResponse = vi.fn();
+    const partA = toolCallPart({ id: "tc_a", approvalId: "appr_a" });
+    const partB = toolCallPart({ id: "tc_b", approvalId: "appr_b" });
+    const message = { id: "m1", role: "assistant", parts: [partA, partB] } as UIMessage;
+    render(<ChatConversation {...baseProps({ addToolApprovalResponse, messages: [message] })} />);
+
+    fireEvent.click(screen.getAllByText("approve for session")[0]);
+
+    expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_a", approved: true });
+    expect(addToolApprovalResponse).toHaveBeenCalledWith({ id: "appr_b", approved: true });
+  });
+
+  it("still requires an individual prompt for a delete call in the same reply, even after granting", () => {
+    const addToolApprovalResponse = vi.fn();
+    const nonDelete = toolCallPart({ id: "tc_a", approvalId: "appr_a" });
+    const deleteCall = toolCallPart({
+      id: "tc_del",
+      name: "delete_transaction",
+      approvalId: "appr_del",
+    });
+    const message = { id: "m1", role: "assistant", parts: [nonDelete, deleteCall] } as UIMessage;
+    render(<ChatConversation {...baseProps({ addToolApprovalResponse, messages: [message] })} />);
+
+    fireEvent.click(screen.getByText("approve for session"));
+
+    expect(addToolApprovalResponse).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: "appr_del" }),
+    );
   });
 });

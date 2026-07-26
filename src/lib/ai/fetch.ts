@@ -34,3 +34,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
 export function apiGet<T>(path: string, query?: Query): Promise<T> {
   return request<T>("GET", path, undefined, query);
 }
+
+export function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  return request<T>("POST", path, body);
+}

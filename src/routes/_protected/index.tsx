@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { ChatConversation } from "@/components/chat-conversation";
@@ -13,6 +13,9 @@ function HomePage() {
   const { messages, isLoading, error, addToolApprovalResponse, startNewChat, resetChat } =
     useChatContext();
   const navigate = useNavigate();
+  // Tracked so ChatConversation has a Chat Session id to grant Session Approval against, in the
+  // brief window between sending the first message and the navigate() below landing.
+  const [pendingSessionId, setPendingSessionId] = useState("");
 
   // Landing on `/` always means a fresh chat — including via browser Back from an existing
   // conversation, since only the layout (not this route) persists across navigation.
@@ -24,6 +27,7 @@ function HomePage() {
   function handleSubmit(text: string): boolean {
     if (isLoading) return false;
     const sessionId = crypto.randomUUID();
+    setPendingSessionId(sessionId);
     startNewChat(text, sessionId);
     void navigate({ to: "/chat/$sessionId", params: { sessionId } });
     return true;
@@ -49,6 +53,7 @@ function HomePage() {
       error={error}
       onSubmit={handleSubmit}
       addToolApprovalResponse={addToolApprovalResponse}
+      sessionId={pendingSessionId}
     />
   );
 }

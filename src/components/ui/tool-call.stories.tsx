@@ -60,6 +60,51 @@ export const Running: StoryObj<typeof ToolCall.Root> = {
   },
 };
 
+export const PendingApproval: StoryObj<typeof ToolCall.Root> = {
+  render() {
+    return (
+      <ToolCall.Root
+        displayState="pending-approval"
+        statusLabel="awaiting approval"
+        onApprove={() => {}}
+        onDeny={() => {}}
+      >
+        <ToolCall.Name>delete_transaction</ToolCall.Name>
+        <ToolCall.Content>
+          <ToolCall.Args>{JSON.stringify({ id: "t_abc123" }, null, 2)}</ToolCall.Args>
+          <ToolCall.ApprovalActions />
+        </ToolCall.Content>
+      </ToolCall.Root>
+    );
+  },
+};
+
+/**
+ * Session Approval (docs/adr/0006): a deliberate, scoped exception to this design system's
+ * usual two-action-row convention — never shown on delete tools, see PendingApproval above.
+ */
+export const PendingApprovalWithSessionOption: StoryObj<typeof ToolCall.Root> = {
+  render() {
+    return (
+      <ToolCall.Root
+        displayState="pending-approval"
+        statusLabel="awaiting approval"
+        onApprove={() => {}}
+        onDeny={() => {}}
+        onApproveForSession={() => {}}
+      >
+        <ToolCall.Name>create_transaction</ToolCall.Name>
+        <ToolCall.Content>
+          <ToolCall.Args>
+            {JSON.stringify({ amount: 12.34, description: "Coffee" }, null, 2)}
+          </ToolCall.Args>
+          <ToolCall.ApprovalActions />
+        </ToolCall.Content>
+      </ToolCall.Root>
+    );
+  },
+};
+
 export const Error: StoryObj<typeof ToolCall.Root> = {
   render() {
     return (

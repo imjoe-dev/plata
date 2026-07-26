@@ -14,6 +14,7 @@ interface ToolCallContextValue {
   actions: {
     approve: () => void;
     deny: () => void;
+    approveForSession?: () => void;
   };
 }
 
@@ -27,6 +28,8 @@ type RootProps = Omit<Collapsible.Root.Props, "open"> & {
   statusLabel?: string;
   onApprove?: () => void;
   onDeny?: () => void;
+  /** Omit to keep the two-action layout — see ApprovalActions' `Don't` note. */
+  onApproveForSession?: () => void;
 };
 
 function Root({
@@ -34,6 +37,7 @@ function Root({
   statusLabel,
   onApprove,
   onDeny,
+  onApproveForSession,
   className,
   children,
   ...props
@@ -48,6 +52,7 @@ function Root({
         actions: {
           approve: onApprove ?? (() => {}),
           deny: onDeny ?? (() => {}),
+          approveForSession: onApproveForSession,
         },
       }}
     >
@@ -198,17 +203,24 @@ function Error({ children, className, ...props }: React.ComponentProps<"div">) {
 type ApprovalActionsProps = {
   approveLabel?: string;
   denyLabel?: string;
+  approveForSessionLabel?: string;
 };
 
+/**
+ * Renders a third action, "Approve for this session" (docs/adr/0006), whenever `Root` was
+ * given `onApproveForSession` — a deliberate, scoped exception to this design system's usual
+ * two-action-row convention. Don't add further actions here or elsewhere on that precedent.
+ */
 function ApprovalActions({
   approveLabel = "Approve",
   denyLabel = "Deny",
+  approveForSessionLabel = "Approve for this session",
   className,
   ...props
 }: ApprovalActionsProps & React.ComponentProps<"div">) {
   const {
     state: { displayState },
-    actions: { approve, deny },
+    actions: { approve, deny, approveForSession },
   } = useContext(ToolCallContext);
 
   if (displayState !== "pending-approval") return null;
@@ -218,6 +230,11 @@ function ApprovalActions({
       <Button variant="primary" size="sm" onClick={approve}>
         {approveLabel}
       </Button>
+      {approveForSession && (
+        <Button variant="secondary" size="sm" onClick={approveForSession}>
+          {approveForSessionLabel}
+        </Button>
+      )}
       <Button variant="destructive" size="sm" onClick={deny}>
         {denyLabel}
       </Button>
