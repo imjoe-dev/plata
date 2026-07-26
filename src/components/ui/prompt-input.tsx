@@ -24,7 +24,7 @@ import {
   Quote,
   Strikethrough,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 
 interface PromptInputContextValue {
   editor: Editor | null;
@@ -35,7 +35,7 @@ const PromptInputContext = createContext<PromptInputContextValue>({
 });
 
 function usePromptInputContext() {
-  return useContext(PromptInputContext);
+  return use(PromptInputContext);
 }
 
 interface RootProps {

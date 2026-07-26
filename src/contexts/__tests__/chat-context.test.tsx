@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UIMessage } from "@tanstack/ai-react";
 
@@ -40,6 +40,18 @@ type MockParams = { sessionId?: string };
 
 function mockChat(overrides: Partial<ReturnType<typeof usePlataChat>> = {}) {
   vi.mocked(usePlataChat).mockReturnValue(mockPlataChat(overrides));
+}
+
+/** A sendMessage mock typed against the real signature, so the id read back off it is a string. */
+function mockSendMessage() {
+  return vi.fn<ReturnType<typeof usePlataChat>["sendMessage"]>(() => Promise.resolve());
+}
+
+/** The (text, sessionId) the provider last sent, asserted present before it's destructured. */
+function lastSend(sendMessage: ReturnType<typeof mockSendMessage>) {
+  const lastCall = sendMessage.mock.lastCall;
+  expect(lastCall).toBeDefined();
+  return lastCall!;
 }
 
 // useQuery's real return type is a large discriminated union; narrowed to what ChatProvider reads.
@@ -163,9 +175,11 @@ describe("ChatProvider hydration query", () => {
   });
 });
 
-describe("ChatProvider actions", () => {
-  it("startNewChat sends the message with the new session id", () => {
-    const sendMessage = vi.fn();
+describe("ChatProvider submit — first message of a new Chat Session", () => {
+  it("mints a Chat Session id, sends against it, and navigates to that Chat Session", () => {
+    const sendMessage = mockSendMessage();
+    const navigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(navigate);
     mockChat({ sendMessage });
     render(
       <ChatProvider>
@@ -173,13 +187,50 @@ describe("ChatProvider actions", () => {
       </ChatProvider>,
     );
 
-    capturedContext!.startNewChat("Hi", "new_sess");
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = capturedContext!.submit("Categorize my Uber rides");
+    });
 
-    expect(sendMessage).toHaveBeenCalledWith("Hi", "new_sess");
+    expect(accepted).toBe(true);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    const [text, sessionId] = lastSend(sendMessage);
+    expect(text).toBe("Categorize my Uber rides");
+    expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/chat/$sessionId",
+      params: { sessionId },
+    });
   });
 
-  it("marks a session started via startNewChat as already loaded, skipping its GET hydration", () => {
-    mockChat();
+  it("starts the send before navigating, so chat state reflects it before the route changes", () => {
+    const callOrder: string[] = [];
+    const sendMessage = vi.fn(() => {
+      callOrder.push("sendMessage");
+      return Promise.resolve();
+    });
+    const navigate = vi.fn(() => {
+      callOrder.push("navigate");
+      return Promise.resolve();
+    });
+    vi.mocked(useNavigate).mockReturnValue(navigate);
+    mockChat({ sendMessage });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    act(() => {
+      capturedContext!.submit("Hi");
+    });
+
+    expect(callOrder).toEqual(["sendMessage", "navigate"]);
+  });
+
+  it("marks a Chat Session started via submit as already loaded, skipping its GET hydration", () => {
+    const sendMessage = mockSendMessage();
+    mockChat({ sendMessage });
     vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
     const { rerender } = render(
       <ChatProvider>
@@ -187,9 +238,12 @@ describe("ChatProvider actions", () => {
       </ChatProvider>,
     );
 
-    capturedContext!.startNewChat("Hi", "new_sess");
+    act(() => {
+      capturedContext!.submit("Hi");
+    });
+    const [, mintedId] = lastSend(sendMessage);
     vi.mocked(useParams).mockReturnValue({
-      sessionId: "new_sess",
+      sessionId: mintedId,
     } as MockParams as ReturnType<typeof useParams>);
     rerender(
       <ChatProvider>
@@ -203,9 +257,39 @@ describe("ChatProvider actions", () => {
     expect(options.enabled).toBe(false);
   });
 
+  it("exposes the minted id as the Chat Session in view until the route param catches up", () => {
+    const sendMessage = mockSendMessage();
+    mockChat({ sendMessage });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    act(() => {
+      capturedContext!.submit("Hi");
+    });
+
+    const [, mintedId] = lastSend(sendMessage);
+    expect(capturedContext!.sessionId).toBe(mintedId);
+  });
+
+  it("has no Chat Session in view before anything has been sent", () => {
+    mockChat();
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(capturedContext!.sessionId).toBe("");
+  });
+
   it("preserves an in-flight message across the index-to-chat.$sessionId route swap, since ChatProvider itself never unmounts", () => {
     let messages: UIMessage[] = [];
-    const sendMessage = vi.fn((content: string) => {
+    let mintedId: string | undefined;
+    const sendMessage = vi.fn((content: string, sessionId?: string) => {
+      mintedId = sessionId;
       messages = [
         ...messages,
         {
@@ -247,10 +331,12 @@ describe("ChatProvider actions", () => {
       </ChatProvider>,
     );
 
-    capturedContext!.startNewChat("Categorize my Uber rides", "new_sess");
+    act(() => {
+      capturedContext!.submit("Categorize my Uber rides");
+    });
 
     vi.mocked(useParams).mockReturnValue({
-      sessionId: "new_sess",
+      sessionId: mintedId,
     } as MockParams as ReturnType<typeof useParams>);
     rerender(
       <ChatProvider>
@@ -264,9 +350,16 @@ describe("ChatProvider actions", () => {
       "Categorize my Uber rides",
     );
   });
+});
 
-  it("sendMessage sends against the given (already-hydrated) session id", () => {
-    const sendMessage = vi.fn();
+describe("ChatProvider submit — an existing Chat Session", () => {
+  it("sends against the route's Chat Session and does not navigate", () => {
+    const sendMessage = mockSendMessage();
+    const navigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(navigate);
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
     mockChat({ sendMessage });
     render(
       <ChatProvider>
@@ -274,12 +367,77 @@ describe("ChatProvider actions", () => {
       </ChatProvider>,
     );
 
-    capturedContext!.sendMessage("More", "sess_1");
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = capturedContext!.submit("More");
+    });
 
+    expect(accepted).toBe(true);
     expect(sendMessage).toHaveBeenCalledWith("More", "sess_1");
+    expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("resetChat clears messages", () => {
+  it("prefers the route's Chat Session id as the session in view", () => {
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
+    mockChat();
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(capturedContext!.sessionId).toBe("sess_1");
+  });
+});
+
+describe("ChatProvider submit — in-flight guard", () => {
+  it("refuses to start a new Chat Session while a send is already in flight", () => {
+    const sendMessage = mockSendMessage();
+    const navigate = vi.fn();
+    vi.mocked(useNavigate).mockReturnValue(navigate);
+    mockChat({ sendMessage, isLoading: true });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = capturedContext!.submit("Hi");
+    });
+
+    expect(accepted).toBe(false);
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("refuses to send into an existing Chat Session while a send is already in flight", () => {
+    const sendMessage = mockSendMessage();
+    vi.mocked(useParams).mockReturnValue({
+      sessionId: "sess_1",
+    } as MockParams as ReturnType<typeof useParams>);
+    mockChat({ sendMessage, isLoading: true });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    let accepted: boolean | undefined;
+    act(() => {
+      accepted = capturedContext!.submit("Hi");
+    });
+
+    expect(accepted).toBe(false);
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("ChatProvider resetChat", () => {
+  it("clears messages", () => {
     const setMessages = vi.fn();
     mockChat({ setMessages });
     render(
@@ -288,9 +446,119 @@ describe("ChatProvider actions", () => {
       </ChatProvider>,
     );
 
-    capturedContext!.resetChat();
+    act(() => {
+      capturedContext!.resetChat();
+    });
 
     expect(setMessages).toHaveBeenCalledWith([]);
+  });
+
+  it("drops the minted id, so a later Session Approval can't land on the abandoned Chat Session", () => {
+    const sendMessage = mockSendMessage();
+    mockChat({ sendMessage });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    act(() => {
+      capturedContext!.submit("Hi");
+    });
+    expect(capturedContext!.sessionId).not.toBe("");
+
+    act(() => {
+      capturedContext!.resetChat();
+    });
+
+    expect(capturedContext!.sessionId).toBe("");
+  });
+
+  it("mints a fresh id for the next chat rather than reusing the cleared one", () => {
+    const sendMessage = mockSendMessage();
+    mockChat({ sendMessage });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    act(() => {
+      capturedContext!.submit("First");
+    });
+    const [, firstId] = lastSend(sendMessage);
+
+    act(() => {
+      capturedContext!.resetChat();
+    });
+    act(() => {
+      capturedContext!.submit("Second");
+    });
+    const [, secondId] = lastSend(sendMessage);
+
+    expect(secondId).not.toBe(firstId);
+    expect(secondId).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+describe("ChatProvider error toast", () => {
+  it("raises a toast carrying the error's own message", () => {
+    mockChat({ error: new Error("You're doing that too fast") });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledTimes(1);
+    expect(toastManager.add).toHaveBeenCalledWith({
+      title: "You're doing that too fast",
+      data: { variant: "error" },
+    });
+  });
+
+  it("falls back to a generic message when the error carries none", () => {
+    mockChat({ error: new Error("") });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledWith({
+      title: "Something went wrong. Please try again.",
+      data: { variant: "error" },
+    });
+  });
+
+  it("raises nothing when there is no error", () => {
+    mockChat();
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).not.toHaveBeenCalled();
+  });
+
+  it("does not repeat the toast on an unrelated re-render with the same error", () => {
+    const error = new Error("boom");
+    mockChat({ error });
+    const { rerender } = render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    mockChat({ error });
+    rerender(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledTimes(1);
   });
 });
 
