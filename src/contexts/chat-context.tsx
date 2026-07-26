@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "@tanstack/ai-react";
@@ -13,10 +13,13 @@ interface ChatContextValue {
   isLoading: boolean;
   error: Error | undefined;
   addToolApprovalResponse: ReturnType<typeof usePlataChat>["addToolApprovalResponse"];
-  /** Starts a brand-new chat: marks `sessionId` as already-loaded (skipping hydration,
-   *  since the session doesn't exist server-side yet) and sends the first message. */
-  startNewChat: (text: string, sessionId: string) => void;
-  sendMessage: (text: string, sessionId: string) => void;
+  /** The Chat Session in view: the route's param, or — for a chat whose first exchange is
+   *  still in flight — the id minted below, which the route param hasn't caught up to yet.
+   *  Empty only on the landing route before anything has been sent. */
+  sessionId: string;
+  /** Sends `text` into the Chat Session in view, starting a new one when there isn't one.
+   *  Returns false, doing nothing, while a send is already in flight. */
+  submit: (text: string) => boolean;
   resetChat: () => void;
 }
 
@@ -32,31 +35,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const chat = usePlataChat();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const sessionId = useParams({ strict: false })?.sessionId;
+  const routeSessionId = useParams({ strict: false })?.sessionId;
+  // The id minted for a brand-new chat, held only until navigation lands on its route. Without
+  // it there'd be a window where nothing knows which Chat Session is in view — which is what
+  // the landing route used to paper over with its own state.
+  const [mintedSessionId, setMintedSessionId] = useState<string | undefined>(undefined);
   const loadedSessionIdRef = useRef<string | undefined>(undefined);
   const wasLoadingRef = useRef(false);
 
   const messagesQuery = useQuery({
-    queryKey: ["chat-session-messages", sessionId],
-    queryFn: () => apiGet<UIMessage[]>(`/api/chat/sessions/${sessionId}/messages`),
-    enabled: Boolean(sessionId) && loadedSessionIdRef.current !== sessionId,
+    queryKey: ["chat-session-messages", routeSessionId],
+    queryFn: () => apiGet<UIMessage[]>(`/api/chat/sessions/${routeSessionId}/messages`),
+    enabled: Boolean(routeSessionId) && loadedSessionIdRef.current !== routeSessionId,
   });
 
   useEffect(() => {
-    if (!sessionId || !messagesQuery.data) return;
+    if (!routeSessionId || !messagesQuery.data) return;
     chat.setMessages(messagesQuery.data);
-    loadedSessionIdRef.current = sessionId;
+    loadedSessionIdRef.current = routeSessionId;
     // chat.setMessages isn't listed: including chat would re-run this on every streamed token.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, messagesQuery.data]);
+  }, [routeSessionId, messagesQuery.data]);
 
   useEffect(() => {
-    if (!sessionId || !messagesQuery.isError) return;
+    if (!routeSessionId || !messagesQuery.isError) return;
     toastManager.add({ title: "Chat not found", data: { variant: "error" } });
     void navigate({ to: "/" });
     // navigate isn't listed: TanStack Router's useNavigate() returns a stable reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, messagesQuery.isError]);
+  }, [routeSessionId, messagesQuery.isError]);
 
   // History freshness: when a send completes (loading → idle) the session row and its
   // Activity bump are committed server-side, so invalidate the sidebar's History query.
@@ -73,18 +80,32 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat.isLoading]);
 
-  function startNewChat(text: string, newSessionId: string) {
-    loadedSessionIdRef.current = newSessionId;
-    void chat.sendMessage(text, newSessionId);
-  }
+  function submit(text: string): boolean {
+    if (chat.isLoading) return false;
 
-  function sendMessage(text: string, currentSessionId: string) {
-    void chat.sendMessage(text, currentSessionId);
+    if (routeSessionId) {
+      void chat.sendMessage(text, routeSessionId);
+      return true;
+    }
+
+    // A brand-new chat. The id is minted client-side (ADR-0002) and marked already-loaded so
+    // the hydration query above skips it — the Chat Session doesn't exist server-side yet.
+    // The send is started before navigating, so shared chat state reflects it before the
+    // route changes and the landing route can keep rendering the conversation meanwhile.
+    const newSessionId = crypto.randomUUID();
+    loadedSessionIdRef.current = newSessionId;
+    setMintedSessionId(newSessionId);
+    void chat.sendMessage(text, newSessionId);
+    void navigate({ to: "/chat/$sessionId", params: { sessionId: newSessionId } });
+    return true;
   }
 
   function resetChat() {
     chat.setMessages([]);
     loadedSessionIdRef.current = undefined;
+    // Dropped along with the messages: a stale minted id would otherwise outlive the chat it
+    // belongs to, and a later Session Approval would be recorded against the wrong Chat Session.
+    setMintedSessionId(undefined);
   }
 
   const value: ChatContextValue = {
@@ -92,8 +113,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     isLoading: chat.isLoading,
     error: chat.error,
     addToolApprovalResponse: chat.addToolApprovalResponse,
-    startNewChat,
-    sendMessage,
+    sessionId: routeSessionId ?? mintedSessionId ?? "",
+    submit,
     resetChat,
   };
 
