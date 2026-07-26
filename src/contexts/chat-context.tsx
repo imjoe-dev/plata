@@ -57,6 +57,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSessionId, messagesQuery.data]);
 
+  // Errors surface as a toast rather than inline: it carries the actual message (rate limits,
+  // validation) where the old inline banner showed one hardcoded generic string, and toasts are
+  // this app's error channel.
+  useEffect(() => {
+    if (!chat.error) return;
+    toastManager.add({
+      title: chat.error.message || "Something went wrong. Please try again.",
+      data: { variant: "error" },
+    });
+  }, [chat.error]);
+
   useEffect(() => {
     if (!routeSessionId || !messagesQuery.isError) return;
     toastManager.add({ title: "Chat not found", data: { variant: "error" } });

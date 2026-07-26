@@ -489,6 +489,67 @@ describe("ChatProvider resetChat", () => {
   });
 });
 
+describe("ChatProvider error toast", () => {
+  it("raises a toast carrying the error's own message", () => {
+    mockChat({ error: new Error("You're doing that too fast") });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledTimes(1);
+    expect(toastManager.add).toHaveBeenCalledWith({
+      title: "You're doing that too fast",
+      data: { variant: "error" },
+    });
+  });
+
+  it("falls back to a generic message when the error carries none", () => {
+    mockChat({ error: new Error("") });
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledWith({
+      title: "Something went wrong. Please try again.",
+      data: { variant: "error" },
+    });
+  });
+
+  it("raises nothing when there is no error", () => {
+    mockChat();
+    render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).not.toHaveBeenCalled();
+  });
+
+  it("does not repeat the toast on an unrelated re-render with the same error", () => {
+    const error = new Error("boom");
+    mockChat({ error });
+    const { rerender } = render(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    mockChat({ error });
+    rerender(
+      <ChatProvider>
+        <Consumer />
+      </ChatProvider>,
+    );
+
+    expect(toastManager.add).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ChatProvider History freshness", () => {
   it("invalidates History (the chat-sessions query) when a send completes — loading to idle", () => {
     const invalidateQueries = mockQueryClient();
