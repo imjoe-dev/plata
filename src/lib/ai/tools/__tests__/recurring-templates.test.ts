@@ -9,13 +9,18 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 import {
   RecurringTemplateRow,
   activateRecurringTemplateDef,
+  activateRecurringTemplateUngatedDef,
   createRecurringTemplateDef,
+  createRecurringTemplateUngatedDef,
   createRecurringTemplatesDef,
+  createRecurringTemplatesUngatedDef,
   deleteRecurringTemplateDef,
   getRecurringTemplateDef,
   listRecurringTemplatesDef,
   pauseRecurringTemplateDef,
+  pauseRecurringTemplateUngatedDef,
   updateRecurringTemplateDef,
+  updateRecurringTemplateUngatedDef,
 } from "@/lib/ai/tools/recurring-templates";
 
 describe("recurring-templates tool definitions", () => {
@@ -122,5 +127,22 @@ describe("recurring-templates tool definitions", () => {
   it("read-only tools (list, get) have no needsApproval field", () => {
     expect(listRecurringTemplatesDef.needsApproval).toBeUndefined();
     expect(getRecurringTemplateDef.needsApproval).toBeUndefined();
+  });
+
+  it("Session Approval variants of create/create_recurring_templates/update/activate/pause have no needsApproval field, under the same tool names", () => {
+    expect(createRecurringTemplateUngatedDef.needsApproval).toBeUndefined();
+    expect(createRecurringTemplateUngatedDef.name).toBe(createRecurringTemplateDef.name);
+
+    expect(createRecurringTemplatesUngatedDef.needsApproval).toBeUndefined();
+    expect(createRecurringTemplatesUngatedDef.name).toBe(createRecurringTemplatesDef.name);
+
+    expect(updateRecurringTemplateUngatedDef.needsApproval).toBeUndefined();
+    expect(updateRecurringTemplateUngatedDef.name).toBe(updateRecurringTemplateDef.name);
+
+    expect(activateRecurringTemplateUngatedDef.needsApproval).toBeUndefined();
+    expect(activateRecurringTemplateUngatedDef.name).toBe(activateRecurringTemplateDef.name);
+
+    expect(pauseRecurringTemplateUngatedDef.needsApproval).toBeUndefined();
+    expect(pauseRecurringTemplateUngatedDef.name).toBe(pauseRecurringTemplateDef.name);
   });
 });

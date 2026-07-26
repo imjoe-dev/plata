@@ -91,22 +91,34 @@ export const listRecurringTemplatesDef = toolDefinition({
   outputSchema: z.array(RecurringTemplateRow),
 });
 
-export const createRecurringTemplateDef = toolDefinition({
+const createRecurringTemplateBase = {
   name: "create_recurring_template",
   description: "Create a new recurring template. Amount is in major currency units.",
   inputSchema: CreateRecurringTemplateInput,
   outputSchema: RecurringTemplateRow,
+} as const;
+
+export const createRecurringTemplateDef = toolDefinition({
+  ...createRecurringTemplateBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const createRecurringTemplateUngatedDef = toolDefinition(createRecurringTemplateBase);
 
-export const createRecurringTemplatesDef = toolDefinition({
+const createRecurringTemplatesBase = {
   name: "create_recurring_templates",
   description:
     "Create 1-20 recurring templates in one atomic action — either all are created, or none are. Prefer create_recurring_template for a single template. Amount is in major currency units.",
   inputSchema: CreateRecurringTemplatesInput,
   outputSchema: z.array(RecurringTemplateRow),
+} as const;
+
+export const createRecurringTemplatesDef = toolDefinition({
+  ...createRecurringTemplatesBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const createRecurringTemplatesUngatedDef = toolDefinition(createRecurringTemplatesBase);
 
 export const getRecurringTemplateDef = toolDefinition({
   name: "get_recurring_template",
@@ -115,14 +127,21 @@ export const getRecurringTemplateDef = toolDefinition({
   outputSchema: RecurringTemplateRow,
 });
 
-export const updateRecurringTemplateDef = toolDefinition({
+const updateRecurringTemplateBase = {
   name: "update_recurring_template",
   description: "Update an existing recurring template by id. Amount is in major currency units.",
   inputSchema: UpdateRecurringTemplateInput,
   outputSchema: RecurringTemplateRow,
+} as const;
+
+export const updateRecurringTemplateDef = toolDefinition({
+  ...updateRecurringTemplateBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const updateRecurringTemplateUngatedDef = toolDefinition(updateRecurringTemplateBase);
 
+// delete_recurring_template has no ungated variant: deletes always require approval (docs/adr/0006).
 export const deleteRecurringTemplateDef = toolDefinition({
   name: "delete_recurring_template",
   description: "Soft-delete a recurring template by id.",
@@ -131,21 +150,33 @@ export const deleteRecurringTemplateDef = toolDefinition({
   needsApproval: true,
 });
 
-export const activateRecurringTemplateDef = toolDefinition({
+const activateRecurringTemplateBase = {
   name: "activate_recurring_template",
   description: "Activate a paused recurring template by id.",
   inputSchema: IdInput,
   outputSchema: RecurringTemplateRow,
+} as const;
+
+export const activateRecurringTemplateDef = toolDefinition({
+  ...activateRecurringTemplateBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const activateRecurringTemplateUngatedDef = toolDefinition(activateRecurringTemplateBase);
 
-export const pauseRecurringTemplateDef = toolDefinition({
+const pauseRecurringTemplateBase = {
   name: "pause_recurring_template",
   description: "Pause an active recurring template by id.",
   inputSchema: IdInput,
   outputSchema: RecurringTemplateRow,
+} as const;
+
+export const pauseRecurringTemplateDef = toolDefinition({
+  ...pauseRecurringTemplateBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const pauseRecurringTemplateUngatedDef = toolDefinition(pauseRecurringTemplateBase);
 
 type RecurringTemplateDbRow = typeof recurring_templates.$inferSelect;
 
@@ -254,4 +285,20 @@ export const recurringTemplateServerTools = [
   deleteRecurringTemplateDef.server<ToolContext>(deleteRecurringTemplateServerHandler),
   activateRecurringTemplateDef.server<ToolContext>(activateRecurringTemplateServerHandler),
   pauseRecurringTemplateDef.server<ToolContext>(pauseRecurringTemplateServerHandler),
+] as const;
+
+/**
+ * Session Approval (docs/adr/0006) variant: create/create_recurring_templates/update/activate/pause ungated,
+ * delete still gated. Selected instead of `recurringTemplateServerTools` by the chat route when
+ * a Chat Session has granted Session Approval — built once here at module scope, not per request.
+ */
+export const recurringTemplateServerToolsApproved = [
+  listRecurringTemplatesDef.server<ToolContext>(listRecurringTemplatesServerHandler),
+  createRecurringTemplateUngatedDef.server<ToolContext>(createRecurringTemplateServerHandler),
+  createRecurringTemplatesUngatedDef.server<ToolContext>(createRecurringTemplatesServerHandler),
+  getRecurringTemplateDef.server<ToolContext>(getRecurringTemplateServerHandler),
+  updateRecurringTemplateUngatedDef.server<ToolContext>(updateRecurringTemplateServerHandler),
+  deleteRecurringTemplateDef.server<ToolContext>(deleteRecurringTemplateServerHandler),
+  activateRecurringTemplateUngatedDef.server<ToolContext>(activateRecurringTemplateServerHandler),
+  pauseRecurringTemplateUngatedDef.server<ToolContext>(pauseRecurringTemplateServerHandler),
 ] as const;

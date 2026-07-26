@@ -29,6 +29,7 @@ import {
   listRecurringTemplatesServerHandler,
   pauseRecurringTemplateServerHandler,
   recurringTemplateServerTools,
+  recurringTemplateServerToolsApproved,
   updateRecurringTemplateServerHandler,
 } from "@/lib/ai/tools/recurring-templates";
 import * as svc from "@/lib/services/recurring-templates";
@@ -324,5 +325,25 @@ describe("recurringTemplateServerTools", () => {
       expect(tool.__toolSide).toBe("server");
       expect(typeof tool.execute).toBe("function");
     }
+  });
+});
+
+describe("recurringTemplateServerToolsApproved (Session Approval variant)", () => {
+  function findApproved(name: string) {
+    const tool = recurringTemplateServerToolsApproved.find((t) => t.name === name);
+    if (!tool) throw new Error(`tool ${name} not found`);
+    return tool;
+  }
+
+  it("leaves create/create_recurring_templates/update/activate/pause ungated", () => {
+    expect(findApproved("create_recurring_template").needsApproval).toBeUndefined();
+    expect(findApproved("create_recurring_templates").needsApproval).toBeUndefined();
+    expect(findApproved("update_recurring_template").needsApproval).toBeUndefined();
+    expect(findApproved("activate_recurring_template").needsApproval).toBeUndefined();
+    expect(findApproved("pause_recurring_template").needsApproval).toBeUndefined();
+  });
+
+  it("keeps delete gated even in the Session Approval variant", () => {
+    expect(findApproved("delete_recurring_template").needsApproval).toBe(true);
   });
 });
