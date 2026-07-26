@@ -46,13 +46,16 @@ export const listCategoriesDef = toolDefinition({
   outputSchema: z.array(CategoryRow),
 });
 
-export const createCategoryDef = toolDefinition({
+const createCategoryBase = {
   name: "create_category",
   description: "Create a new category.",
   inputSchema: CreateCategoryInput,
   outputSchema: CategoryRow,
-  needsApproval: true,
-});
+} as const;
+
+export const createCategoryDef = toolDefinition({ ...createCategoryBase, needsApproval: true });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const createCategoryUngatedDef = toolDefinition(createCategoryBase);
 
 export const getCategoryDef = toolDefinition({
   name: "get_category",
@@ -61,14 +64,18 @@ export const getCategoryDef = toolDefinition({
   outputSchema: CategoryRow,
 });
 
-export const updateCategoryDef = toolDefinition({
+const updateCategoryBase = {
   name: "update_category",
   description: "Update an existing category by id.",
   inputSchema: UpdateCategoryInput,
   outputSchema: CategoryRow,
-  needsApproval: true,
-});
+} as const;
 
+export const updateCategoryDef = toolDefinition({ ...updateCategoryBase, needsApproval: true });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const updateCategoryUngatedDef = toolDefinition(updateCategoryBase);
+
+// delete_category has no ungated variant: deletes always require approval (docs/adr/0006).
 export const deleteCategoryDef = toolDefinition({
   name: "delete_category",
   description: "Soft-delete a category by id.",
@@ -97,31 +104,66 @@ function toCategoryRow(row: CategoryServiceRow, userId: string): CategoryRow {
   };
 }
 
+async function listCategoriesExecute(
+  _input: z.input<typeof ListCategoriesInput>,
+  ctx: { context: ToolContext },
+) {
+  const rows = await listCategories(ctx.context.userId);
+  return rows.map((row) => toCategoryRow(row, ctx.context.userId));
+}
+
+async function createCategoryExecute(
+  input: z.input<typeof CreateCategoryInput>,
+  ctx: { context: ToolContext },
+) {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const row = await createCategory(ctx.context.userId, input);
+  return toCategoryRow(row, ctx.context.userId);
+}
+
+async function getCategoryExecute(input: z.input<typeof IdInput>, ctx: { context: ToolContext }) {
+  const { id } = input;
+  const row = await getCategory(ctx.context.userId, id);
+  return toCategoryRow(row, ctx.context.userId);
+}
+
+async function updateCategoryExecute(
+  input: z.input<typeof UpdateCategoryInput>,
+  ctx: { context: ToolContext },
+) {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const { id, ...patch } = input;
+  const row = await updateCategory(ctx.context.userId, id, patch);
+  return toCategoryRow(row, ctx.context.userId);
+}
+
+async function deleteCategoryExecute(
+  input: z.input<typeof IdInput>,
+  ctx: { context: ToolContext },
+) {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const { id } = input;
+  const row = await deleteCategory(ctx.context.userId, id);
+  return toCategoryRow(row, ctx.context.userId);
+}
+
 export const categoryServerTools = [
-  listCategoriesDef.server<ToolContext>(async (_input, ctx) => {
-    const rows = await listCategories(ctx.context.userId);
-    return rows.map((row) => toCategoryRow(row, ctx.context.userId));
-  }),
-  createCategoryDef.server<ToolContext>(async (input, ctx) => {
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
-    const row = await createCategory(ctx.context.userId, input);
-    return toCategoryRow(row, ctx.context.userId);
-  }),
-  getCategoryDef.server<ToolContext>(async (input, ctx) => {
-    const { id } = input;
-    const row = await getCategory(ctx.context.userId, id);
-    return toCategoryRow(row, ctx.context.userId);
-  }),
-  updateCategoryDef.server<ToolContext>(async (input, ctx) => {
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
-    const { id, ...patch } = input;
-    const row = await updateCategory(ctx.context.userId, id, patch);
-    return toCategoryRow(row, ctx.context.userId);
-  }),
-  deleteCategoryDef.server<ToolContext>(async (input, ctx) => {
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
-    const { id } = input;
-    const row = await deleteCategory(ctx.context.userId, id);
-    return toCategoryRow(row, ctx.context.userId);
-  }),
+  listCategoriesDef.server<ToolContext>(listCategoriesExecute),
+  createCategoryDef.server<ToolContext>(createCategoryExecute),
+  getCategoryDef.server<ToolContext>(getCategoryExecute),
+  updateCategoryDef.server<ToolContext>(updateCategoryExecute),
+  deleteCategoryDef.server<ToolContext>(deleteCategoryExecute),
+] as const;
+
+/**
+ * Session Approval (docs/adr/0006) variant: create/update ungated, delete still gated.
+ * Selected instead of `categoryServerTools` by the chat route when a Chat Session has
+ * granted Session Approval — built once here at module scope, not per request.
+ */
+export const categoryServerToolsApproved = [
+  listCategoriesDef.server<ToolContext>(listCategoriesExecute),
+  createCategoryUngatedDef.server<ToolContext>(createCategoryExecute),
+  getCategoryDef.server<ToolContext>(getCategoryExecute),
+  updateCategoryUngatedDef.server<ToolContext>(updateCategoryExecute),
+  deleteCategoryDef.server<ToolContext>(deleteCategoryExecute),
 ] as const;

@@ -1,4 +1,4 @@
-import { categoryServerTools } from "./categories";
+import { categoryServerTools, categoryServerToolsApproved } from "./categories";
 import { recurringTemplateServerTools } from "./recurring-templates";
 import { transactionServerTools, transactionServerToolsApproved } from "./transactions";
 import { userPreferencesServerTools } from "./user-preferences";
@@ -18,7 +18,7 @@ export const allToolDefinitions = [
  * tool definitions.
  */
 export const approvedToolDefinitions = [
-  ...categoryServerTools,
+  ...categoryServerToolsApproved,
   ...transactionServerToolsApproved,
   ...recurringTemplateServerTools,
   ...userPreferencesServerTools,

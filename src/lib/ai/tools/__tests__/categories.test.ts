@@ -11,10 +11,12 @@ vi.mock("cloudflare:workers", () => ({
 import {
   CategoryRow,
   createCategoryDef,
+  createCategoryUngatedDef,
   deleteCategoryDef,
   getCategoryDef,
   listCategoriesDef,
   updateCategoryDef,
+  updateCategoryUngatedDef,
 } from "@/lib/ai/tools/categories";
 
 describe("categories tool definitions", () => {
@@ -73,5 +75,13 @@ describe("categories tool definitions", () => {
   it("read-only tools (list, get) have no needsApproval field", () => {
     expect(listCategoriesDef.needsApproval).toBeUndefined();
     expect(getCategoryDef.needsApproval).toBeUndefined();
+  });
+
+  it("Session Approval variants of create/update have no needsApproval field, under the same tool name", () => {
+    expect(createCategoryUngatedDef.needsApproval).toBeUndefined();
+    expect(createCategoryUngatedDef.name).toBe(createCategoryDef.name);
+
+    expect(updateCategoryUngatedDef.needsApproval).toBeUndefined();
+    expect(updateCategoryUngatedDef.name).toBe(updateCategoryDef.name);
   });
 });

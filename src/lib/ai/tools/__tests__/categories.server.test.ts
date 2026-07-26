@@ -15,7 +15,7 @@ vi.mock("cloudflare:workers", () => ({
 
 import { env } from "cloudflare:workers";
 import * as svc from "@/lib/services/categories";
-import { categoryServerTools } from "@/lib/ai/tools/categories";
+import { categoryServerTools, categoryServerToolsApproved } from "@/lib/ai/tools/categories";
 
 const [listTool, createTool, getTool, updateTool, deleteTool] = categoryServerTools;
 
@@ -40,6 +40,23 @@ describe("needsApproval survives .server() binding", () => {
   it("leaves needsApproval unset on the bound read-only tools", () => {
     expect(listTool.needsApproval).toBeUndefined();
     expect(getTool.needsApproval).toBeUndefined();
+  });
+});
+
+describe("categoryServerToolsApproved (Session Approval variant)", () => {
+  function findApproved(name: string) {
+    const tool = categoryServerToolsApproved.find((t) => t.name === name);
+    if (!tool) throw new Error(`tool ${name} not found`);
+    return tool;
+  }
+
+  it("leaves create/update ungated", () => {
+    expect(findApproved("create_category").needsApproval).toBeUndefined();
+    expect(findApproved("update_category").needsApproval).toBeUndefined();
+  });
+
+  it("keeps delete gated even in the Session Approval variant", () => {
+    expect(findApproved("delete_category").needsApproval).toBe(true);
   });
 });
 
