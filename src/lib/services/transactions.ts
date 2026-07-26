@@ -9,8 +9,10 @@ import {
 } from "@/lib/repositories/transactions";
 import { getCategoryById } from "@/lib/repositories/category";
 import { getRecurringTemplateById } from "@/lib/repositories/recurring-templates";
+import { createCurrencyResolver } from "@/lib/services/user-preferences";
 import { runBatch } from "@/lib/db/transaction";
 import { InternalError, NotFoundError } from "@/lib/errors";
+import type { Currency } from "@/lib/currency";
 import type { Transaction, Pagination, PaginatedListResult } from "@/lib/schemas/transactions";
 import type { transactions } from "@/db/schema";
 
@@ -28,11 +30,15 @@ async function validateTransactionRefs(userId: string, input: Transaction, itemI
   }
 }
 
-function toTransactionInsert(userId: string, input: Transaction): TransactionInsert {
+function toTransactionInsert(
+  userId: string,
+  input: Transaction,
+  currency: Currency,
+): TransactionInsert {
   return {
     id: crypto.randomUUID(),
     amount: input.amount,
-    currency: input.currency,
+    currency,
     type: input.type,
     description: input.description,
     date: input.date,
@@ -46,16 +52,20 @@ function toTransactionInsert(userId: string, input: Transaction): TransactionIns
 
 export async function createTransaction(userId: string, input: Transaction) {
   await validateTransactionRefs(userId, input);
-  const row = await repoCreate(toTransactionInsert(userId, input));
+  const resolveCurrency = createCurrencyResolver(userId);
+  const currency = await resolveCurrency(input.currency);
+  const row = await repoCreate(toTransactionInsert(userId, input, currency));
   if (!row) throw new InternalError("createTransaction returned no row");
   return row;
 }
 
 export async function createTransactions(userId: string, inputs: Transaction[]) {
+  const resolveCurrency = createCurrencyResolver(userId);
   const payloads: TransactionInsert[] = [];
   for (let i = 0; i < inputs.length; i++) {
     await validateTransactionRefs(userId, inputs[i], i);
-    payloads.push(toTransactionInsert(userId, inputs[i]));
+    const currency = await resolveCurrency(inputs[i].currency);
+    payloads.push(toTransactionInsert(userId, inputs[i], currency));
   }
 
   const results = await runBatch<TransactionRow[]>(payloads.map(buildInsertTransaction));

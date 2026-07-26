@@ -30,7 +30,17 @@ describe("Transaction schema", () => {
       source: "manual",
     });
     expect(out.amount).toBe(1234);
-    expect(out.currency).toBe("USD");
+  });
+
+  it("leaves currency undefined when omitted — the service layer resolves the default", () => {
+    const out = Transaction.parse({
+      amount: 1,
+      type: "expense",
+      description: "Lunch",
+      date: new Date("2026-07-01"),
+      source: "manual",
+    });
+    expect(out.currency).toBeUndefined();
   });
 
   it("rejects negative amount", () => {
@@ -64,7 +74,7 @@ describe("Transaction schema", () => {
 });
 
 describe("RecurringTemplate schema", () => {
-  it("parses a valid template and defaults currency", () => {
+  it("parses a valid template", () => {
     const out = RecurringTemplate.parse({
       amount: 1500,
       type: "expense",
@@ -73,7 +83,17 @@ describe("RecurringTemplate schema", () => {
       status: "active",
     });
     expect(out.amount).toBe(150000);
-    expect(out.currency).toBe("USD");
+  });
+
+  it("leaves currency undefined when omitted — the service layer resolves the default", () => {
+    const out = RecurringTemplate.parse({
+      amount: 10,
+      type: "expense",
+      description: "Rent",
+      cadence: "monthly",
+      status: "active",
+    });
+    expect(out.currency).toBeUndefined();
   });
 
   it("rejects an unknown cadence", () => {

@@ -41,7 +41,7 @@ describe("recurring-templates tool definitions", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.amount).toBe(12.5);
-      expect(parsed.data.currency).toBe("USD");
+      expect(parsed.data.currency).toBeUndefined();
     }
   });
 

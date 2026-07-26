@@ -23,10 +23,14 @@ vi.mock("@/lib/db/transaction", () => ({
 vi.mock("@/lib/repositories/category", () => ({
   getCategoryById: vi.fn(),
 }));
+vi.mock("@/lib/repositories/user-preferences", () => ({
+  getUserPreferencesByUserId: vi.fn(),
+}));
 
 import * as recRepo from "@/lib/repositories/recurring-templates";
 import * as catRepo from "@/lib/repositories/category";
 import * as txnRepo from "@/lib/repositories/transactions";
+import * as userPrefsRepo from "@/lib/repositories/user-preferences";
 import {
   activateTemplate,
   computeNextDue,
@@ -61,6 +65,25 @@ describe("recurring-templates service", () => {
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.user_id).toBe("user_1");
     expect(payload.amount).toBe(1500);
+  });
+
+  it("passes an explicit currency through unchanged, without consulting user preferences", async () => {
+    vi.mocked(recRepo.createRecurringTemplate).mockResolvedValueOnce({ id: "r1" } as any);
+    await createRecurringTemplate("user_1", { ...validInput, currency: "COP" });
+    const [payload] = vi.mocked(recRepo.createRecurringTemplate).mock.calls[0];
+    expect(payload.currency).toBe("COP");
+    expect(userPrefsRepo.getUserPreferencesByUserId).not.toHaveBeenCalled();
+  });
+
+  it("resolves currency from the user's default when omitted", async () => {
+    vi.mocked(userPrefsRepo.getUserPreferencesByUserId).mockResolvedValueOnce({
+      user_id: "user_1",
+      default_currency: "COP",
+    } as any);
+    vi.mocked(recRepo.createRecurringTemplate).mockResolvedValueOnce({ id: "r1" } as any);
+    await createRecurringTemplate("user_1", { ...validInput, currency: undefined });
+    const [payload] = vi.mocked(recRepo.createRecurringTemplate).mock.calls[0];
+    expect(payload.currency).toBe("COP");
   });
 
   it("throws NotFound when categoryId is not owned by the user", async () => {
@@ -127,6 +150,30 @@ describe("recurring-templates service", () => {
         message: expect.stringContaining("item 0"),
       });
       expect(runBatch).not.toHaveBeenCalled();
+    });
+
+    it("fetches the user's default currency at most once, even when every item omits it", async () => {
+      vi.mocked(userPrefsRepo.getUserPreferencesByUserId).mockResolvedValueOnce({
+        user_id: "user_1",
+        default_currency: "COP",
+      } as any);
+      vi.mocked(runBatch).mockResolvedValueOnce([
+        [{ id: "r1", description: "Rent" }],
+        [{ id: "r2", description: "Gym" }],
+      ]);
+
+      await createRecurringTemplates("user_1", [
+        { ...validInput, currency: undefined, description: "Rent" },
+        { ...validInput, currency: undefined, description: "Gym" },
+      ]);
+
+      expect(userPrefsRepo.getUserPreferencesByUserId).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(recRepo.buildInsertTemplate).mock.calls[0][0]).toMatchObject({
+        currency: "COP",
+      });
+      expect(vi.mocked(recRepo.buildInsertTemplate).mock.calls[1][0]).toMatchObject({
+        currency: "COP",
+      });
     });
   });
 

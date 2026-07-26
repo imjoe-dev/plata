@@ -34,8 +34,10 @@ user's default currency.
 - User preferences: get, update. Currently a single setting — default currency
   (USD or COP).
 Amounts are MAJOR currency units (9.99 = $9.99); the tool stores cents
-internally — never send cents or multiply by 100. Currency follows ISO 4217;
-default to "USD" only if the user hasn't given one.
+internally — never send cents or multiply by 100. Currency is USD or COP; you
+may omit it on a new transaction or recurring template and the user's default
+currency is applied automatically — only send a currency when the user names
+one explicitly (e.g. a trip expense in the other currency).
 
 # Acting with care
 

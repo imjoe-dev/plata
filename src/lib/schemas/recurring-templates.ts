@@ -4,7 +4,9 @@ import { currencySchema, dollarsToCentsSchema } from "@/lib/currency";
 
 export const RecurringTemplate = z.object({
   amount: dollarsToCentsSchema,
-  currency: currencySchema.default("USD"),
+  // No default here: an omitted currency is resolved by the service layer from the user's
+  // default_currency (see createCurrencyResolver in services/user-preferences.ts), not by Zod.
+  currency: currencySchema.optional(),
   type: z.enum(["expense", "income"]).meta({ description: "expense or income." }),
   description: z.string().min(1).meta({ description: "Human-readable description." }),
   categoryId: z.string().nullable().optional().meta({ description: "Optional category id." }),
@@ -21,10 +23,7 @@ export const RecurringTemplate = z.object({
 
 export type RecurringTemplate = z.infer<typeof RecurringTemplate>;
 
-export const RecurringTemplatePatch = z.object({
-  ...RecurringTemplate.partial().shape,
-  currency: currencySchema.optional(),
-});
+export const RecurringTemplatePatch = RecurringTemplate.partial();
 
 export type RecurringTemplatePatch = z.infer<typeof RecurringTemplatePatch>;
 

@@ -36,7 +36,7 @@ describe("transactions tool definitions", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.amount).toBe(9.99);
-      expect(parsed.data.currency).toBe("USD");
+      expect(parsed.data.currency).toBeUndefined();
     }
   });
 

@@ -10,9 +10,11 @@ import {
   updateRecurringTemplate as repoUpdate,
 } from "@/lib/repositories/recurring-templates";
 import { buildInsertTransaction } from "@/lib/repositories/transactions";
+import { createCurrencyResolver } from "@/lib/services/user-preferences";
 import { runBatch } from "@/lib/db/transaction";
 import { getCategoryById } from "@/lib/repositories/category";
 import { InternalError, NotFoundError } from "@/lib/errors";
+import type { Currency } from "@/lib/currency";
 import type { RecurringTemplate } from "@/lib/schemas/recurring-templates";
 import type { recurring_templates } from "@/db/schema";
 
@@ -26,11 +28,15 @@ async function validateTemplateRefs(userId: string, input: RecurringTemplate, it
   }
 }
 
-function toTemplateInsert(userId: string, input: RecurringTemplate): TemplateInsert {
+function toTemplateInsert(
+  userId: string,
+  input: RecurringTemplate,
+  currency: Currency,
+): TemplateInsert {
   return {
     id: crypto.randomUUID(),
     amount: input.amount,
-    currency: input.currency,
+    currency,
     type: input.type,
     description: input.description,
     category_id: input.categoryId ?? null,
@@ -45,16 +51,20 @@ function toTemplateInsert(userId: string, input: RecurringTemplate): TemplateIns
 
 export async function createRecurringTemplate(userId: string, input: RecurringTemplate) {
   await validateTemplateRefs(userId, input);
-  const row = await repoCreate(toTemplateInsert(userId, input));
+  const resolveCurrency = createCurrencyResolver(userId);
+  const currency = await resolveCurrency(input.currency);
+  const row = await repoCreate(toTemplateInsert(userId, input, currency));
   if (!row) throw new InternalError("createRecurringTemplate returned no row");
   return row;
 }
 
 export async function createRecurringTemplates(userId: string, inputs: RecurringTemplate[]) {
+  const resolveCurrency = createCurrencyResolver(userId);
   const payloads: TemplateInsert[] = [];
   for (let i = 0; i < inputs.length; i++) {
     await validateTemplateRefs(userId, inputs[i], i);
-    payloads.push(toTemplateInsert(userId, inputs[i]));
+    const currency = await resolveCurrency(inputs[i].currency);
+    payloads.push(toTemplateInsert(userId, inputs[i], currency));
   }
 
   const results = await runBatch<TemplateRow[]>(payloads.map(buildInsertTemplate));

@@ -4,7 +4,9 @@ import { currencySchema, dollarsToCentsSchema } from "@/lib/currency";
 
 export const Transaction = z.object({
   amount: dollarsToCentsSchema,
-  currency: currencySchema.default("USD"),
+  // No default here: an omitted currency is resolved by the service layer from the user's
+  // default_currency (see createCurrencyResolver in services/user-preferences.ts), not by Zod.
+  currency: currencySchema.optional(),
   type: z.enum(["expense", "income"]).meta({ description: "Transaction type: expense or income." }),
   description: z.string().min(1).meta({ description: "Human-readable description." }),
   date: z.coerce.date(),
@@ -20,10 +22,7 @@ export const Transaction = z.object({
 
 export type Transaction = z.infer<typeof Transaction>;
 
-export const TransactionPatch = z.object({
-  ...Transaction.partial().shape,
-  currency: currencySchema.optional(),
-});
+export const TransactionPatch = Transaction.partial();
 
 export type TransactionPatch = z.infer<typeof TransactionPatch>;
 

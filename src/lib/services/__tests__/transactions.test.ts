@@ -20,6 +20,9 @@ vi.mock("@/lib/repositories/category", () => ({
 vi.mock("@/lib/repositories/recurring-templates", () => ({
   getRecurringTemplateById: vi.fn(),
 }));
+vi.mock("@/lib/repositories/user-preferences", () => ({
+  getUserPreferencesByUserId: vi.fn(),
+}));
 vi.mock("@/lib/db/transaction", () => ({
   runBatch: vi.fn(),
 }));
@@ -27,6 +30,7 @@ vi.mock("@/lib/db/transaction", () => ({
 import * as txnRepo from "@/lib/repositories/transactions";
 import * as catRepo from "@/lib/repositories/category";
 import * as recRepo from "@/lib/repositories/recurring-templates";
+import * as userPrefsRepo from "@/lib/repositories/user-preferences";
 import { runBatch } from "@/lib/db/transaction";
 import {
   createTransaction,
@@ -58,6 +62,25 @@ describe("transactions service", () => {
     expect(payload.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(payload.user_id).toBe("user_1");
     expect(payload.amount).toBe(1234);
+  });
+
+  it("passes an explicit currency through unchanged, without consulting user preferences", async () => {
+    vi.mocked(txnRepo.createTransaction).mockResolvedValueOnce({ id: "t1" } as any);
+    await createTransaction("user_1", { ...validInput, currency: "COP" });
+    const [payload] = vi.mocked(txnRepo.createTransaction).mock.calls[0];
+    expect(payload.currency).toBe("COP");
+    expect(userPrefsRepo.getUserPreferencesByUserId).not.toHaveBeenCalled();
+  });
+
+  it("resolves currency from the user's default when omitted", async () => {
+    vi.mocked(userPrefsRepo.getUserPreferencesByUserId).mockResolvedValueOnce({
+      user_id: "user_1",
+      default_currency: "COP",
+    } as any);
+    vi.mocked(txnRepo.createTransaction).mockResolvedValueOnce({ id: "t1" } as any);
+    await createTransaction("user_1", { ...validInput, currency: undefined });
+    const [payload] = vi.mocked(txnRepo.createTransaction).mock.calls[0];
+    expect(payload.currency).toBe("COP");
   });
 
   it("throws NotFoundError when categoryId does not belong to the user", async () => {
@@ -139,6 +162,30 @@ describe("transactions service", () => {
       expect(vi.mocked(txnRepo.buildInsertTransaction).mock.calls[1][0]).toMatchObject({
         user_id: "user_1",
         description: "Groceries",
+      });
+    });
+
+    it("fetches the user's default currency at most once, even when every item omits it", async () => {
+      vi.mocked(userPrefsRepo.getUserPreferencesByUserId).mockResolvedValueOnce({
+        user_id: "user_1",
+        default_currency: "COP",
+      } as any);
+      vi.mocked(runBatch).mockResolvedValueOnce([
+        [{ id: "t1", description: "Coffee" }],
+        [{ id: "t2", description: "Groceries" }],
+      ]);
+
+      await createTransactions("user_1", [
+        { ...validInput, currency: undefined, description: "Coffee" },
+        { ...validInput, currency: undefined, description: "Groceries" },
+      ]);
+
+      expect(userPrefsRepo.getUserPreferencesByUserId).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(txnRepo.buildInsertTransaction).mock.calls[0][0]).toMatchObject({
+        currency: "COP",
+      });
+      expect(vi.mocked(txnRepo.buildInsertTransaction).mock.calls[1][0]).toMatchObject({
+        currency: "COP",
       });
     });
 
