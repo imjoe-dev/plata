@@ -4,6 +4,15 @@ Plata is a multi-user personal finance tracker where users log income and expens
 
 ## Language
 
+**Transaction**:
+A single recorded income or expense event, with an amount, currency, date, and optional category. Logged manually, via chat, or by CSV import.
+
+**Recurring Template**:
+A definition of a Transaction that repeats on a cadence (e.g. monthly rent). Produces individual Transactions over time rather than being a Transaction itself.
+
+**Batch Creation**:
+Creating multiple Transactions, or multiple Recurring Templates, in a single user-approved action rather than one at a time.
+
 **Chat Session**:
 A persisted conversation thread between a user and the assistant, identified by an id the client mints the moment the first message is sent. Owned by exactly one user.
 _Avoid_: Conversation, thread

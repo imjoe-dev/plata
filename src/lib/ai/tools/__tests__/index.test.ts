@@ -10,8 +10,8 @@ vi.mock("cloudflare:workers", () => ({
 import { allToolDefinitions } from "@/lib/ai/tools/index";
 
 describe("allToolDefinitions", () => {
-  it("contains 17 tools", () => {
-    expect(allToolDefinitions).toHaveLength(17);
+  it("contains 19 tools", () => {
+    expect(allToolDefinitions).toHaveLength(19);
   });
 
   it("has unique names", () => {
@@ -29,11 +29,13 @@ describe("allToolDefinitions", () => {
       "delete_category",
       "list_transactions",
       "create_transaction",
+      "create_transactions",
       "get_transaction",
       "update_transaction",
       "delete_transaction",
       "list_recurring_templates",
       "create_recurring_template",
+      "create_recurring_templates",
       "get_recurring_template",
       "update_recurring_template",
       "delete_recurring_template",

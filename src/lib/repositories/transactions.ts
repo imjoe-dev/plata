@@ -58,5 +58,5 @@ export async function listTransactions(
 }
 
 export function buildInsertTransaction(input: TransactionInsert) {
-  return getDB().insert(transactions).values(input);
+  return getDB().insert(transactions).values(input).returning();
 }

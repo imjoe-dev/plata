@@ -12,6 +12,7 @@ import {
 import {
   activateTemplate,
   createRecurringTemplate,
+  createRecurringTemplates,
   deleteRecurringTemplate,
   getRecurringTemplate,
   listRecurringTemplates,
@@ -63,6 +64,13 @@ export const CreateRecurringTemplateInput = z.object({
   endDate: z.string().nullable().optional().meta({ description: "Optional ISO end date." }),
 });
 
+export const CreateRecurringTemplatesInput = z.object({
+  templates: z.array(CreateRecurringTemplateInput).min(1).max(20).meta({
+    description:
+      "1-20 recurring templates to create together in one atomic action — either all are created, or none are.",
+  }),
+});
+
 export const IdInput = z.object({ id: z.string().meta({ description: "Recurring template id." }) });
 
 export const UpdateRecurringTemplateInput = z.object({
@@ -88,6 +96,15 @@ export const createRecurringTemplateDef = toolDefinition({
   description: "Create a new recurring template. Amount is in major currency units.",
   inputSchema: CreateRecurringTemplateInput,
   outputSchema: RecurringTemplateRow,
+  needsApproval: true,
+});
+
+export const createRecurringTemplatesDef = toolDefinition({
+  name: "create_recurring_templates",
+  description:
+    "Create 1-20 recurring templates in one atomic action — either all are created, or none are. Prefer create_recurring_template for a single template. Amount is in major currency units.",
+  inputSchema: CreateRecurringTemplatesInput,
+  outputSchema: z.array(RecurringTemplateRow),
   needsApproval: true,
 });
 
@@ -172,6 +189,16 @@ export async function createRecurringTemplateServerHandler(
   return serializeTemplateRow(row);
 }
 
+export async function createRecurringTemplatesServerHandler(
+  input: z.input<typeof CreateRecurringTemplatesInput>,
+  ctx: ToolExecutionContext<ToolContext>,
+): Promise<RecurringTemplateRow[]> {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const payloads = input.templates.map((t) => RecurringTemplate.parse(t));
+  const rows = await createRecurringTemplates(ctx.context.userId, payloads);
+  return rows.map(serializeTemplateRow);
+}
+
 export async function getRecurringTemplateServerHandler(
   input: z.input<typeof IdInput>,
   ctx: ToolExecutionContext<ToolContext>,
@@ -221,6 +248,7 @@ export async function pauseRecurringTemplateServerHandler(
 export const recurringTemplateServerTools = [
   listRecurringTemplatesDef.server<ToolContext>(listRecurringTemplatesServerHandler),
   createRecurringTemplateDef.server<ToolContext>(createRecurringTemplateServerHandler),
+  createRecurringTemplatesDef.server<ToolContext>(createRecurringTemplatesServerHandler),
   getRecurringTemplateDef.server<ToolContext>(getRecurringTemplateServerHandler),
   updateRecurringTemplateDef.server<ToolContext>(updateRecurringTemplateServerHandler),
   deleteRecurringTemplateDef.server<ToolContext>(deleteRecurringTemplateServerHandler),

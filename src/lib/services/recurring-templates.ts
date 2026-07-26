@@ -1,4 +1,5 @@
 import {
+  buildInsertTemplate,
   buildUpdateTemplate,
   createRecurringTemplate as repoCreate,
   getRecurringTemplateById as repoGetById,
@@ -16,14 +17,17 @@ import type { RecurringTemplate } from "@/lib/schemas/recurring-templates";
 import type { recurring_templates } from "@/db/schema";
 
 type TemplateRow = typeof recurring_templates.$inferSelect;
+type TemplateInsert = typeof recurring_templates.$inferInsert;
 
-export async function createRecurringTemplate(userId: string, input: RecurringTemplate) {
+async function validateTemplateRefs(userId: string, input: RecurringTemplate, itemIndex?: number) {
   if (input.categoryId) {
     const cat = await getCategoryById(userId, input.categoryId);
-    if (!cat) throw new NotFoundError("category", input.categoryId);
+    if (!cat) throw new NotFoundError("category", input.categoryId, itemIndex);
   }
+}
 
-  const payload = {
+function toTemplateInsert(userId: string, input: RecurringTemplate): TemplateInsert {
+  return {
     id: crypto.randomUUID(),
     amount: input.amount,
     currency: input.currency,
@@ -37,10 +41,30 @@ export async function createRecurringTemplate(userId: string, input: RecurringTe
     end_date: input.endDate ?? null,
     user_id: userId,
   };
+}
 
-  const row = await repoCreate(payload);
+export async function createRecurringTemplate(userId: string, input: RecurringTemplate) {
+  await validateTemplateRefs(userId, input);
+  const row = await repoCreate(toTemplateInsert(userId, input));
   if (!row) throw new InternalError("createRecurringTemplate returned no row");
   return row;
+}
+
+export async function createRecurringTemplates(userId: string, inputs: RecurringTemplate[]) {
+  const payloads: TemplateInsert[] = [];
+  for (let i = 0; i < inputs.length; i++) {
+    await validateTemplateRefs(userId, inputs[i], i);
+    payloads.push(toTemplateInsert(userId, inputs[i]));
+  }
+
+  const results = await runBatch<TemplateRow[]>(payloads.map(buildInsertTemplate));
+  return results.map((rows) => {
+    const row = rows[0];
+    if (!row) {
+      throw new InternalError("createRecurringTemplates returned no row for one or more items");
+    }
+    return row;
+  });
 }
 
 export async function getRecurringTemplate(userId: string, id: string) {

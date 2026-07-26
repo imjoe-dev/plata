@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 vi.mock("@/lib/services/transactions", () => ({
   createTransaction: vi.fn(),
+  createTransactions: vi.fn(),
   getTransaction: vi.fn(),
   listTransactions: vi.fn(),
   updateTransaction: vi.fn(),
@@ -199,6 +200,80 @@ describe("create_transaction server tool", () => {
       ),
     ).rejects.toThrow();
     expect(svc.createTransaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("create_transactions server tool", () => {
+  it("checks the mutation rate limit exactly once regardless of item count, and returns every created row in order", async () => {
+    vi.mocked(svc.createTransactions).mockResolvedValueOnce([
+      dbRow({ id: "t1", amount: 1234 }) as any,
+      dbRow({ id: "t2", amount: 4000 }) as any,
+    ]);
+    const tool = findTool("create_transactions");
+    const result = await tool.execute!(
+      {
+        transactions: [
+          {
+            amount: 12.34,
+            type: "expense",
+            description: "Coffee",
+            date: "2026-07-01T00:00:00.000Z",
+            source: "chat",
+            currency: "USD",
+          },
+          {
+            amount: 40,
+            type: "expense",
+            description: "Groceries",
+            date: "2026-07-01T00:00:00.000Z",
+            source: "chat",
+            currency: "USD",
+          },
+        ],
+      } as any,
+      ctx() as any,
+    );
+    expect(limitSpy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([
+      {
+        ...dbRow({ id: "t1", amount: 12.34 }),
+        date: NOW.toISOString(),
+        created_at: NOW.toISOString(),
+        updated_at: NOW.toISOString(),
+      },
+      {
+        ...dbRow({ id: "t2", amount: 40 }),
+        date: NOW.toISOString(),
+        created_at: NOW.toISOString(),
+        updated_at: NOW.toISOString(),
+      },
+    ]);
+    const [userId, payloads] = vi.mocked(svc.createTransactions).mock.calls[0];
+    expect(userId).toBe("u1");
+    expect(payloads).toHaveLength(2);
+  });
+
+  it("throws and never calls the service when the mutation rate limit is exceeded", async () => {
+    limitSpy.mockResolvedValueOnce({ success: false });
+    const tool = findTool("create_transactions");
+    await expect(
+      tool.execute!(
+        {
+          transactions: [
+            {
+              amount: 10,
+              type: "expense",
+              description: "x",
+              date: "2026-07-01T00:00:00.000Z",
+              source: "manual",
+              currency: "USD",
+            },
+          ],
+        } as any,
+        ctx() as any,
+      ),
+    ).rejects.toThrow();
+    expect(svc.createTransactions).not.toHaveBeenCalled();
   });
 });
 

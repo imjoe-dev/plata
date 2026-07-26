@@ -12,12 +12,13 @@ vi.mock("@/lib/repositories/recurring-templates", () => ({
   listDueTemplates: vi.fn(),
   listAllDueTemplates: vi.fn(),
   buildUpdateTemplate: vi.fn(() => ({ __update: true })),
+  buildInsertTemplate: vi.fn((input: any) => ({ __insert: input })),
 }));
 vi.mock("@/lib/repositories/transactions", () => ({
   buildInsertTransaction: vi.fn(() => ({ __insert: true })),
 }));
 vi.mock("@/lib/db/transaction", () => ({
-  runBatch: vi.fn(async () => ({ success: true as const })),
+  runBatch: vi.fn(async () => []),
 }));
 vi.mock("@/lib/repositories/category", () => ({
   getCategoryById: vi.fn(),
@@ -30,6 +31,7 @@ import {
   activateTemplate,
   computeNextDue,
   createRecurringTemplate,
+  createRecurringTemplates,
   deleteRecurringTemplate,
   getRecurringTemplate,
   pauseTemplate,
@@ -76,6 +78,56 @@ describe("recurring-templates service", () => {
     await expect(createRecurringTemplate("user_1", validInput)).rejects.toBeInstanceOf(
       InternalError,
     );
+  });
+
+  describe("createRecurringTemplates (batch)", () => {
+    it("behaves the same as the singular create path for a 1-item batch", async () => {
+      const row = { id: "r1", description: "Rent" };
+      vi.mocked(runBatch).mockResolvedValueOnce([[row]]);
+
+      const result = await createRecurringTemplates("user_1", [
+        { ...validInput, description: "Rent" },
+      ]);
+
+      expect(result).toEqual([row]);
+      const [payload] = vi.mocked(recRepo.buildInsertTemplate).mock.calls[0];
+      expect(payload).toMatchObject({ user_id: "user_1", description: "Rent", amount: 1500 });
+    });
+
+    it("creates every row in one atomic batch and returns them in order", async () => {
+      const rowA = { id: "r1", description: "Rent" };
+      const rowB = { id: "r2", description: "Gym" };
+      vi.mocked(runBatch).mockResolvedValueOnce([[rowA], [rowB]]);
+
+      const result = await createRecurringTemplates("user_1", [
+        { ...validInput, description: "Rent" },
+        { ...validInput, description: "Gym" },
+      ]);
+
+      expect(result).toEqual([rowA, rowB]);
+      expect(runBatch).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(recRepo.buildInsertTemplate).mock.calls[0][0]).toMatchObject({
+        user_id: "user_1",
+        description: "Rent",
+      });
+      expect(vi.mocked(recRepo.buildInsertTemplate).mock.calls[1][0]).toMatchObject({
+        user_id: "user_1",
+        description: "Gym",
+      });
+    });
+
+    it("rejects with an item-indexed NotFoundError when a category doesn't belong to the user, and never inserts anything", async () => {
+      vi.mocked(catRepo.getCategoryById).mockResolvedValueOnce(null);
+
+      await expect(
+        createRecurringTemplates("user_1", [{ ...validInput, categoryId: "c_bad" }, validInput]),
+      ).rejects.toMatchObject({
+        status: 404,
+        resource: "category",
+        message: expect.stringContaining("item 0"),
+      });
+      expect(runBatch).not.toHaveBeenCalled();
+    });
   });
 
   it("get/list/update/delete throw NotFound on null", async () => {
@@ -158,7 +210,7 @@ describe("computeNextDue", () => {
 describe("processDueRecurring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(runBatch).mockResolvedValue({ success: true });
+    vi.mocked(runBatch).mockResolvedValue([]);
   });
 
   it("inserts a transaction and updates the template atomically per due template", async () => {
@@ -265,7 +317,7 @@ function buildDueTemplate(over: Record<string, unknown> = {}) {
 describe("runScheduledMaterialization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(runBatch).mockResolvedValue({ success: true });
+    vi.mocked(runBatch).mockResolvedValue([]);
     vi.mocked(recRepo.updateRecurringTemplate).mockResolvedValue({} as any);
   });
 
@@ -342,7 +394,7 @@ describe("runScheduledMaterialization", () => {
     ]);
     vi.mocked(runBatch)
       .mockRejectedValueOnce(new Error("category was deleted"))
-      .mockResolvedValueOnce({ success: true });
+      .mockResolvedValueOnce([]);
 
     const res = await runScheduledMaterialization(new Date("2026-07-01"));
 
@@ -382,7 +434,7 @@ describe("runScheduledMaterialization", () => {
       buildDueTemplate({ id: "dup", cadence: "monthly", next_due_date: new Date("2026-07-01") }),
     ]);
     vi.mocked(runBatch)
-      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce([])
       .mockRejectedValueOnce(new Error("boom"))
       .mockRejectedValueOnce(
         new InternalError("Database batch failed", {

@@ -12,11 +12,12 @@ beforeEach(() => {
 });
 
 describe("runBatch", () => {
-  it("resolves with success when db.batch resolves", async () => {
-    batch.mockResolvedValueOnce(undefined);
-    const stmt = { query: "insert" };
-    await expect(runBatch([stmt])).resolves.toEqual({ success: true });
-    expect(batch).toHaveBeenCalledWith([stmt]);
+  it("resolves with the per-statement results when db.batch resolves", async () => {
+    const results = [{ id: "row1" }, { id: "row2" }];
+    batch.mockResolvedValueOnce(results);
+    const stmts = [{ query: "insert" }, { query: "insert" }];
+    await expect(runBatch(stmts)).resolves.toEqual(results);
+    expect(batch).toHaveBeenCalledWith(stmts);
   });
 
   it("throws InternalError wrapping the underlying error when db.batch rejects", async () => {

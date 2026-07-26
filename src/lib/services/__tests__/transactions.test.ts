@@ -8,6 +8,7 @@ vi.mock("@/lib/repositories/transactions", () => ({
   listTransactions: vi.fn(),
   updateTransaction: vi.fn(),
   softDeleteTransaction: vi.fn(),
+  buildInsertTransaction: vi.fn((input: any) => ({ __insert: input })),
 }));
 vi.mock("@/lib/repositories/category", () => ({
   getCategoryById: vi.fn(),
@@ -19,12 +20,17 @@ vi.mock("@/lib/repositories/category", () => ({
 vi.mock("@/lib/repositories/recurring-templates", () => ({
   getRecurringTemplateById: vi.fn(),
 }));
+vi.mock("@/lib/db/transaction", () => ({
+  runBatch: vi.fn(),
+}));
 
 import * as txnRepo from "@/lib/repositories/transactions";
 import * as catRepo from "@/lib/repositories/category";
 import * as recRepo from "@/lib/repositories/recurring-templates";
+import { runBatch } from "@/lib/db/transaction";
 import {
   createTransaction,
+  createTransactions,
   deleteTransaction,
   getTransaction,
   listTransactions,
@@ -98,5 +104,76 @@ describe("transactions service", () => {
       NotFoundError,
     );
     await expect(deleteTransaction("user_1", "t1")).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe("createTransactions (batch)", () => {
+    it("behaves the same as the singular create path for a 1-item batch", async () => {
+      const row = { id: "t1", description: "Coffee" };
+      vi.mocked(runBatch).mockResolvedValueOnce([[row]]);
+
+      const result = await createTransactions("user_1", [{ ...validInput, description: "Coffee" }]);
+
+      expect(result).toEqual([row]);
+      const [payload] = vi.mocked(txnRepo.buildInsertTransaction).mock.calls[0];
+      expect(payload).toMatchObject({ user_id: "user_1", description: "Coffee", amount: 1234 });
+    });
+
+    it("creates every row in one atomic batch and returns them in order", async () => {
+      const rowA = { id: "t1", description: "Coffee" };
+      const rowB = { id: "t2", description: "Groceries" };
+      vi.mocked(runBatch).mockResolvedValueOnce([[rowA], [rowB]]);
+
+      const result = await createTransactions("user_1", [
+        { ...validInput, description: "Coffee" },
+        { ...validInput, description: "Groceries" },
+      ]);
+
+      expect(result).toEqual([rowA, rowB]);
+      expect(runBatch).toHaveBeenCalledTimes(1);
+      const [statements] = vi.mocked(runBatch).mock.calls[0];
+      expect(statements).toHaveLength(2);
+      expect(vi.mocked(txnRepo.buildInsertTransaction).mock.calls[0][0]).toMatchObject({
+        user_id: "user_1",
+        description: "Coffee",
+      });
+      expect(vi.mocked(txnRepo.buildInsertTransaction).mock.calls[1][0]).toMatchObject({
+        user_id: "user_1",
+        description: "Groceries",
+      });
+    });
+
+    it("rejects with an item-indexed NotFoundError when a category doesn't belong to the user, and never inserts anything", async () => {
+      vi.mocked(catRepo.getCategoryById).mockResolvedValueOnce({ id: "cat_ok" } as any);
+      vi.mocked(catRepo.getCategoryById).mockResolvedValueOnce(null);
+
+      await expect(
+        createTransactions("user_1", [
+          { ...validInput, categoryId: "cat_ok" },
+          { ...validInput, categoryId: "cat_bad" },
+        ]),
+      ).rejects.toMatchObject({
+        status: 404,
+        resource: "category",
+        message: expect.stringContaining("item 1"),
+      });
+      expect(runBatch).not.toHaveBeenCalled();
+    });
+
+    it("rejects with an item-indexed NotFoundError when a recurringTemplateId doesn't belong to the user, and stops checking further items", async () => {
+      vi.mocked(recRepo.getRecurringTemplateById).mockResolvedValueOnce(null);
+
+      await expect(
+        createTransactions("user_1", [
+          { ...validInput, recurringTemplateId: "rec_bad" },
+          { ...validInput },
+        ]),
+      ).rejects.toMatchObject({
+        status: 404,
+        resource: "recurring_template",
+        message: expect.stringContaining("item 0"),
+      });
+      expect(recRepo.getRecurringTemplateById).toHaveBeenCalledTimes(1);
+      expect(runBatch).not.toHaveBeenCalled();
+    });
   });
 });

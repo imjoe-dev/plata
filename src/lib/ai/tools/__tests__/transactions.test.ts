@@ -8,6 +8,7 @@ vi.mock("cloudflare:workers", () => ({
 import {
   TransactionRow,
   createTransactionDef,
+  createTransactionsDef,
   deleteTransactionDef,
   getTransactionDef,
   listTransactionsDef,
@@ -15,9 +16,10 @@ import {
 } from "@/lib/ai/tools/transactions";
 
 describe("transactions tool definitions", () => {
-  it("exposes five tools with stable names", () => {
+  it("exposes six tools with stable names", () => {
     expect(listTransactionsDef.name).toBe("list_transactions");
     expect(createTransactionDef.name).toBe("create_transaction");
+    expect(createTransactionsDef.name).toBe("create_transactions");
     expect(getTransactionDef.name).toBe("get_transaction");
     expect(updateTransactionDef.name).toBe("update_transaction");
     expect(deleteTransactionDef.name).toBe("delete_transaction");
@@ -58,6 +60,30 @@ describe("transactions tool definitions", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.source).toBe("chat");
+  });
+
+  it("create_transactions accepts a batch of 1-20 items and rejects 0 or 21 items", () => {
+    const item = {
+      amount: 9.99,
+      type: "expense",
+      description: "Lunch",
+      date: "2026-07-01T00:00:00.000Z",
+      source: "manual",
+    };
+    expect(createTransactionsDef.inputSchema!.safeParse({ transactions: [item] }).success).toBe(
+      true,
+    );
+    expect(
+      createTransactionsDef.inputSchema!.safeParse({
+        transactions: Array.from({ length: 20 }, () => item),
+      }).success,
+    ).toBe(true);
+    expect(createTransactionsDef.inputSchema!.safeParse({ transactions: [] }).success).toBe(false);
+    expect(
+      createTransactionsDef.inputSchema!.safeParse({
+        transactions: Array.from({ length: 21 }, () => item),
+      }).success,
+    ).toBe(false);
   });
 
   it("list_transactions accepts optional date/type/categoryId filters", () => {
@@ -152,8 +178,9 @@ describe("transactions tool definitions", () => {
     expect(TransactionRow.safeParse(row).success).toBe(true);
   });
 
-  it("mutating tools (create, update, delete) have needsApproval set to true", () => {
+  it("mutating tools (create, create_transactions, update, delete) have needsApproval set to true", () => {
     expect(createTransactionDef.needsApproval).toBe(true);
+    expect(createTransactionsDef.needsApproval).toBe(true);
     expect(updateTransactionDef.needsApproval).toBe(true);
     expect(deleteTransactionDef.needsApproval).toBe(true);
   });

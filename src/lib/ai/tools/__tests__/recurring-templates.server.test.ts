@@ -7,6 +7,7 @@ import { InternalError, NotFoundError } from "@/lib/errors";
 vi.mock("@/lib/services/recurring-templates", () => ({
   listRecurringTemplates: vi.fn(),
   createRecurringTemplate: vi.fn(),
+  createRecurringTemplates: vi.fn(),
   getRecurringTemplate: vi.fn(),
   updateRecurringTemplate: vi.fn(),
   deleteRecurringTemplate: vi.fn(),
@@ -22,6 +23,7 @@ import { env } from "cloudflare:workers";
 import {
   activateRecurringTemplateServerHandler,
   createRecurringTemplateServerHandler,
+  createRecurringTemplatesServerHandler,
   deleteRecurringTemplateServerHandler,
   getRecurringTemplateServerHandler,
   listRecurringTemplatesServerHandler,
@@ -126,6 +128,73 @@ describe("createRecurringTemplateServerHandler", () => {
       ),
     ).rejects.toThrow();
     expect(svc.createRecurringTemplate).not.toHaveBeenCalled();
+  });
+});
+
+describe("createRecurringTemplatesServerHandler", () => {
+  it("checks the mutation rate limit exactly once regardless of item count, and returns every created row in major units", async () => {
+    vi.mocked(svc.createRecurringTemplates).mockResolvedValueOnce([
+      dbRow({ id: "r1", amount: 1250 }),
+      dbRow({ id: "r2", amount: 500 }),
+    ] as never);
+
+    const result = await createRecurringTemplatesServerHandler(
+      {
+        templates: [
+          {
+            amount: 12.5,
+            currency: "USD",
+            type: "expense",
+            description: "Rent",
+            cadence: "monthly",
+            status: "active",
+          },
+          {
+            amount: 5,
+            currency: "USD",
+            type: "expense",
+            description: "Gym",
+            cadence: "monthly",
+            status: "active",
+          },
+        ],
+      },
+      ctx("u1"),
+    );
+
+    expect(limitSpy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([
+      expect.objectContaining({ id: "r1", amount: 12.5 }),
+      expect.objectContaining({ id: "r2", amount: 5 }),
+    ]);
+    const [userId, payloads] = vi.mocked(svc.createRecurringTemplates).mock.calls[0] as [
+      string,
+      unknown[],
+    ];
+    expect(userId).toBe("u1");
+    expect(payloads).toHaveLength(2);
+  });
+
+  it("does not call the service when the mutation rate limit is exceeded", async () => {
+    limitSpy.mockResolvedValueOnce({ success: false });
+
+    await expect(
+      createRecurringTemplatesServerHandler(
+        {
+          templates: [
+            {
+              amount: 12.5,
+              type: "expense",
+              description: "Rent",
+              cadence: "monthly",
+              status: "active",
+            },
+          ],
+        },
+        ctx("u1"),
+      ),
+    ).rejects.toThrow();
+    expect(svc.createRecurringTemplates).not.toHaveBeenCalled();
   });
 });
 
@@ -249,8 +318,8 @@ describe("pauseRecurringTemplateServerHandler", () => {
 });
 
 describe("recurringTemplateServerTools", () => {
-  it("binds all seven tools for server-side execution", () => {
-    expect(recurringTemplateServerTools).toHaveLength(7);
+  it("binds all eight tools for server-side execution", () => {
+    expect(recurringTemplateServerTools).toHaveLength(8);
     for (const tool of recurringTemplateServerTools) {
       expect(tool.__toolSide).toBe("server");
       expect(typeof tool.execute).toBe("function");

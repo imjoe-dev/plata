@@ -12,6 +12,7 @@ import {
 } from "@/lib/schemas/transactions";
 import {
   createTransaction,
+  createTransactions,
   deleteTransaction,
   getTransaction,
   listTransactions,
@@ -78,6 +79,13 @@ export const CreateTransactionInput = z.object({
   date: z.string().meta({ description: "ISO date string." }),
 });
 
+export const CreateTransactionsInput = z.object({
+  transactions: z.array(CreateTransactionInput).min(1).max(20).meta({
+    description:
+      "1-20 transactions to create together in one atomic action — either all are created, or none are.",
+  }),
+});
+
 export const IdInput = z.object({ id: z.string().meta({ description: "Transaction id." }) });
 
 export const UpdateTransactionInput = z.object({
@@ -100,6 +108,15 @@ export const createTransactionDef = toolDefinition({
   description: "Create a new transaction. Amount is in major currency units (e.g. 9.99 for $9.99).",
   inputSchema: CreateTransactionInput,
   outputSchema: TransactionRow,
+  needsApproval: true,
+});
+
+export const createTransactionsDef = toolDefinition({
+  name: "create_transactions",
+  description:
+    "Create 1-20 transactions in one atomic action — either all are created, or none are. Prefer create_transaction for a single transaction. Amount is in major currency units (e.g. 9.99 for $9.99).",
+  inputSchema: CreateTransactionsInput,
+  outputSchema: z.array(TransactionRow),
   needsApproval: true,
 });
 
@@ -178,6 +195,14 @@ export const transactionServerTools = [
     const payload = Transaction.parse(input);
     const row = await createTransaction(userId, payload);
     return toDollars(serializeTransactionDates(row));
+  }),
+
+  createTransactionsDef.server<ToolContext>(async (input, ctx) => {
+    const { userId } = ctx.context;
+    await checkRateLimit(env.MUTATION_RATE_LIMITER, userId);
+    const payloads = input.transactions.map((t) => Transaction.parse(t));
+    const rows = await createTransactions(userId, payloads);
+    return rows.map((row) => toDollars(serializeTransactionDates(row)));
   }),
 
   getTransactionDef.server<ToolContext>(async (input, ctx) => {

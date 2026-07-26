@@ -10,6 +10,7 @@ import {
   RecurringTemplateRow,
   activateRecurringTemplateDef,
   createRecurringTemplateDef,
+  createRecurringTemplatesDef,
   deleteRecurringTemplateDef,
   getRecurringTemplateDef,
   listRecurringTemplatesDef,
@@ -18,9 +19,10 @@ import {
 } from "@/lib/ai/tools/recurring-templates";
 
 describe("recurring-templates tool definitions", () => {
-  it("exposes seven tools with stable names", () => {
+  it("exposes eight tools with stable names", () => {
     expect(listRecurringTemplatesDef.name).toBe("list_recurring_templates");
     expect(createRecurringTemplateDef.name).toBe("create_recurring_template");
+    expect(createRecurringTemplatesDef.name).toBe("create_recurring_templates");
     expect(getRecurringTemplateDef.name).toBe("get_recurring_template");
     expect(updateRecurringTemplateDef.name).toBe("update_recurring_template");
     expect(deleteRecurringTemplateDef.name).toBe("delete_recurring_template");
@@ -41,6 +43,32 @@ describe("recurring-templates tool definitions", () => {
       expect(parsed.data.amount).toBe(12.5);
       expect(parsed.data.currency).toBe("USD");
     }
+  });
+
+  it("create_recurring_templates accepts a batch of 1-20 items and rejects 0 or 21 items", () => {
+    const item = {
+      amount: 12.5,
+      type: "expense",
+      description: "Rent",
+      cadence: "monthly",
+      status: "active",
+    };
+    expect(createRecurringTemplatesDef.inputSchema!.safeParse({ templates: [item] }).success).toBe(
+      true,
+    );
+    expect(
+      createRecurringTemplatesDef.inputSchema!.safeParse({
+        templates: Array.from({ length: 20 }, () => item),
+      }).success,
+    ).toBe(true);
+    expect(createRecurringTemplatesDef.inputSchema!.safeParse({ templates: [] }).success).toBe(
+      false,
+    );
+    expect(
+      createRecurringTemplatesDef.inputSchema!.safeParse({
+        templates: Array.from({ length: 21 }, () => item),
+      }).success,
+    ).toBe(false);
   });
 
   it("list_recurring_templates accepts an optional status filter", () => {
@@ -82,8 +110,9 @@ describe("recurring-templates tool definitions", () => {
     expect(RecurringTemplateRow.safeParse(row).success).toBe(true);
   });
 
-  it("mutating tools (create, update, delete, activate, pause) have needsApproval set to true", () => {
+  it("mutating tools (create, create_recurring_templates, update, delete, activate, pause) have needsApproval set to true", () => {
     expect(createRecurringTemplateDef.needsApproval).toBe(true);
+    expect(createRecurringTemplatesDef.needsApproval).toBe(true);
     expect(updateRecurringTemplateDef.needsApproval).toBe(true);
     expect(deleteRecurringTemplateDef.needsApproval).toBe(true);
     expect(activateRecurringTemplateDef.needsApproval).toBe(true);

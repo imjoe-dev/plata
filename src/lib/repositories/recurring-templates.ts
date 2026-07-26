@@ -54,6 +54,10 @@ export async function listDueTemplates(userId: string, now: Date): Promise<Templ
     );
 }
 
+export function buildInsertTemplate(input: TemplateInsert) {
+  return getDB().insert(recurring_templates).values(input).returning();
+}
+
 export function buildUpdateTemplate(userId: string, id: string, patch: Partial<TemplateInsert>) {
   return getDB()
     .update(recurring_templates)

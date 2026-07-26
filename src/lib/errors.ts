@@ -31,8 +31,9 @@ export class NotFoundError extends AppError {
   readonly resource: string;
   readonly id: string;
 
-  constructor(resource: string, id: string) {
-    super(404, `${resource} not found: ${id}`);
+  constructor(resource: string, id: string, itemIndex?: number) {
+    const prefix = itemIndex !== undefined ? `item ${itemIndex}: ` : "";
+    super(404, `${prefix}${resource} not found: ${id}`);
     this.resource = resource;
     this.id = id;
   }
