@@ -13,12 +13,10 @@ interface ChatContextValue {
   isLoading: boolean;
   error: Error | undefined;
   addToolApprovalResponse: ReturnType<typeof usePlataChat>["addToolApprovalResponse"];
-  /** The Chat Session in view: the route's param, or — for a chat whose first exchange is
-   *  still in flight — the id minted below, which the route param hasn't caught up to yet.
-   *  Empty only on the landing route before anything has been sent. */
+  /** The route's param, falling back to a minted id the route hasn't caught up to yet. Empty
+   *  only on the landing route before anything has been sent. */
   sessionId: string;
-  /** Sends `text` into the Chat Session in view, starting a new one when there isn't one.
-   *  Returns false, doing nothing, while a send is already in flight. */
+  /** Starts a new Chat Session when there isn't one. Returns false while a send is in flight. */
   submit: (text: string) => boolean;
   resetChat: () => void;
 }
@@ -36,9 +34,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const routeSessionId = useParams({ strict: false })?.sessionId;
-  // The id minted for a brand-new chat, held only until navigation lands on its route. Without
-  // it there'd be a window where nothing knows which Chat Session is in view — which is what
-  // the landing route used to paper over with its own state.
+  // Covers the window where a brand-new chat has been sent but navigation hasn't landed, so
+  // nothing else knows which Chat Session is in view.
   const [mintedSessionId, setMintedSessionId] = useState<string | undefined>(undefined);
   const loadedSessionIdRef = useRef<string | undefined>(undefined);
   const wasLoadingRef = useRef(false);
@@ -57,9 +54,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSessionId, messagesQuery.data]);
 
-  // Errors surface as a toast rather than inline: it carries the actual message (rate limits,
-  // validation) where the old inline banner showed one hardcoded generic string, and toasts are
-  // this app's error channel.
   useEffect(() => {
     if (!chat.error) return;
     toastManager.add({
@@ -99,10 +93,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       return true;
     }
 
-    // A brand-new chat. The id is minted client-side (ADR-0002) and marked already-loaded so
-    // the hydration query above skips it — the Chat Session doesn't exist server-side yet.
-    // The send is started before navigating, so shared chat state reflects it before the
-    // route changes and the landing route can keep rendering the conversation meanwhile.
+    // Minted client-side (ADR-0002) and marked already-loaded so the hydration query above skips
+    // it — the Chat Session doesn't exist server-side yet. Sending before navigating keeps the
+    // conversation on screen across the route change.
     const newSessionId = crypto.randomUUID();
     loadedSessionIdRef.current = newSessionId;
     setMintedSessionId(newSessionId);
@@ -114,8 +107,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   function resetChat() {
     chat.setMessages([]);
     loadedSessionIdRef.current = undefined;
-    // Dropped along with the messages: a stale minted id would otherwise outlive the chat it
-    // belongs to, and a later Session Approval would be recorded against the wrong Chat Session.
+    // Otherwise a later Session Approval lands on the Chat Session the user just left.
     setMintedSessionId(undefined);
   }
 

@@ -10,14 +10,13 @@ import { toastManager } from "@/components/ui/toast-manager";
 interface ToolCallApprovalActions {
   approve: () => void;
   deny: () => void;
-  /** Absent — not disabled — on delete Mutating Tools (docs/adr/0006) and on any part that
-   *  carries no approval, which is what keeps the third action out of the row entirely. */
+  /** Absent — not disabled — on delete Mutating Tools (docs/adr/0006) and on parts carrying
+   *  no approval, which keeps the third action out of the row entirely. */
   approveForSession?: () => void;
 }
 
 interface ToolApprovalContextValue {
   state: {
-    /** Chat Messages where Session Approval was granted during the current reply. */
     approvedMessageIds: ReadonlySet<string>;
   };
   actions: {
@@ -34,19 +33,14 @@ export function useToolApproval(): ToolApprovalContextValue {
 }
 
 /**
- * Owns Session Approval (docs/adr/0006) on the client: which Chat Messages have been granted it
- * mid-reply, the same-turn bridge that acts on that, and the request that persists the flag.
- *
- * Deliberately separate from ChatProvider, which is transport — streaming, hydration, History
- * freshness. This is policy, and it reads what it needs from that context rather than owning it.
+ * Owns Session Approval (docs/adr/0006) on the client. Deliberately separate from ChatProvider,
+ * which is transport — streaming, hydration, History freshness. This is policy.
  */
 export function ToolApprovalProvider({ children }: { children: React.ReactNode }) {
   const { messages, addToolApprovalResponse, sessionId } = useChatContext();
-  // Deliberately not cleared on resetChat or a Chat Session change. The grant has to outlive the
-  // `/` → `/chat/:id` swap, which happens mid-reply for a brand-new chat — clearing it there
-  // would strand the rest of that turn's Mutating Tools prompting again, the exact gap this
-  // bridges. Entries are keyed by Chat Message id, which is unique across Chat Sessions, so a
-  // stale entry can't match a later reply.
+  // Not cleared on reset or session change: the grant must outlive the `/` → `/chat/:id` swap,
+  // which happens mid-reply for a brand-new chat. Chat Message ids are unique across Chat
+  // Sessions, so a stale entry can't match a later reply.
   const [approvedMessageIds, setApprovedMessageIds] = useState<ReadonlySet<string>>(new Set());
   const { markResponded } = useSameTurnApprovalBridge({
     messages,
@@ -55,8 +49,7 @@ export function ToolApprovalProvider({ children }: { children: React.ReactNode }
   });
 
   function grantSessionApproval(approvalId: string, messageId: string) {
-    // Claimed before responding so the bridge's re-scan skips it — otherwise this call would be
-    // answered twice, once here and once by the effect that runs on the state change below.
+    // Claimed first, or the bridge's re-scan below answers this same call a second time.
     markResponded(approvalId);
     void addToolApprovalResponse({ id: approvalId, approved: true });
     setApprovedMessageIds((prev) => new Set(prev).add(messageId));
@@ -71,8 +64,7 @@ export function ToolApprovalProvider({ children }: { children: React.ReactNode }
 
   function forPart(part: ToolCallPart, messageId: string): ToolCallApprovalActions {
     const approvalId = part.approval?.id;
-    // No approval means nothing to answer — the actions exist but do nothing, rather than
-    // asserting an id that isn't there.
+    // Nothing to answer — no-ops rather than asserting an id that isn't there.
     if (!approvalId) return { approve: () => {}, deny: () => {} };
 
     return {

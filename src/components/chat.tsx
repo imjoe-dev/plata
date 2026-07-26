@@ -13,9 +13,8 @@ import { cn } from "@/lib/utils";
 
 type MessagePart = UIMessage["parts"][number];
 
-// The Chat Message and the part currently being rendered. Passed by context rather than props so
-// each part below reads exactly what it needs, and adding a part never means threading an
-// argument through Messages.
+// By context rather than props, so adding a part never means threading an argument through
+// Messages.
 const MessageContext = createContext<UIMessage | null>(null);
 const PartContext = createContext<MessagePart | null>(null);
 
@@ -72,8 +71,8 @@ function Messages({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-/** Picks the part component for whatever the assistant emitted. Unknown kinds render nothing
- *  rather than failing — the stream may carry part types this UI doesn't handle yet. */
+/** Unknown part kinds render nothing rather than failing — the stream may carry types this UI
+ *  doesn't handle yet. */
 function Part() {
   const part = usePart();
 

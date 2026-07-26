@@ -23,15 +23,14 @@ function HomePage() {
       <div className="bg-base flex h-screen flex-col items-center justify-center gap-6">
         <h1 className="text-fg-strong font-serif text-6xl leading-none tracking-tight">plata</h1>
         <p className="text-fg-muted text-sm">What would you like to know?</p>
-        {/* pb-0 drops the bottom-anchored spacing the composer carries in a conversation — here
-            the surrounding column centres it and supplies its own gap. */}
+        {/* The surrounding column supplies its own gap, so drop the composer's bottom spacing. */}
         <Chat.Composer className="pb-0" />
       </div>
     );
   }
 
-  // Kept rendering after the first message so the conversation is on screen without a blank
-  // frame while navigation to the new Chat Session lands.
+  // Kept after the first message so there's no blank frame while navigation to the new Chat
+  // Session lands.
   return (
     <Chat.Root>
       <Chat.Scroll>
