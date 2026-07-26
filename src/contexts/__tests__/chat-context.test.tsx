@@ -42,6 +42,18 @@ function mockChat(overrides: Partial<ReturnType<typeof usePlataChat>> = {}) {
   vi.mocked(usePlataChat).mockReturnValue(mockPlataChat(overrides));
 }
 
+/** A sendMessage mock typed against the real signature, so the id read back off it is a string. */
+function mockSendMessage() {
+  return vi.fn<ReturnType<typeof usePlataChat>["sendMessage"]>(() => Promise.resolve());
+}
+
+/** The (text, sessionId) the provider last sent, asserted present before it's destructured. */
+function lastSend(sendMessage: ReturnType<typeof mockSendMessage>) {
+  const lastCall = sendMessage.mock.lastCall;
+  expect(lastCall).toBeDefined();
+  return lastCall!;
+}
+
 // useQuery's real return type is a large discriminated union; narrowed to what ChatProvider reads.
 type MockQueryResult = { data: UIMessage[] | undefined; isError: boolean };
 
@@ -165,7 +177,7 @@ describe("ChatProvider hydration query", () => {
 
 describe("ChatProvider submit — first message of a new Chat Session", () => {
   it("mints a Chat Session id, sends against it, and navigates to that Chat Session", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
     mockChat({ sendMessage });
@@ -182,7 +194,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
 
     expect(accepted).toBe(true);
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    const [text, sessionId] = sendMessage.mock.lastCall!;
+    const [text, sessionId] = lastSend(sendMessage);
     expect(text).toBe("Categorize my Uber rides");
     expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
     expect(navigate).toHaveBeenCalledWith({
@@ -217,7 +229,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
   });
 
   it("marks a Chat Session started via submit as already loaded, skipping its GET hydration", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     mockChat({ sendMessage });
     vi.mocked(useParams).mockReturnValue({} as MockParams as ReturnType<typeof useParams>);
     const { rerender } = render(
@@ -229,7 +241,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
     act(() => {
       capturedContext!.submit("Hi");
     });
-    const [, mintedId] = sendMessage.mock.lastCall!;
+    const [, mintedId] = lastSend(sendMessage);
     vi.mocked(useParams).mockReturnValue({
       sessionId: mintedId,
     } as MockParams as ReturnType<typeof useParams>);
@@ -246,7 +258,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
   });
 
   it("exposes the minted id as the Chat Session in view until the route param catches up", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     mockChat({ sendMessage });
     render(
       <ChatProvider>
@@ -258,7 +270,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
       capturedContext!.submit("Hi");
     });
 
-    const [, mintedId] = sendMessage.mock.lastCall!;
+    const [, mintedId] = lastSend(sendMessage);
     expect(capturedContext!.sessionId).toBe(mintedId);
   });
 
@@ -342,7 +354,7 @@ describe("ChatProvider submit — first message of a new Chat Session", () => {
 
 describe("ChatProvider submit — an existing Chat Session", () => {
   it("sends against the route's Chat Session and does not navigate", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
     vi.mocked(useParams).mockReturnValue({
@@ -382,7 +394,7 @@ describe("ChatProvider submit — an existing Chat Session", () => {
 
 describe("ChatProvider submit — in-flight guard", () => {
   it("refuses to start a new Chat Session while a send is already in flight", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
     mockChat({ sendMessage, isLoading: true });
@@ -403,7 +415,7 @@ describe("ChatProvider submit — in-flight guard", () => {
   });
 
   it("refuses to send into an existing Chat Session while a send is already in flight", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     vi.mocked(useParams).mockReturnValue({
       sessionId: "sess_1",
     } as MockParams as ReturnType<typeof useParams>);
@@ -442,7 +454,7 @@ describe("ChatProvider resetChat", () => {
   });
 
   it("drops the minted id, so a later Session Approval can't land on the abandoned Chat Session", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     mockChat({ sendMessage });
     render(
       <ChatProvider>
@@ -463,7 +475,7 @@ describe("ChatProvider resetChat", () => {
   });
 
   it("mints a fresh id for the next chat rather than reusing the cleared one", () => {
-    const sendMessage = vi.fn();
+    const sendMessage = mockSendMessage();
     mockChat({ sendMessage });
     render(
       <ChatProvider>
@@ -474,7 +486,7 @@ describe("ChatProvider resetChat", () => {
     act(() => {
       capturedContext!.submit("First");
     });
-    const [, firstId] = sendMessage.mock.lastCall!;
+    const [, firstId] = lastSend(sendMessage);
 
     act(() => {
       capturedContext!.resetChat();
@@ -482,7 +494,7 @@ describe("ChatProvider resetChat", () => {
     act(() => {
       capturedContext!.submit("Second");
     });
-    const [, secondId] = sendMessage.mock.lastCall!;
+    const [, secondId] = lastSend(sendMessage);
 
     expect(secondId).not.toBe(firstId);
     expect(secondId).toMatch(/^[0-9a-f-]{36}$/);

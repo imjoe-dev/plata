@@ -4,7 +4,7 @@ import type { UIMessage } from "@tanstack/ai-react";
 import type { usePlataChat } from "@/hooks/use-plata-chat";
 import { isDeleteTool } from "@/lib/ai/tool-call-display-state";
 
-interface UseAutoApprovalOptions {
+interface UseSameTurnApprovalBridgeOptions {
   messages: UIMessage[];
   /** Chat Messages where Session Approval was granted mid-reply. */
   approvedMessageIds: ReadonlySet<string>;
@@ -20,11 +20,11 @@ interface UseAutoApprovalOptions {
  *
  * Delete Mutating Tools are skipped unconditionally, mid-bridge included.
  */
-export function useAutoApproval({
+export function useSameTurnApprovalBridge({
   messages,
   approvedMessageIds,
   addToolApprovalResponse,
-}: UseAutoApprovalOptions) {
+}: UseSameTurnApprovalBridgeOptions) {
   // Approval ids already spoken for, so re-scans can't respond to the same call twice. A ref,
   // not state: it must be current the instant it's read, including within one render pass.
   const respondedApprovalIdsRef = useRef<Set<string>>(new Set());

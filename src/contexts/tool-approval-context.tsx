@@ -2,7 +2,7 @@ import { createContext, use, useState } from "react";
 import type { ToolCallPart } from "@tanstack/ai-client";
 
 import { useChatContext } from "@/contexts/chat-context";
-import { useAutoApproval } from "@/hooks/use-auto-approval";
+import { useSameTurnApprovalBridge } from "@/hooks/use-same-turn-approval-bridge";
 import { isDeleteTool } from "@/lib/ai/tool-call-display-state";
 import { apiPost } from "@/lib/ai/fetch";
 import { toastManager } from "@/components/ui/toast-manager";
@@ -42,8 +42,13 @@ export function useToolApproval(): ToolApprovalContextValue {
  */
 export function ToolApprovalProvider({ children }: { children: React.ReactNode }) {
   const { messages, addToolApprovalResponse, sessionId } = useChatContext();
+  // Deliberately not cleared on resetChat or a Chat Session change. The grant has to outlive the
+  // `/` → `/chat/:id` swap, which happens mid-reply for a brand-new chat — clearing it there
+  // would strand the rest of that turn's Mutating Tools prompting again, the exact gap this
+  // bridges. Entries are keyed by Chat Message id, which is unique across Chat Sessions, so a
+  // stale entry can't match a later reply.
   const [approvedMessageIds, setApprovedMessageIds] = useState<ReadonlySet<string>>(new Set());
-  const { markResponded } = useAutoApproval({
+  const { markResponded } = useSameTurnApprovalBridge({
     messages,
     approvedMessageIds,
     addToolApprovalResponse,
