@@ -247,13 +247,40 @@ export const chat_messages = sqliteTable(
   ],
 );
 
-export const users_relations = relations(users, ({ many }) => ({
+export const user_preferences = sqliteTable("user_preferences", {
+  user_id: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  default_currency: text("default_currency", { enum: [...CURRENCY_VALUES] })
+    .notNull()
+    .default("USD"),
+  created_at: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  updated_at: integer("updated_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+export const users_relations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   categories: many(categories),
   transactions: many(transactions),
   recurring_templates: many(recurring_templates),
   chat_sessions: many(chat_sessions),
+  preferences: one(user_preferences, {
+    fields: [users.id],
+    references: [user_preferences.user_id],
+  }),
+}));
+
+export const user_preferences_relations = relations(user_preferences, ({ one }) => ({
+  user: one(users, {
+    fields: [user_preferences.user_id],
+    references: [users.id],
+  }),
 }));
 
 export const sessions_relations = relations(sessions, ({ one }) => ({

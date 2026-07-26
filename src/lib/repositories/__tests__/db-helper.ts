@@ -42,6 +42,7 @@ export function resetTestDB() {
   testDB.db.run(sql`DELETE FROM categories`);
   testDB.db.run(sql`DELETE FROM chat_messages`);
   testDB.db.run(sql`DELETE FROM chat_sessions`);
+  testDB.db.run(sql`DELETE FROM user_preferences`);
   testDB.db.run(sql`DELETE FROM users`);
 }
 

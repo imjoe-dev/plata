@@ -29,6 +29,13 @@
       "when": 1784398585262,
       "tag": "0003_brave_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785080988979,
+      "tag": "0004_low_logan",
+      "breakpoints": true
     }
   ]
 }

@@ -1,11 +1,22 @@
+import type { BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { env } from "cloudflare:workers";
 import * as schema from "@/db/schema";
 import { getDB } from "@/db";
+import { createDefaultUserPreferences } from "./hooks";
 
 export function getAuthConfig() {
   return {
     database: drizzleAdapter(getDB(), { provider: "sqlite", usePlural: true, schema }),
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            await createDefaultUserPreferences(user.id);
+          },
+        },
+      },
+    },
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID,
@@ -52,5 +63,5 @@ export function getAuthConfig() {
         updatedAt: "updated_at",
       },
     },
-  };
+  } satisfies BetterAuthOptions;
 }
