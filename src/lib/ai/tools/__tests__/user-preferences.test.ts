@@ -12,6 +12,7 @@ import {
   UserPreferencesRow,
   getUserPreferencesDef,
   updateUserPreferencesDef,
+  updateUserPreferencesUngatedDef,
 } from "@/lib/ai/tools/user-preferences";
 
 describe("user-preferences tool definitions", () => {
@@ -49,5 +50,10 @@ describe("user-preferences tool definitions", () => {
 
   it("get_user_preferences has no needsApproval field", () => {
     expect(getUserPreferencesDef.needsApproval).toBeUndefined();
+  });
+
+  it("Session Approval variant of update_user_preferences has no needsApproval field, under the same tool name", () => {
+    expect(updateUserPreferencesUngatedDef.needsApproval).toBeUndefined();
+    expect(updateUserPreferencesUngatedDef.name).toBe(updateUserPreferencesDef.name);
   });
 });

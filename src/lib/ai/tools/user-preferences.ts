@@ -28,14 +28,20 @@ export const getUserPreferencesDef = toolDefinition({
   outputSchema: UserPreferencesRow,
 });
 
-export const updateUserPreferencesDef = toolDefinition({
+const updateUserPreferencesBase = {
   name: "update_user_preferences",
   description:
     "Update the current user's preferences. Currently supports changing the default currency (USD or COP).",
   inputSchema: UpdateUserPreferencesInput,
   outputSchema: UserPreferencesRow,
+} as const;
+
+export const updateUserPreferencesDef = toolDefinition({
+  ...updateUserPreferencesBase,
   needsApproval: true,
 });
+/** Session Approval (docs/adr/0006) variant: same tool, no approval gate. */
+export const updateUserPreferencesUngatedDef = toolDefinition(updateUserPreferencesBase);
 
 // The service passes the Drizzle row through unchanged (Date timestamps). Previously such rows
 // crossed a REST/JSON boundary, which serialized dates to ISO strings for free; calling the
@@ -52,14 +58,35 @@ function toUserPreferencesRow(row: UserPreferencesServiceRow): UserPreferencesRo
   };
 }
 
+async function getUserPreferencesExecute(
+  _input: z.input<typeof GetUserPreferencesInput>,
+  ctx: { context: ToolContext },
+) {
+  const row = await getUserPreferences(ctx.context.userId);
+  return toUserPreferencesRow(row);
+}
+
+async function updateUserPreferencesExecute(
+  input: z.input<typeof UpdateUserPreferencesInput>,
+  ctx: { context: ToolContext },
+) {
+  await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
+  const row = await updateUserPreferences(ctx.context.userId, input.defaultCurrency);
+  return toUserPreferencesRow(row);
+}
+
 export const userPreferencesServerTools = [
-  getUserPreferencesDef.server<ToolContext>(async (_input, ctx) => {
-    const row = await getUserPreferences(ctx.context.userId);
-    return toUserPreferencesRow(row);
-  }),
-  updateUserPreferencesDef.server<ToolContext>(async (input, ctx) => {
-    await checkRateLimit(env.MUTATION_RATE_LIMITER, ctx.context.userId);
-    const row = await updateUserPreferences(ctx.context.userId, input.defaultCurrency);
-    return toUserPreferencesRow(row);
-  }),
+  getUserPreferencesDef.server<ToolContext>(getUserPreferencesExecute),
+  updateUserPreferencesDef.server<ToolContext>(updateUserPreferencesExecute),
+] as const;
+
+/**
+ * Session Approval (docs/adr/0006) variant: update_user_preferences ungated. Selected instead
+ * of `userPreferencesServerTools` by the chat route when a Chat Session has granted Session
+ * Approval — built once here at module scope, not per request. No delete tool exists for this
+ * resource, so there's nothing to carve out.
+ */
+export const userPreferencesServerToolsApproved = [
+  getUserPreferencesDef.server<ToolContext>(getUserPreferencesExecute),
+  updateUserPreferencesUngatedDef.server<ToolContext>(updateUserPreferencesExecute),
 ] as const;

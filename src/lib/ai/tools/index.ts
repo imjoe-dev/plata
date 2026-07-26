@@ -4,7 +4,7 @@ import {
   recurringTemplateServerToolsApproved,
 } from "./recurring-templates";
 import { transactionServerTools, transactionServerToolsApproved } from "./transactions";
-import { userPreferencesServerTools } from "./user-preferences";
+import { userPreferencesServerTools, userPreferencesServerToolsApproved } from "./user-preferences";
 
 export const allToolDefinitions = [
   ...categoryServerTools,
@@ -24,7 +24,7 @@ export const approvedToolDefinitions = [
   ...categoryServerToolsApproved,
   ...transactionServerToolsApproved,
   ...recurringTemplateServerToolsApproved,
-  ...userPreferencesServerTools,
+  ...userPreferencesServerToolsApproved,
 ] as const;
 
 export function selectToolDefinitions(sessionApproved: boolean) {

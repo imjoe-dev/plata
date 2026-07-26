@@ -12,7 +12,10 @@ vi.mock("cloudflare:workers", () => ({
 
 import { env } from "cloudflare:workers";
 import * as svc from "@/lib/services/user-preferences";
-import { userPreferencesServerTools } from "@/lib/ai/tools/user-preferences";
+import {
+  userPreferencesServerTools,
+  userPreferencesServerToolsApproved,
+} from "@/lib/ai/tools/user-preferences";
 
 const [getTool, updateTool] = userPreferencesServerTools;
 
@@ -44,6 +47,15 @@ describe("needsApproval survives .server() binding", () => {
 
   it("leaves needsApproval unset on the bound get tool", () => {
     expect(getTool.needsApproval).toBeUndefined();
+  });
+});
+
+describe("userPreferencesServerToolsApproved (Session Approval variant)", () => {
+  it("leaves update_user_preferences ungated", () => {
+    const tool = userPreferencesServerToolsApproved.find(
+      (t) => t.name === "update_user_preferences",
+    );
+    expect(tool?.needsApproval).toBeUndefined();
   });
 });
 
