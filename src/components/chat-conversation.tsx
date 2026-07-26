@@ -13,6 +13,7 @@ interface ChatConversationProps {
   error: Error | undefined;
   onSubmit: (text: string) => boolean;
   addToolApprovalResponse: (response: { id: string; approved: boolean }) => void;
+  messagesClassName?: string;
 }
 
 export function ChatConversation({
@@ -20,6 +21,7 @@ export function ChatConversation({
   error,
   onSubmit,
   addToolApprovalResponse,
+  messagesClassName = "mx-auto max-w-4xl px-4 py-4",
 }: ChatConversationProps) {
   useEffect(() => {
     if (!error) return;
@@ -39,7 +41,7 @@ export function ChatConversation({
 
       <ScrollArea.Root className="flex-1">
         <ScrollArea.Viewport>
-          <ScrollArea.Content className="mx-auto max-w-4xl px-4 py-4">
+          <ScrollArea.Content className={messagesClassName}>
             <ChatMessages.List className="overflow-y-visible p-0">
               {messages.map((message: UIMessage) =>
                 message.role === "user" ? (
