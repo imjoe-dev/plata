@@ -25,7 +25,7 @@ function useBufferedMessages(raw: UIMessage[]) {
 
 export const plataChatOptions = createChatClientOptions({
   connection: fetchServerSentEvents("/api/chat"),
-  forwardedProps: { model_id: "gpt-5.4-mini" },
+  forwardedProps: { model_id: "gpt-5.6-luna" },
 });
 
 export function usePlataChat() {
@@ -33,7 +33,7 @@ export function usePlataChat() {
   // it, even mid-synchronous-call. Relies on ChatClient reading forwardedProps by reference
   // rather than cloning it — an unwritten contract that a library upgrade could silently break.
   const forwardedPropsRef = useRef<{ model_id: string; session_id?: string }>({
-    model_id: "gpt-5.4-mini",
+    model_id: "gpt-5.6-luna",
   });
 
   const chat = useChat({

@@ -2,11 +2,13 @@ import {
   chat,
   chatParamsFromRequestBody,
   convertMessagesToModelMessages,
+  createModel,
+  extendAdapter,
   modelMessageToUIMessage,
   toServerSentEventsResponse,
   type ChatMiddleware,
 } from "@tanstack/ai";
-import { createOpenaiChat, openaiText } from "@tanstack/ai-openai";
+import { createOpenaiChat } from "@tanstack/ai-openai";
 import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
@@ -17,11 +19,18 @@ import { selectToolDefinitions } from "@/lib/ai/tools/index";
 import { checkRateLimit, requireUser, toErrorResponse } from "@/lib/api/http";
 import { appendMessage, getOrCreateSession } from "@/lib/services/chat";
 
-const SUPPORTED_MODELS = ["gpt-5.4-mini"] as const;
+const SUPPORTED_MODELS = ["gpt-5.6-luna"] as const;
 type SupportedModel = (typeof SUPPORTED_MODELS)[number];
 
-const adapters: Record<SupportedModel, ReturnType<typeof openaiText>> = {
-  "gpt-5.4-mini": createOpenaiChat("gpt-5.4-mini", env.OPENAI_API_KEY),
+// gpt-5.6-luna isn't in @tanstack/ai-openai's built-in model union, and no newer release is
+// reachable without moving @tanstack/ai off 0.28. extendAdapter preserves createOpenaiChat's
+// signature, so the key still comes from the Workers env.
+const plataOpenai = extendAdapter(createOpenaiChat, [
+  createModel("gpt-5.6-luna", ["text"]),
+] as const);
+
+const adapters: Record<SupportedModel, ReturnType<typeof plataOpenai>> = {
+  "gpt-5.6-luna": plataOpenai("gpt-5.6-luna", env.OPENAI_API_KEY),
 };
 
 const chatForwardedPropsSchema = z.object({

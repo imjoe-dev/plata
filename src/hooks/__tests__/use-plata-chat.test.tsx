@@ -37,7 +37,7 @@ describe("plataChatOptions", () => {
   });
 
   it("forwards the model_id prop", () => {
-    expect(plataChatOptions.forwardedProps).toEqual({ model_id: "gpt-5.4-mini" });
+    expect(plataChatOptions.forwardedProps).toEqual({ model_id: "gpt-5.6-luna" });
   });
 
   it("targets /api/chat", () => {
@@ -50,7 +50,7 @@ describe("usePlataChat sendMessage", () => {
     renderHook(() => usePlataChat());
 
     expect(useChat).toHaveBeenCalledWith(
-      expect.objectContaining({ forwardedProps: { model_id: "gpt-5.4-mini" } }),
+      expect.objectContaining({ forwardedProps: { model_id: "gpt-5.6-luna" } }),
     );
   });
 
@@ -66,7 +66,7 @@ describe("usePlataChat sendMessage", () => {
     void result.current.sendMessage("Categorize my Uber rides", "sess_new");
 
     expect(forwardedProps.session_id).toBe("sess_new");
-    expect(forwardedProps.model_id).toBe("gpt-5.4-mini");
+    expect(forwardedProps.model_id).toBe("gpt-5.6-luna");
   });
 
   it("calls the underlying single-argument sendMessage with just the content", () => {

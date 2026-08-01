@@ -21,6 +21,8 @@ vi.mock("@tanstack/ai", () => ({
     client: (execute?: any) => ({ ...def, execute }),
   })),
   convertMessagesToModelMessages: vi.fn((messages: any) => messages),
+  createModel: vi.fn((name: any, input: any) => ({ name, input })),
+  extendAdapter: vi.fn((factory: any) => factory),
   modelMessageToUIMessage: vi.fn((message: any) => ({
     id: "um_1",
     role: "user",
@@ -29,7 +31,6 @@ vi.mock("@tanstack/ai", () => ({
 }));
 vi.mock("@tanstack/ai-openai", () => ({
   createOpenaiChat: vi.fn(() => ({})),
-  openaiText: vi.fn(() => ({})),
 }));
 vi.mock("@/lib/api/http", async () => {
   const actual = await vi.importActual("@/lib/api/http");
@@ -65,7 +66,7 @@ function makeRequest(body: Record<string, unknown> = {}) {
     method: "POST",
     body: JSON.stringify({
       messages: [{ role: "user", content: "hi" }],
-      forwardedProps: { model_id: "gpt-5.4-mini", session_id: SESSION_ID },
+      forwardedProps: { model_id: "gpt-5.6-luna", session_id: SESSION_ID },
       ...body,
     }),
   });
